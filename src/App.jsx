@@ -488,6 +488,7 @@ export default function App() {
             leads={leads}
             onCallLead={handleCallLead}
             onSendReport={(lead) => setReportLead(lead)}
+            onLeadCreated={(newLead) => setLeads(prev => [newLead, ...prev])}
           />
         );
       case "followup":
