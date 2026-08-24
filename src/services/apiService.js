@@ -255,49 +255,35 @@ export const uploadPropertyListingApi = async (data) => {
 
 export const saveLeadApi = async (leadData) => {
   try {
+    const payload = {
+      name: leadData.name || leadData.lead_name,
+      phone: leadData.phone,
+      email: leadData.email || "",
+      priority: leadData.priority || "HOT",
+      status: leadData.status || "NEW",
+      service: leadData.service || "Home Buying",
+      bhk_type: leadData.bhkType || leadData.bhk_type || "2 BHK",
+      location: leadData.location || "Mumbai",
+      source: leadData.source || "Direct Walk-in",
+      notes: leadData.notes || ""
+    };
+    if (leadData.id && !leadData.id.startsWith("LEAD-17") && !leadData.id.startsWith("LEAD-00")) {
+      payload.lead_id = leadData.id;
+    }
+
     let res = await fetch(`${FRAPPE_API_URL}.save_lead`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lead_id: leadData.id,
-        name: leadData.name || leadData.lead_name,
-        phone: leadData.phone,
-        email: leadData.email,
-        priority: leadData.priority || "HOT",
-        status: leadData.status || "NEW",
-        service: leadData.service || "Home Buying",
-        bhk_type: leadData.bhkType || leadData.bhk_type || "2 BHK",
-        location: leadData.location || "Mumbai",
-        source: leadData.source || "Manual Direct",
-        notes: leadData.notes || ""
-      })
+      body: JSON.stringify(payload)
     });
-    if (!res.ok) {
-      res = await fetch(`${FRAPPE_DIRECT_URL}.save_lead`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lead_id: leadData.id,
-          name: leadData.name || leadData.lead_name,
-          phone: leadData.phone,
-          email: leadData.email,
-          priority: leadData.priority || "HOT",
-          status: leadData.status || "NEW",
-          service: leadData.service || "Home Buying",
-          bhk_type: leadData.bhkType || leadData.bhk_type || "2 BHK",
-          location: leadData.location || "Mumbai",
-          source: leadData.source || "Manual Direct",
-          notes: leadData.notes || ""
-        })
-      });
-    }
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      return data.message || data;
     }
   } catch (e) {
-    console.log("[Save Lead Notice] Offline mode active.");
+    console.log("[saveLeadApi Error]", e);
   }
-  return { status: "success", message: "Lead saved successfully to CRM Database!" };
+  return null;
 };
 
 export const claimLeadsApi = async (leadIds, pointsUsed) => {
