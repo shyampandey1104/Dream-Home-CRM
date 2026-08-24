@@ -10,7 +10,7 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
   const [service, setService] = useState("Home Buying");
   const [bhkType, setBhkType] = useState("2 BHK");
   const [location, setLocation] = useState("");
-  const [source, setSource] = useState("Direct Inquiry");
+  const [source, setSource] = useState("Direct Walk-in");
   const [priority, setPriority] = useState("HOT");
   const [notes, setNotes] = useState("");
   const [alertConfig, setAlertConfig] = useState(null);
