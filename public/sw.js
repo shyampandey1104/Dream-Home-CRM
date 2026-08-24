@@ -1,10 +1,13 @@
-const CACHE_NAME = "leadcall-crm-v1";
+const CACHE_NAME = "dreamhomes-crm-v2";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/src/main.jsx",
-  "/src/style.css"
+  "/apple-touch-icon.png",
+  "/apple-touch-icon-precomposed.png",
+  "/dreamhomes_gold_logo.jpg",
+  "/icon-192.png",
+  "/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -20,17 +23,24 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.map((key) => caches.delete(key))
       );
     })
   );
   self.clients.claim();
 });
 
+// Network-First for HTML/manifest, Cache-First for static assets
 self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    })
-  );
+  if (event.request.mode === "navigate" || event.request.url.includes("index.html") || event.request.url.includes("manifest.json")) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+  } else {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        return cachedResponse || fetch(event.request);
+      })
+    );
+  }
 });
