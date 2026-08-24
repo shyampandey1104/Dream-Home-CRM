@@ -3,18 +3,13 @@
   "name": "Dream Homes - Real Estate CRM & Sales Portal",
   "icons": [
     {
-      "src": "/dreamhomes_logo.png",
+      "src": "/apple-touch-icon.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/icon-512.png",
-      "type": "image/png",
+      "src": "/dreamhomes_gold_logo.jpg",
+      "type": "image/jpeg",
       "sizes": "512x512"
     }
   ],
