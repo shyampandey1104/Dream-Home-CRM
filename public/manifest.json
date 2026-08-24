@@ -1,0 +1,26 @@
+{
+  "short_name": "Dream Homes",
+  "name": "Dream Homes - Real Estate CRM & Sales Portal",
+  "icons": [
+    {
+      "src": "/dreamhomes_logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait"
+}

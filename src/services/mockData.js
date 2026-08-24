@@ -1,0 +1,202 @@
+// Real Estate CRM Mock Database & Initial State
+
+export const INITIAL_LEADS = [
+  {
+    id: "LEAD-0007",
+    name: "Rajesh Kumar",
+    phone: "+91 98201 44521",
+    email: "rajesh.k@gmail.com",
+    priority: "HOT",
+    status: "NEW",
+    service: "Home Buying",
+    bhkType: "3 BHK",
+    location: "Andheri",
+    source: "Google Ads",
+    timeAgo: "38 minutes ago",
+    createdAt: new Date(Date.now() - 38 * 60 * 1000).toISOString(),
+    callCount: 0,
+    callbackTime: null,
+    notes: "Interested in 3BHK flat purchase in Andheri West.",
+    history: []
+  },
+  {
+    id: "LEAD-0033",
+    name: "Kiran Bhat",
+    phone: "+91 98700 12345",
+    email: "kiran.bhat@yahoo.com",
+    priority: "HOT",
+    status: "NEW",
+    service: "Site Visit Booking",
+    bhkType: "2 BHK",
+    location: "Navi Mumbai",
+    source: "Google Ads",
+    timeAgo: "about 3 hours ago",
+    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+    callCount: 0,
+    callbackTime: null,
+    notes: "Looking for site visit for 2BHK flat.",
+    history: []
+  },
+  {
+    id: "LEAD-0003",
+    name: "Lakshmi Rao",
+    phone: "+91 99302 88471",
+    email: "lakshmi.rao@outlook.com",
+    priority: "WARM",
+    status: "NEW",
+    service: "Home Buying",
+    bhkType: "2 BHK",
+    location: "Navi Mumbai",
+    source: "Website",
+    timeAgo: "about 22 hours ago",
+    createdAt: new Date(Date.now() - 22 * 3600 * 1000).toISOString(),
+    callCount: 0,
+    callbackTime: null,
+    notes: "Enquired through website lead form for 2BHK Palm Beach Road.",
+    history: []
+  },
+  {
+    id: "LEAD-0013",
+    name: "Deepak Reddy",
+    phone: "+91 98112 33445",
+    email: "deepak.reddy@gmail.com",
+    priority: "WARM",
+    status: "NEW",
+    service: "Property Valuation",
+    bhkType: "Penthouse / Villa",
+    location: "Thane",
+    source: "Google Ads",
+    timeAgo: "5 days ago",
+    createdAt: new Date(Date.now() - 5 * 86400 * 1000).toISOString(),
+    callCount: 0,
+    callbackTime: null,
+    notes: "Penthouse site visit requested.",
+    history: []
+  },
+  {
+    id: "LEAD-0018",
+    name: "Sanjay Gupta",
+    phone: "+91 97690 55432",
+    email: "sanjay.gupta@corp.in",
+    priority: "COLD",
+    status: "NEW",
+    service: "Home Buying",
+    bhkType: "4 BHK",
+    location: "Andheri",
+    source: "Referral",
+    timeAgo: "9 days ago",
+    createdAt: new Date(Date.now() - 9 * 86400 * 1000).toISOString(),
+    callCount: 0,
+    callbackTime: null,
+    notes: "Referred by Ramesh Shah for 4BHK home buying.",
+    history: []
+  },
+  {
+    id: "LEAD-0020",
+    name: "Priyanka Iyer",
+    phone: "+91 98450 77123",
+    email: "priyanka.iyer@gmail.com",
+    priority: "WARM",
+    status: "FOLLOWUP_TODAY",
+    service: "Home Buying",
+    bhkType: "3 BHK",
+    location: "Goregaon",
+    source: "Referral",
+    timeAgo: "in about 9 hours",
+    createdAt: new Date(Date.now() - 2 * 86400 * 1000).toISOString(),
+    callCount: 1,
+    callbackTime: new Date(Date.now() + 9 * 3600 * 1000).toISOString(),
+    notes: "Needs 3BHK property valuation & site visit booking.",
+    history: [
+      { date: "Yesterday, 4:30 PM", outcome: "Connected", note: "Explained services, requested callback today." }
+    ]
+  },
+  {
+    id: "LEAD-0017",
+    name: "Meera Patel",
+    phone: "+91 98921 00987",
+    email: "meera.patel@rediffmail.com",
+    priority: "WARM",
+    status: "FOLLOWUP_TODAY",
+    service: "Site Visit Booking",
+    bhkType: "1 BHK",
+    location: "Goregaon",
+    source: "Walk-in",
+    timeAgo: "in about 17 hours",
+    createdAt: new Date(Date.now() - 4 * 86400 * 1000).toISOString(),
+    callCount: 3,
+    callbackTime: new Date(Date.now() + 17 * 3600 * 1000).toISOString(),
+    notes: "Schedule site visit team.",
+    history: [
+      { date: "3 days ago", outcome: "Connected", note: "Sent quote via WhatsApp." },
+      { date: "2 days ago", outcome: "Busy", note: "Tried calling, line busy." },
+      { date: "Yesterday", outcome: "Connected", note: "Confirmed schedule for today." }
+    ]
+  },
+  {
+    id: "LEAD-0049",
+    name: "Kiran Bhat",
+    phone: "+91 98200 99887",
+    email: "kiran.bhat.thane@gmail.com",
+    priority: "WARM",
+    status: "FOLLOWUP",
+    service: "Home Buying",
+    bhkType: "2 BHK",
+    location: "Thane",
+    source: "Referral",
+    timeAgo: "in 1 day",
+    createdAt: new Date(Date.now() - 6 * 86400 * 1000).toISOString(),
+    callCount: 4,
+    callbackTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+    notes: "Checking builder credentials and layout plan.",
+    history: []
+  }
+];
+
+export const INITIAL_METRICS = {
+  mtdCallsMade: 156,
+  mtdCallsTarget: 80,
+  followupsDone: 42,
+  hotLeadsPassed: 18,
+  visitsBooked: 12,
+  conversionsAmount: "₹245K",
+  conversionsCount: 7,
+  callsMomPercent: 16.4,
+  followupsMomPercent: 10.5,
+  hotLeadsMomPercent: 28.5,
+  visitsMomPercent: 33.3,
+  conversionsMomPercent: 40.0
+};
+
+export const SOCIAL_LEAD_TEMPLATES = [
+  {
+    name: "Aarav Sharma",
+    phone: "+91 98205 91823",
+    source: "Instagram Ads",
+    service: "Home Buying",
+    bhkType: "3 BHK",
+    location: "Bandra West",
+    notes: "Clicked Instagram Ad 'Luxury 3BHK Bandra Sea View'. Requested immediate call back.",
+    priority: "HOT"
+  },
+  {
+    name: "Neha Verma",
+    phone: "+91 98731 44510",
+    source: "Facebook Ads",
+    service: "Site Visit Booking",
+    bhkType: "2 BHK",
+    location: "Worli",
+    notes: "Submitted Facebook Instant Lead Form for Apartment Site Visit.",
+    priority: "HOT"
+  },
+  {
+    name: "Vikram Malhotra",
+    phone: "+91 99100 88219",
+    source: "Direct Inbound Call",
+    service: "Property Valuation",
+    bhkType: "4 BHK",
+    location: "Juhu",
+    notes: "Direct caller inquiring about 4BHK Penthouse site visit booking.",
+    priority: "HOT"
+  }
+];
