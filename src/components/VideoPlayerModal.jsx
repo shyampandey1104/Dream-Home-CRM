@@ -1,55 +1,60 @@
 import React from "react";
-import { X, Play, Share2, ExternalLink, Video as VideoIcon, Film } from "lucide-react";
+import { X, Play, Share2, ExternalLink, Film } from "lucide-react";
 
 export default function VideoPlayerModal({ isOpen, onClose, video }) {
   if (!isOpen || !video) return null;
 
-  // Helper to extract YouTube Embed URL
-  const getEmbedUrl = (url) => {
-    if (!url) return null;
-    if (url.includes("youtube.com/embed/")) return url;
-    
-    // Check for youtube.com/watch?v=ID
+  // Extract or generate YouTube Embed URL
+  const getEmbedInfo = (url) => {
+    if (!url) {
+      return { isEmbed: true, src: "https://www.youtube.com/embed/kXYiU_JCYtU?autoplay=1&rel=0" };
+    }
+
+    if (url.includes("youtube.com/embed/")) {
+      return { isEmbed: true, src: url.includes("autoplay") ? url : `${url}?autoplay=1&rel=0` };
+    }
+
     const watchMatch = url.match(/[?&]v=([^&]+)/);
-    if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}?autoplay=1`;
+    if (watchMatch) {
+      return { isEmbed: true, src: `https://www.youtube.com/embed/${watchMatch[1]}?autoplay=1&rel=0` };
+    }
 
-    // Check for youtu.be/ID
     const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
-    if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1`;
+    if (shortMatch) {
+      return { isEmbed: true, src: `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&rel=0` };
+    }
 
-    // Check for youtube.com/shorts/ID
     const shortsMatch = url.match(/shorts\/([^?&]+)/);
-    if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1`;
+    if (shortsMatch) {
+      return { isEmbed: true, src: `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&rel=0` };
+    }
 
-    return url;
-  };
-
-  const isDirectVideo = (url) => {
-    if (!url) return false;
     const lower = url.toLowerCase();
-    return (
+    if (
       lower.startsWith("blob:") || 
       lower.startsWith("data:video") || 
       lower.endsWith(".mp4") || 
       lower.endsWith(".webm") || 
       lower.endsWith(".mov")
-    );
+    ) {
+      return { isEmbed: false, src: url };
+    }
+
+    // Default to YouTube embed
+    return { isEmbed: true, src: "https://www.youtube.com/embed/kXYiU_JCYtU?autoplay=1&rel=0" };
   };
 
-  const embedUrl = getEmbedUrl(video.url || video.video_url);
-  const directVideo = isDirectVideo(video.url || video.video_url);
-
-  // Fallback demo video stream if no valid URL provided
-  const fallbackVideoSrc = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+  const videoTarget = video.url || video.video_url;
+  const { isEmbed, src } = getEmbedInfo(videoTarget);
 
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15, 23, 42, 0.9)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
+        background: "rgba(15, 23, 42, 0.92)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
         zIndex: 999999,
         display: "flex",
         alignItems: "center",
@@ -67,7 +72,7 @@ export default function VideoPlayerModal({ isOpen, onClose, video }) {
           maxWidth: "420px",
           display: "flex",
           flexDirection: "column",
-          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.8)",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.85)",
           border: "1px solid #334155",
           overflow: "hidden",
           color: "#ffffff"
@@ -75,19 +80,19 @@ export default function VideoPlayerModal({ isOpen, onClose, video }) {
       >
         {/* Header */}
         <div style={{
-          padding: "1rem 1.25rem",
+          padding: "0.85rem 1.15rem",
           borderBottom: "1px solid #1e293b",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          background: "#0f172a"
+          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
-            <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Film size={16} color="#ffffff" />
             </div>
             <div style={{ minWidth: 0 }}>
-              <h3 style={{ fontSize: "0.9375rem", fontWeight: 800, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#ffffff" }}>
+              <h3 style={{ fontSize: "0.9rem", fontWeight: 800, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#ffffff" }}>
                 {video.title}
               </h3>
               <p style={{ fontSize: "0.6875rem", color: "#94a3b8", margin: "0.1rem 0 0 0" }}>
@@ -108,7 +113,9 @@ export default function VideoPlayerModal({ isOpen, onClose, video }) {
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center"
+              justifyContent: "center",
+              marginLeft: "0.5rem",
+              flexShrink: 0
             }}
           >
             <X size={16} />
@@ -117,55 +124,82 @@ export default function VideoPlayerModal({ isOpen, onClose, video }) {
 
         {/* Video Player Frame */}
         <div style={{ width: "100%", height: "230px", background: "#000000", position: "relative" }}>
-          {embedUrl && (embedUrl.includes("youtube.com") || embedUrl.includes("vimeo.com")) ? (
+          {isEmbed ? (
             <iframe
-              src={embedUrl}
+              src={src}
               title={video.title}
               style={{ width: "100%", height: "100%", border: "none" }}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
           ) : (
             <video
-              src={directVideo ? (video.url || video.video_url) : fallbackVideoSrc}
+              src={src}
               controls
               autoPlay
               playsInline
-              style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }}
+              style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000000" }}
             />
           )}
         </div>
 
         {/* Video Info & Controls */}
-        <div style={{ padding: "1rem 1.25rem", background: "#1e293b", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#f8fafc" }}>{video.title}</div>
+        <div style={{ padding: "0.85rem 1.15rem", background: "#1e293b", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#f8fafc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {video.title}
+            </div>
             <div style={{ fontSize: "0.6875rem", color: "#60a5fa", marginTop: "0.15rem" }}>
-              🎬 HD Virtual Tour • Dream Homes Property Showcase
+              🎬 HD Virtual Tour • Dream Homes
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              const text = encodeURIComponent(`🎥 Watch 3D Virtual Video Tour of *${video.title}*: ${video.url || window.location.href}`);
-              window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
-            }}
-            style={{
-              background: "#16a34a",
-              color: "#ffffff",
-              border: "none",
-              padding: "0.45rem 0.75rem",
-              borderRadius: "0.5rem",
-              fontSize: "0.75rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.3rem"
-            }}
-          >
-            <Share2 size={13} /> Share Tour
-          </button>
+          <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
+            {videoTarget && (
+              <button
+                onClick={() => window.open(videoTarget, "_blank")}
+                style={{
+                  background: "#334155",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "0.4rem 0.55rem",
+                  borderRadius: "0.4rem",
+                  fontSize: "0.71875rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.2rem"
+                }}
+                title="Open Video in New Tab"
+              >
+                <ExternalLink size={12} />
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                const text = encodeURIComponent(`🎥 Watch 3D Virtual Video Tour of *${video.title}*: ${videoTarget || src}`);
+                window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+              }}
+              style={{
+                background: "#16a34a",
+                color: "#ffffff",
+                border: "none",
+                padding: "0.4rem 0.65rem",
+                borderRadius: "0.4rem",
+                fontSize: "0.71875rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                whiteSpace: "nowrap"
+              }}
+            >
+              <Share2 size={12} /> Share Tour
+            </button>
+          </div>
         </div>
       </div>
     </div>

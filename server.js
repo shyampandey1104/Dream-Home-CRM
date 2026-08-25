@@ -320,11 +320,11 @@ app.all("/api/method/real_estate_crm.real_estate_crm.api.get_inventory", (req, r
           { project: "Piramal Mahalaxmi (4 BHK Sky Villa)", area: "2450 sq.ft Carpet", planImg: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=800&q=80" }
         ],
         videos: [
-          { title: "Kalpataru Vian 4K Drone Tour & Sample Flat", duration: "03:45", img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=600&q=80" },
-          { title: "Godrej Horizon Eastern Bay Sunset View Walkthrough", duration: "04:10", img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=600&q=80" },
-          { title: "Oberoi Sky City Clubhouse & Olympic Pool Virtual Tour", duration: "05:15", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80" },
-          { title: "Lodha Woods Forest Amenities Walkthrough", duration: "03:20", img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80" },
-          { title: "Piramal Mahalaxmi Racecourse 360 Degree View Tour", duration: "06:00", img: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=600&q=80" }
+          { title: "Kalpataru Vian 4K Drone Tour & Sample Flat", duration: "03:45", img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=kXYiU_JCYtU" },
+          { title: "Godrej Horizon Eastern Bay Sunset View Walkthrough", duration: "04:10", img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=ysz5S6PUM-U" },
+          { title: "Oberoi Sky City Clubhouse & Olympic Pool Virtual Tour", duration: "05:15", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=jNQXAC9IVRw" },
+          { title: "Lodha Woods Forest Amenities Walkthrough", duration: "03:20", img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=kJQP7kiw5Fk" },
+          { title: "Piramal Mahalaxmi Racecourse 360 Degree View Tour", duration: "06:00", img: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=3JZ_D3ELwOQ" }
         ],
         myListings: [
           { id: "LST-101", property: "3 BHK Kalpataru Vian", locality: "Andheri West", price: "₹ 2.95 Cr", owner: "Sanjay Singhania", status: "Verified" },
