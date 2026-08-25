@@ -15,7 +15,7 @@ const USERS_STORAGE_KEY = "leadcall_crm_users_v5";
 const LEADS_STORAGE_KEY = "leadcall_crm_leads_v5";
 const METRICS_STORAGE_KEY = "leadcall_crm_metrics_v5";
 
-import { INITIAL_LEADS, INITIAL_METRICS } from "./mockData";
+import { INITIAL_LEADS, INITIAL_METRICS, INITIAL_INVENTORY, INITIAL_ACTIVITIES } from "./mockData";
 
 export const INITIAL_ADMIN_USERS = [
   { id: 1, name: "Shyam", email: "shyampandey1104@gmail.com", phone: "+91 98200 44556", role: "Telecaller", status: "Active", areas: ["Andheri", "Bandra"], leadCap: 50, initials: "SP" },
@@ -112,7 +112,7 @@ export const fetchCrmInventory = async () => {
   } catch (e) {
     console.log("[Frappe Inventory Notice] Offline mode active.");
   }
-  return null;
+  return { status: "success", categories: INITIAL_INVENTORY, data: INITIAL_INVENTORY.focusProjects };
 };
 
 export const submitProjectSurvey = async (surveyData) => {
@@ -495,7 +495,7 @@ export const fetchCrmActivities = async () => {
   } catch (e) {
     console.log("[Frappe Activities Notice] Offline mode active.");
   }
-  return null;
+  return { status: "success", categories: INITIAL_ACTIVITIES, data: INITIAL_ACTIVITIES.myVisits };
 };
 
 export const authenticateCrmUser = async (email, password, role) => {
