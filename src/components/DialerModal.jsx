@@ -480,13 +480,14 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
           onTouchStart={(e) => e.stopPropagation()}
           style={{ 
             width: "100%", 
-            maxWidth: "440px", 
+            maxWidth: "480px", 
             background: "#ffffff", 
-            borderRadius: "1rem", 
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.4)",
+            borderRadius: "1.25rem", 
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
             overflow: "hidden",
-            margin: "auto 0",
-            position: "relative"
+            margin: "auto",
+            position: "relative",
+            border: "1px solid #cbd5e1"
           }}
         >
           {/* Header Summary */}

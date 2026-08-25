@@ -88,7 +88,7 @@ export default function App() {
 
   const [leads, setLeads] = useState([]);
   const [metrics, setMetrics] = useState({});
-  const [isMobileView, setIsMobileView] = useState(true);
+  const [isMobileView, setIsMobileView] = useState(false);
   const [isRealMobile, setIsRealMobile] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
