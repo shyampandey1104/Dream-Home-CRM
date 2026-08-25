@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { X, Upload, Layers, FileText, Video, ClipboardList, CheckCircle2, Save, Link2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, Upload, Layers, FileText, Video, ClipboardList, CheckCircle2, Save, Link2, UploadCloud, Film } from "lucide-react";
 import { 
   uploadUnitPlanApi, 
   uploadPropertyDocumentApi, 
@@ -40,6 +40,8 @@ export default function UploadInventoryModal({ isOpen, onClose, mode = "unit_pla
   const [videoDuration, setVideoDuration] = useState("03:30");
   const [videoThumb, setVideoThumb] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [videoFile, setVideoFile] = useState(null);
+  const videoFileInputRef = useRef(null);
 
   // Listing state
   const [listingCategory, setListingCategory] = useState(defaultListingType);
@@ -52,6 +54,32 @@ export default function UploadInventoryModal({ isOpen, onClose, mode = "unit_pla
   const [listingCommission, setListingCommission] = useState("2.0% CP Split");
 
   if (!isOpen) return null;
+
+  const handleVideoFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      const url = URL.createObjectURL(file);
+      setVideoUrl(url);
+      if (!videoTitle) {
+        setVideoTitle(file.name.replace(/\.[^/.]+$/, ""));
+      }
+    }
+  };
+
+  const getYouTubeThumbnail = (url) => {
+    if (!url) return null;
+    const watchMatch = url.match(/[?&]v=([^&]+)/);
+    if (watchMatch) return `https://img.youtube.com/vi/${watchMatch[1]}/hqdefault.jpg`;
+
+    const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+    if (shortMatch) return `https://img.youtube.com/vi/${shortMatch[1]}/hqdefault.jpg`;
+
+    const shortsMatch = url.match(/shorts\/([^?&]+)/);
+    if (shortsMatch) return `https://img.youtube.com/vi/${shortsMatch[1]}/hqdefault.jpg`;
+
+    return null;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -82,15 +110,25 @@ export default function UploadInventoryModal({ isOpen, onClose, mode = "unit_pla
         const successText = typeof res.message === "string" ? res.message : "Document saved to CRM Database!";
         setAlertConfig({ title: "Document Saved!", message: successText, type: "success" });
       } else if (mode === "video") {
+        // Auto extract YouTube thumbnail if user pasted YouTube link
+        const ytThumb = getYouTubeThumbnail(videoUrl);
+        const finalThumb = videoThumb || ytThumb || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80";
+
         const payload = {
           title: videoTitle,
           project: videoProject,
           duration: videoDuration,
-          thumbnail: videoThumb || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=600&q=80",
-          video_url: videoUrl
+          thumbnail: finalThumb,
+          video_url: videoUrl || "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
         };
         const res = await uploadPropertyVideoApi(payload);
-        if (onItemUploaded) onItemUploaded("video", { title: videoTitle, duration: videoDuration, img: payload.thumbnail, url: videoUrl });
+        if (onItemUploaded) onItemUploaded("video", { 
+          title: videoTitle, 
+          duration: videoDuration, 
+          img: finalThumb, 
+          url: payload.video_url,
+          video_url: payload.video_url
+        });
         const successText = typeof res.message === "string" ? res.message : "Video Walkthrough saved to CRM Database!";
         setAlertConfig({ title: "Video Saved!", message: successText, type: "success" });
       } else if (mode === "listing") {
@@ -119,61 +157,82 @@ export default function UploadInventoryModal({ isOpen, onClose, mode = "unit_pla
           commission: listingCommission,
           listing_type: listingCategory
         });
-        const successText = typeof res.message === "string" ? res.message : `${listingCategory} item saved to CRM Database!`;
-        setAlertConfig({ title: "Item Saved!", message: successText, type: "success" });
+        const successText = typeof res.message === "string" ? res.message : "Listing saved to CRM Database!";
+        setAlertConfig({ title: "Listing Saved!", message: successText, type: "success" });
       }
     } catch (err) {
-      console.log("[Upload Error]", err);
-      setAlertConfig({ title: "Error", message: "Failed to save data. Please try again.", type: "error" });
+      setAlertConfig({
+        title: "Upload Failed",
+        message: "Failed to upload inventory item. Please try again.",
+        type: "error"
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const getTitle = () => {
-    if (mode === "unit_plan") return "📐 Upload Unit Floor Plan";
-    if (mode === "document") return "📁 Upload Project Document";
-    if (mode === "video") return "🎥 Add 3D Virtual Video Tour";
-    return "📋 Add Property Listing Item";
+    if (mode === "unit_plan") return "Add Unit Floor Plan";
+    if (mode === "document") return "Upload Project Document";
+    if (mode === "video") return "Add 3D Virtual Video Tour";
+    if (mode === "listing") return `Add New ${listingCategory}`;
+    return "Add Inventory";
+  };
+
+  const getIcon = () => {
+    if (mode === "unit_plan") return <Layers size={18} color="#2563eb" />;
+    if (mode === "document") return <FileText size={18} color="#0284c7" />;
+    if (mode === "video") return <Video size={18} color="#dc2626" />;
+    return <ClipboardList size={18} color="#16a34a" />;
   };
 
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(15, 23, 42, 0.75)",
-      backdropFilter: "blur(6px)",
-      zIndex: 1000,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "1rem"
-    }}>
-      <div style={{
-        background: "#ffffff",
-        borderRadius: "1.25rem",
-        width: "100%",
-        maxWidth: "500px",
-        maxHeight: "90vh",
-        overflowY: "auto",
-        boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)",
-        border: "1px solid #cbd5e1"
-      }}>
+    <div 
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15, 23, 42, 0.85)",
+        backdropFilter: "blur(6px)",
+        zIndex: 99999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0.75rem",
+        overflowY: "auto"
+      }}
+    >
+      <div 
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: "#ffffff",
+          borderRadius: "1.25rem",
+          width: "100%",
+          maxWidth: "400px",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+          border: "1px solid #cbd5e1",
+          overflow: "hidden"
+        }}
+      >
         {/* Modal Header */}
         <div style={{
-          padding: "1.25rem 1.5rem",
+          padding: "1rem 1.25rem",
           borderBottom: "1px solid #e2e8f0",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
           color: "#ffffff",
-          borderTopLeftRadius: "1.25rem",
-          borderTopRightRadius: "1.25rem"
+          flexShrink: 0
         }}>
-          <div>
-            <h3 style={{ fontSize: "1.125rem", fontWeight: 800, margin: 0 }}>{getTitle()}</h3>
-            <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0.2rem 0 0 0" }}>Save directly to CRM Database & App View</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            {getIcon()}
+            <div>
+              <h3 style={{ fontSize: "1.05rem", fontWeight: 800, margin: 0, color: "#ffffff" }}>{getTitle()}</h3>
+              <p style={{ fontSize: "0.71875rem", color: "#94a3b8", margin: "0.1rem 0 0 0" }}>Save directly to CRM database</p>
+            </div>
           </div>
 
           <button
@@ -182,8 +241,8 @@ export default function UploadInventoryModal({ isOpen, onClose, mode = "unit_pla
               background: "rgba(255,255,255,0.1)",
               border: "none",
               color: "#ffffff",
-              width: "32px",
-              height: "32px",
+              width: "30px",
+              height: "30px",
               borderRadius: "50%",
               cursor: "pointer",
               display: "flex",
@@ -191,12 +250,12 @@ export default function UploadInventoryModal({ isOpen, onClose, mode = "unit_pla
               justifyContent: "center"
             }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Modal Form */}
-        <form onSubmit={handleSubmit} style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {/* Modal Form Body */}
+        <form onSubmit={handleSubmit} style={{ padding: "1.25rem", overflowY: "auto", flex: "1 1 auto", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
           
           {/* MODE: UNIT PLAN */}
           {mode === "unit_plan" && (
@@ -260,19 +319,66 @@ export default function UploadInventoryModal({ isOpen, onClose, mode = "unit_pla
             <>
               <div>
                 <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Video Title *</label>
-                <input type="text" className="modern-search-input" placeholder="e.g. Godrej Horizon 4K Penthouse Walkthrough" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} required />
+                <input type="text" className="modern-search-input" placeholder="e.g. Aditya Heights 4K Penthouse Walkthrough" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} required />
               </div>
+
               <div>
-                <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Project Name</label>
-                <input type="text" className="modern-search-input" placeholder="e.g. Godrej Horizon" value={videoProject} onChange={e => setVideoProject(e.target.value)} />
+                <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Upload MP4 Video File or Paste YouTube Link</label>
+                
+                {/* File Upload Trigger */}
+                <div 
+                  onClick={() => videoFileInputRef.current && videoFileInputRef.current.click()}
+                  style={{
+                    border: "2px dashed #cbd5e1",
+                    background: "#f8fafc",
+                    borderRadius: "0.5rem",
+                    padding: "0.75rem",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    marginBottom: "0.5rem"
+                  }}
+                >
+                  <input 
+                    type="file" 
+                    ref={videoFileInputRef} 
+                    onChange={handleVideoFileUpload} 
+                    accept="video/mp4,video/webm,video/mov,video/*" 
+                    style={{ display: "none" }} 
+                  />
+                  <Film size={20} color="#2563eb" style={{ margin: "0 auto 0.25rem" }} />
+                  <div style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#0f172a" }}>
+                    {videoFile ? `✓ ${videoFile.name}` : "Click to select MP4 video from device"}
+                  </div>
+                </div>
+
+                {/* Video URL Input */}
+                <input 
+                  type="text" 
+                  className="modern-search-input" 
+                  placeholder="OR paste YouTube / Vimeo link (e.g. https://www.youtube.com/watch?v=...)" 
+                  value={videoUrl} 
+                  onChange={e => {
+                    setVideoUrl(e.target.value);
+                    const yt = getYouTubeThumbnail(e.target.value);
+                    if (yt) setVideoThumb(yt);
+                  }} 
+                />
               </div>
-              <div>
-                <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Duration</label>
-                <input type="text" className="modern-search-input" placeholder="e.g. 04:15" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} />
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Project Name</label>
+                  <input type="text" className="modern-search-input" placeholder="e.g. Aditya Heights" value={videoProject} onChange={e => setVideoProject(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Duration</label>
+                  <input type="text" className="modern-search-input" placeholder="e.g. 03:30" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} />
+                </div>
               </div>
+
               <div>
-                <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Thumbnail Image URL</label>
-                <input type="url" className="modern-search-input" placeholder="https://images.unsplash.com/..." value={videoThumb} onChange={e => setVideoThumb(e.target.value)} />
+                <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Thumbnail Image URL (Optional)</label>
+                <input type="url" className="modern-search-input" placeholder="Auto-generated from YouTube or custom image URL" value={videoThumb} onChange={e => setVideoThumb(e.target.value)} />
               </div>
             </>
           )}
@@ -281,64 +387,85 @@ export default function UploadInventoryModal({ isOpen, onClose, mode = "unit_pla
           {mode === "listing" && (
             <>
               <div>
-                <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Listing Category *</label>
+                <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Listing Category</label>
                 <select className="modern-search-input" value={listingCategory} onChange={e => setListingCategory(e.target.value)}>
                   <option value="My Listing">My Listing</option>
                   <option value="Employee Listing">Employee Listing</option>
                   <option value="Owner Lead">Owner Lead</option>
+                  <option value="Owner Listing">Owner Listing</option>
                   <option value="CP Listing">CP Listing</option>
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Property Title *</label>
-                <input type="text" className="modern-search-input" placeholder="e.g. 3BHK Luxury Duplex" value={listingTitle} onChange={e => setListingTitle(e.target.value)} required />
+                <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Property Name & Unit *</label>
+                <input type="text" className="modern-search-input" placeholder="e.g. Oberoi Sky City 3BHK" value={listingTitle} onChange={e => setListingTitle(e.target.value)} required />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                 <div>
                   <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Locality</label>
-                  <input type="text" className="modern-search-input" placeholder="e.g. Bandra West" value={listingLocality} onChange={e => setListingLocality(e.target.value)} />
+                  <input type="text" className="modern-search-input" placeholder="e.g. Borivali East" value={listingLocality} onChange={e => setListingLocality(e.target.value)} />
                 </div>
                 <div>
-                  <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Price / Rent</label>
-                  <input type="text" className="modern-search-input" placeholder="e.g. ₹ 3.50 Cr" value={listingPrice} onChange={e => setListingPrice(e.target.value)} />
+                  <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Price</label>
+                  <input type="text" className="modern-search-input" placeholder="e.g. ₹ 3.25 Cr" value={listingPrice} onChange={e => setListingPrice(e.target.value)} />
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                 <div>
-                  <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Owner / Agent Name</label>
-                  <input type="text" className="modern-search-input" placeholder="e.g. Rajesh Shah" value={listingOwner} onChange={e => setListingOwner(e.target.value)} />
+                  <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Owner / Broker Name</label>
+                  <input type="text" className="modern-search-input" placeholder="e.g. Vikram Sharma" value={listingOwner} onChange={e => setListingOwner(e.target.value)} />
                 </div>
                 <div>
                   <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>Phone Number</label>
-                  <input type="text" className="modern-search-input" placeholder="+91 98200 11223" value={listingPhone} onChange={e => setListingPhone(e.target.value)} />
+                  <input type="tel" className="modern-search-input" placeholder="+91 98..." value={listingPhone} onChange={e => setListingPhone(e.target.value)} />
                 </div>
               </div>
             </>
           )}
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
-              color: "#ffffff",
-              border: "none",
-              padding: "0.85rem",
-              borderRadius: "0.75rem",
-              fontSize: "0.9375rem",
-              fontWeight: 800,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              boxShadow: "0 8px 20px rgba(22,163,74,0.3)",
-              marginTop: "0.5rem"
-            }}
-          >
-            <Save size={18} /> {loading ? "Saving to Database..." : "Save Item to CRM Database"}
-          </button>
+          {/* Action Buttons */}
+          <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem", paddingTop: "0.75rem", borderTop: "1px solid #e2e8f0" }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                flex: 1,
+                padding: "0.65rem",
+                borderRadius: "0.5rem",
+                background: "#f1f5f9",
+                color: "#475569",
+                border: "none",
+                fontWeight: 700,
+                fontSize: "0.875rem",
+                cursor: "pointer"
+              }}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                flex: 1.5,
+                padding: "0.65rem",
+                borderRadius: "0.5rem",
+                background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                color: "#ffffff",
+                border: "none",
+                fontWeight: 800,
+                fontSize: "0.875rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.4rem",
+                boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)"
+              }}
+            >
+              {loading ? "Saving..." : <><CheckCircle2 size={16} /> Save to Database</>}
+            </button>
+          </div>
         </form>
 
         {alertConfig && (

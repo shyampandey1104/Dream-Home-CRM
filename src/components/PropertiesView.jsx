@@ -9,6 +9,7 @@ import UploadPropertyModal from "./UploadPropertyModal";
 import UploadInventoryModal from "./UploadInventoryModal";
 import DocUploadModal from "./DocUploadModal";
 import DocumentViewerModal from "./DocumentViewerModal";
+import VideoPlayerModal from "./VideoPlayerModal";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function PropertiesView({ onShareProperty }) {
@@ -22,6 +23,7 @@ export default function PropertiesView({ onShareProperty }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [selectedViewDoc, setSelectedViewDoc] = useState(null);
+  const [selectedVideo, setSelectedVideo] = useState(null);
   const [uploadedProperties, setUploadedProperties] = useState([]);
   const [alertConfig, setAlertConfig] = useState(null);
 
@@ -107,7 +109,10 @@ export default function PropertiesView({ onShareProperty }) {
     { id: "DOC-DEF-01", name: "Kalpataru Vian RERA Brochure", fileName: "Kalpataru_Vian_Brochure.pdf", fileType: "PDF", size: "3.4 MB", date: "15 Aug 2026", category: "Brochure / Layout" },
     { id: "DOC-DEF-02", name: "Godrej Horizon Cost Sheet & Payment Plan", fileName: "Godrej_Horizon_Cost_Sheet.docx", fileType: "DOC", size: "1.8 MB", date: "12 Aug 2026", category: "Price Sheet & Costing" }
   ])];
-  const videosList = [...uploadedVids, ...((backendCategories && backendCategories.videos) ? backendCategories.videos : [])];
+  const videosList = [...uploadedVids, ...((backendCategories && backendCategories.videos) ? backendCategories.videos : [
+    { id: "VID-01", title: "Kalpataru Vian 4K Drone Tour & Sample Flat", duration: "03:45", img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+    { id: "VID-02", title: "Oberoi Sky City Sky-Deck Penthouse Tour", duration: "04:10", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
+  ])];
   const myListingData = [...uploadedListings.filter(l => l.listing_type === "My Listing"), ...((backendCategories && backendCategories.myListings) ? backendCategories.myListings : [])];
   const employeeListingData = [...uploadedListings.filter(l => l.listing_type === "Employee Listing"), ...((backendCategories && backendCategories.employeeListings) ? backendCategories.employeeListings : [])];
   const ownerLeadsData = [...uploadedListings.filter(l => l.listing_type === "Owner Lead"), ...((backendCategories && backendCategories.ownerLeads) ? backendCategories.ownerLeads : [])];
@@ -168,6 +173,13 @@ export default function PropertiesView({ onShareProperty }) {
         isOpen={!!selectedViewDoc}
         onClose={() => setSelectedViewDoc(null)}
         doc={selectedViewDoc}
+      />
+
+      {/* In-App Video Player Dialog */}
+      <VideoPlayerModal
+        isOpen={!!selectedVideo}
+        onClose={() => setSelectedVideo(null)}
+        video={selectedVideo}
       />
 
       <UploadInventoryModal
@@ -464,7 +476,15 @@ export default function PropertiesView({ onShareProperty }) {
             <div key={idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", overflow: "hidden", padding: "0.875rem" }}>
               <h4 style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>📐 {plan.project}</h4>
               <p style={{ fontSize: "0.75rem", color: "#64748b", marginBottom: "0.5rem" }}>Area: {plan.area}</p>
-              <img src={plan.planImg} alt={plan.project} style={{ width: "100%", height: "160px", objectFit: "cover", borderRadius: "0.5rem" }} />
+              <img 
+                src={plan.planImg || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80"} 
+                alt={plan.project} 
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80";
+                }}
+                style={{ width: "100%", height: "160px", objectFit: "cover", borderRadius: "0.5rem" }} 
+              />
               <button style={{ width: "100%", marginTop: "0.6rem", background: "#2563eb", color: "#ffffff", border: "none", padding: "0.4rem", borderRadius: "0.375rem", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }} onClick={() => setAlertConfig({ title: "Downloading Layout", message: `Downloading High-Res 2D/3D Floor Plan PDF for ${plan.project}...`, type: "info" })}>
                 <Download size={13} style={{ verticalAlign: "middle", marginRight: "4px" }} /> Download Floor Layout PDF
               </button>
@@ -479,18 +499,69 @@ export default function PropertiesView({ onShareProperty }) {
           >
             <Plus size={16} /> + Add 3D Virtual Video Tour
           </button>
+          
           {videosList.map((vid, idx) => (
-            <div key={idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", overflow: "hidden", padding: "0.875rem" }}>
-              <div style={{ position: "relative" }}>
-                <img src={vid.img} alt={vid.title} style={{ width: "100%", height: "140px", objectFit: "cover", borderRadius: "0.5rem" }} />
-                <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "0.5rem" }}>
-                  <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Play size={20} fill="#ffffff" />
+            <div 
+              key={idx} 
+              onClick={() => setSelectedVideo(vid)}
+              style={{ 
+                background: "#ffffff", 
+                border: "1px solid #e2e8f0", 
+                borderRadius: "0.75rem", 
+                overflow: "hidden", 
+                padding: "0.875rem",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
+              }}
+            >
+              <div style={{ position: "relative", width: "100%", height: "150px", background: "#0f172a", borderRadius: "0.5rem", overflow: "hidden" }}>
+                <img 
+                  src={vid.img || vid.thumbnail || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"} 
+                  alt={vid.title} 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80";
+                  }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                />
+                <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: "46px", height: "46px", borderRadius: "50%", background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(37,99,235,0.6)" }}>
+                    <Play size={22} fill="#ffffff" style={{ marginLeft: "2px" }} />
                   </div>
                 </div>
+                <div style={{ position: "absolute", bottom: "8px", right: "8px", background: "rgba(0,0,0,0.75)", color: "#ffffff", padding: "0.15rem 0.45rem", borderRadius: "4px", fontSize: "0.6875rem", fontWeight: 700 }}>
+                  {vid.duration || "4K Tour"}
+                </div>
               </div>
-              <h4 style={{ fontSize: "0.84375rem", fontWeight: "700", color: "#0f172a", marginTop: "0.5rem" }}>{vid.title}</h4>
-              <div style={{ fontSize: "0.71875rem", color: "#64748b" }}>Duration: {vid.duration} | 4K Tour</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.6rem" }}>
+                <div>
+                  <h4 style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a", margin: 0 }}>{vid.title}</h4>
+                  <div style={{ fontSize: "0.71875rem", color: "#64748b", marginTop: "2px" }}>Duration: {vid.duration || "03:30"} • Tap to Play 3D Tour</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedVideo(vid);
+                  }}
+                  style={{
+                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "0.35rem 0.7rem",
+                    borderRadius: "0.375rem",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.25rem"
+                  }}
+                >
+                  <Play size={12} fill="#ffffff" /> Play
+                </button>
+              </div>
             </div>
           ))}
         </div>
