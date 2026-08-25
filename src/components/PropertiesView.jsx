@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { 
   Building2, MapPin, Share2, Info, AlertTriangle, FileText, 
   Video, Layers, Calculator, ClipboardList, CheckCircle, Search, Filter,
-  Phone, UserCheck, CheckSquare, Download, Play, Shield, Upload, Plus, Trash2, FileUp
+  Phone, UserCheck, CheckSquare, Download, Play, Shield, Upload, Plus, Trash2, FileUp, Eye
 } from "lucide-react";
 import { fetchCrmInventory, submitProjectSurvey, calculateCmaApi } from "../services/apiService";
 import UploadPropertyModal from "./UploadPropertyModal";
 import UploadInventoryModal from "./UploadInventoryModal";
 import DocUploadModal from "./DocUploadModal";
+import DocumentViewerModal from "./DocumentViewerModal";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function PropertiesView({ onShareProperty }) {
@@ -20,6 +21,7 @@ export default function PropertiesView({ onShareProperty }) {
   const [backendCategories, setBackendCategories] = useState(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
+  const [selectedViewDoc, setSelectedViewDoc] = useState(null);
   const [uploadedProperties, setUploadedProperties] = useState([]);
   const [alertConfig, setAlertConfig] = useState(null);
 
@@ -84,11 +86,7 @@ export default function PropertiesView({ onShareProperty }) {
       link.click();
       document.body.removeChild(link);
     } else {
-      setAlertConfig({
-        title: "Downloading Document",
-        message: `Downloading ${doc.name} from CRM File Storage...`,
-        type: "info"
-      });
+      setSelectedViewDoc(doc);
     }
   };
 
@@ -163,6 +161,13 @@ export default function PropertiesView({ onShareProperty }) {
         onClose={() => setIsDocModalOpen(false)}
         onDocumentUploaded={handleDocumentUploaded}
         categoryTitle="Property & Inventory Documents"
+      />
+
+      {/* In-App Document Viewer Dialog */}
+      <DocumentViewerModal
+        isOpen={!!selectedViewDoc}
+        onClose={() => setSelectedViewDoc(null)}
+        doc={selectedViewDoc}
       />
 
       <UploadInventoryModal
@@ -287,7 +292,7 @@ export default function PropertiesView({ onShareProperty }) {
           <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", padding: "0.85rem", borderRadius: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
             <div>
               <div style={{ fontSize: "0.84375rem", fontWeight: 800, color: "#1e40af" }}>📁 Project Documents & PDF Brochures</div>
-              <div style={{ fontSize: "0.71875rem", color: "#3b82f6" }}>Upload and share verified RERA PDFs, brochures, cost sheets (.pdf, .doc, .docx)</div>
+              <div style={{ fontSize: "0.71875rem", color: "#3b82f6" }}>Upload, view & share verified RERA PDFs, brochures, cost sheets (.pdf, .doc, .docx)</div>
             </div>
             <button
               onClick={() => setIsDocModalOpen(true)}
@@ -298,9 +303,25 @@ export default function PropertiesView({ onShareProperty }) {
           </div>
 
           {documentsList.map((doc, idx) => (
-            <div key={doc.id || idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.625rem", padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, minWidth: 0 }}>
-                <div style={{ width: "36px", height: "36px", borderRadius: "0.5rem", background: doc.fileType === "PDF" ? "#fee2e2" : "#e0e7ff", color: doc.fileType === "PDF" ? "#dc2626" : "#4338ca", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.6875rem", flexShrink: 0 }}>
+            <div 
+              key={doc.id || idx} 
+              style={{ 
+                background: "#ffffff", 
+                border: "1px solid #e2e8f0", 
+                borderRadius: "0.625rem", 
+                padding: "0.75rem", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "space-between", 
+                gap: "0.5rem",
+                transition: "all 0.15s ease"
+              }}
+            >
+              <div 
+                onClick={() => setSelectedViewDoc(doc)}
+                style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, minWidth: 0, cursor: "pointer" }}
+              >
+                <div style={{ width: "36px", height: "36px", borderRadius: "0.5rem", background: (doc.fileType === "PDF" || doc.name.endsWith(".pdf")) ? "#fee2e2" : "#e0e7ff", color: (doc.fileType === "PDF" || doc.name.endsWith(".pdf")) ? "#dc2626" : "#4338ca", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.6875rem", flexShrink: 0 }}>
                   {doc.fileType || "PDF"}
                 </div>
                 <div style={{ minWidth: 0 }}>
@@ -313,13 +334,51 @@ export default function PropertiesView({ onShareProperty }) {
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", flexShrink: 0 }}>
+                {/* View Document Dialog Button */}
                 <button 
-                  style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.35rem 0.65rem", borderRadius: "0.375rem", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.25rem" }} 
-                  onClick={() => handleDownloadDoc(doc)}
+                  style={{ 
+                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)", 
+                    color: "#ffffff", 
+                    border: "none", 
+                    padding: "0.35rem 0.65rem", 
+                    borderRadius: "0.375rem", 
+                    fontSize: "0.75rem", 
+                    fontWeight: "700", 
+                    cursor: "pointer", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "0.25rem",
+                    boxShadow: "0 2px 6px rgba(37,99,235,0.25)"
+                  }} 
+                  onClick={() => setSelectedViewDoc(doc)}
+                  title="View Document Details & Preview"
                 >
-                  <Download size={13} /> Open / Download
+                  <Eye size={13} /> View
                 </button>
+
+                {/* Download Button */}
+                <button 
+                  style={{ 
+                    background: "#f1f5f9", 
+                    border: "1px solid #cbd5e1", 
+                    color: "#334155", 
+                    padding: "0.35rem 0.5rem", 
+                    borderRadius: "0.375rem", 
+                    fontSize: "0.75rem", 
+                    fontWeight: "700", 
+                    cursor: "pointer", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "0.2rem" 
+                  }} 
+                  onClick={() => handleDownloadDoc(doc)}
+                  title="Download File"
+                >
+                  <Download size={13} />
+                </button>
+
+                {/* Delete button */}
                 {doc.id && doc.id.startsWith("DOC-") && (
                   <button 
                     style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} 

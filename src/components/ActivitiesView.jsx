@@ -3,10 +3,11 @@ import {
   Calendar, CheckCircle2, Users, Award, Video, Clock, 
   MapPin, ChevronRight, UserCheck, Star, ShieldCheck, Zap,
   FileCheck, UserPlus, Play, PhoneCall, Filter, ExternalLink,
-  FileUp, Download, Trash2, FileText
+  FileUp, Download, Trash2, FileText, Eye
 } from "lucide-react";
 import { fetchCrmActivities } from "../services/apiService";
 import DocUploadModal from "./DocUploadModal";
+import DocumentViewerModal from "./DocumentViewerModal";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function ActivitiesView() {
@@ -14,6 +15,7 @@ export default function ActivitiesView() {
   const [liveActivities, setLiveActivities] = useState([]);
   const [backendCategories, setBackendCategories] = useState(null);
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
+  const [selectedViewDoc, setSelectedViewDoc] = useState(null);
   const [alertConfig, setAlertConfig] = useState(null);
 
   const [uploadedActivityDocs, setUploadedActivityDocs] = useState(() => {
@@ -59,11 +61,7 @@ export default function ActivitiesView() {
       link.click();
       document.body.removeChild(link);
     } else {
-      setAlertConfig({
-        title: "Downloading Document",
-        message: `Downloading ${doc.name} from CRM File Storage...`,
-        type: "info"
-      });
+      setSelectedViewDoc(doc);
     }
   };
 
@@ -136,7 +134,10 @@ export default function ActivitiesView() {
   const allActivityDocs = [
     ...uploadedActivityDocs,
     { id: "ACT-DOC-1", name: "August Site Visit Itinerary & Logistics Plan", fileName: "Site_Visit_Itinerary_Aug.pdf", fileType: "PDF", size: "2.1 MB", date: "16 Aug 2026", category: "Client Visit Report" },
-    { id: "ACT-DOC-2", name: "Sales Pitch Negotiation Script & Closing Guide", fileName: "Sales_Closing_Script.docx", fileType: "DOC", size: "1.2 MB", date: "14 Aug 2026", category: "Training & Scripts" }
+    { id: "ACT-DOC-2", name: "Sales Pitch Negotiation Script & Closing Guide", fileName: "Sales_Closing_Script.docx", fileType: "DOC", size: "1.2 MB", date: "14 Aug 2026", category: "Training & Scripts" },
+    { id: "ACT-DOC-3", name: "Objection Handling & Price Closing Playbook", fileName: "Objection_Handling_Playbook.pdf", fileType: "PDF", size: "3.4 MB", date: "12 Aug 2026", category: "Training & Scripts" },
+    { id: "ACT-DOC-4", name: "Mumbai Micro-Market Price Growth Report 2026", fileName: "Market_Growth_Report_2026.pdf", fileType: "PDF", size: "4.8 MB", date: "10 Aug 2026", category: "Market Report" },
+    { id: "ACT-DOC-5", name: "Quarterly Telecaller Incentive & Bonus Policy", fileName: "Incentive_Bonus_Policy.docx", fileType: "DOC", size: "1.5 MB", date: "08 Aug 2026", category: "Policy Doc" }
   ];
 
   return (
@@ -146,6 +147,13 @@ export default function ActivitiesView() {
         onClose={() => setIsDocModalOpen(false)}
         onDocumentUploaded={handleDocumentUploaded}
         categoryTitle="Activity & Schedule Documents"
+      />
+
+      {/* In-App Document Viewer Dialog */}
+      <DocumentViewerModal
+        isOpen={!!selectedViewDoc}
+        onClose={() => setSelectedViewDoc(null)}
+        doc={selectedViewDoc}
       />
 
       {/* Header Bar */}
@@ -206,7 +214,7 @@ export default function ActivitiesView() {
           <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", padding: "0.85rem", borderRadius: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
             <div>
               <div style={{ fontSize: "0.84375rem", fontWeight: 800, color: "#1e40af" }}>📁 Activity & Schedule PDF / DOC Reports</div>
-              <div style={{ fontSize: "0.71875rem", color: "#3b82f6" }}>Upload and share visit summaries, itineraries, scripts & schedule docs (.pdf, .doc, .docx)</div>
+              <div style={{ fontSize: "0.71875rem", color: "#3b82f6" }}>Upload, view & share visit summaries, itineraries, scripts & schedule docs (.pdf, .doc, .docx)</div>
             </div>
             <button
               onClick={() => setIsDocModalOpen(true)}
@@ -217,9 +225,24 @@ export default function ActivitiesView() {
           </div>
 
           {allActivityDocs.map((doc, idx) => (
-            <div key={doc.id || idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.625rem", padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, minWidth: 0 }}>
-                <div style={{ width: "36px", height: "36px", borderRadius: "0.5rem", background: doc.fileType === "PDF" ? "#fee2e2" : "#e0e7ff", color: doc.fileType === "PDF" ? "#dc2626" : "#4338ca", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.6875rem", flexShrink: 0 }}>
+            <div 
+              key={doc.id || idx} 
+              style={{ 
+                background: "#ffffff", 
+                border: "1px solid #e2e8f0", 
+                borderRadius: "0.625rem", 
+                padding: "0.75rem", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "space-between", 
+                gap: "0.5rem" 
+              }}
+            >
+              <div 
+                onClick={() => setSelectedViewDoc(doc)}
+                style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, minWidth: 0, cursor: "pointer" }}
+              >
+                <div style={{ width: "36px", height: "36px", borderRadius: "0.5rem", background: (doc.fileType === "PDF" || doc.name.endsWith(".pdf")) ? "#fee2e2" : "#e0e7ff", color: (doc.fileType === "PDF" || doc.name.endsWith(".pdf")) ? "#dc2626" : "#4338ca", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.6875rem", flexShrink: 0 }}>
                   {doc.fileType || "PDF"}
                 </div>
                 <div style={{ minWidth: 0 }}>
@@ -232,13 +255,51 @@ export default function ActivitiesView() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", flexShrink: 0 }}>
+                {/* View Document Button */}
                 <button 
-                  style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.35rem 0.65rem", borderRadius: "0.375rem", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.25rem" }} 
-                  onClick={() => handleDownloadDoc(doc)}
+                  style={{ 
+                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)", 
+                    color: "#ffffff", 
+                    border: "none", 
+                    padding: "0.35rem 0.65rem", 
+                    borderRadius: "0.375rem", 
+                    fontSize: "0.75rem", 
+                    fontWeight: "700", 
+                    cursor: "pointer", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "0.25rem",
+                    boxShadow: "0 2px 6px rgba(37,99,235,0.25)"
+                  }} 
+                  onClick={() => setSelectedViewDoc(doc)}
+                  title="View Document Details & Preview"
                 >
-                  <Download size={13} /> Open / Download
+                  <Eye size={13} /> View
                 </button>
+
+                {/* Download Button */}
+                <button 
+                  style={{ 
+                    background: "#f1f5f9", 
+                    border: "1px solid #cbd5e1", 
+                    color: "#334155", 
+                    padding: "0.35rem 0.5rem", 
+                    borderRadius: "0.375rem", 
+                    fontSize: "0.75rem", 
+                    fontWeight: "700", 
+                    cursor: "pointer", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "0.2rem" 
+                  }} 
+                  onClick={() => handleDownloadDoc(doc)}
+                  title="Download File"
+                >
+                  <Download size={13} />
+                </button>
+
+                {/* Delete Button */}
                 {doc.id && doc.id.startsWith("DOC-") && (
                   <button 
                     style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} 
