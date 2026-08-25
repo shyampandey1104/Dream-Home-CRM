@@ -181,6 +181,49 @@ app.all("/api/method/real_estate_crm.real_estate_crm.api.save_lead", (req, res) 
   res.json({ message: { status: "success", lead_id: leadId } });
 });
 
+app.all("/api/method/real_estate_crm.real_estate_crm.api.log_call", (req, res) => {
+  const body = req.body || {};
+  const leadId = body.lead_id || body.leadId;
+  const outcome = body.outcome || body.status || "Connected";
+  const duration = body.duration || "00:00";
+  const notes = body.notes || "";
+  const bhkType = body.bhk_type || body.bhkType;
+  const callbackTime = body.callback_time || body.followupDate;
+
+  const leads = readDb();
+  const existingIndex = leads.findIndex(l => l.id === leadId);
+  if (existingIndex >= 0) {
+    const lead = leads[existingIndex];
+    let newStatus = lead.status;
+    if (outcome === "Deal Closed (Won)") {
+      newStatus = "CLOSED";
+    } else if (callbackTime) {
+      newStatus = "FOLLOWUP_TODAY";
+    } else {
+      newStatus = "FOLLOWUP";
+    }
+    leads[existingIndex] = {
+      ...lead,
+      callCount: (lead.callCount || 0) + 1,
+      status: newStatus,
+      bhkType: bhkType || lead.bhkType,
+      notes: notes || lead.notes,
+      callbackTime: callbackTime || lead.callbackTime,
+      history: [
+        {
+          date: "Just now",
+          outcome: outcome,
+          duration: duration,
+          note: notes || `Outcome: ${outcome}`
+        },
+        ...(Array.isArray(lead.history) ? lead.history : [])
+      ]
+    };
+    writeDb(leads);
+  }
+  res.json({ message: { status: "success", message: "Call logged successfully" } });
+});
+
 app.all("/api/method/real_estate_crm.real_estate_crm.api.login_user", (req, res) => {
   const { email, role } = req.body || {};
   res.json({

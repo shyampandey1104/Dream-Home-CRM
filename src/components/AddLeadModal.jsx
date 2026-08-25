@@ -61,8 +61,10 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
       message: `🎉 Fresh Lead '${name}' saved to Database! (Lead ID: ${res?.lead_id || newLeadObj.id})`,
       type: "success"
     });
-    
-    // Reset Form
+  };
+
+  const handleAlertClose = () => {
+    setAlertConfig(null);
     setName("");
     setPhone("");
     setEmail("");
@@ -332,7 +334,7 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
         {alertConfig && (
           <CustomAlertDialog
             isOpen={!!alertConfig}
-            onClose={() => setAlertConfig(null)}
+            onClose={handleAlertClose}
             title={alertConfig.title}
             message={alertConfig.message}
             type={alertConfig.type}
