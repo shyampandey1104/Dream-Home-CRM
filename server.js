@@ -214,7 +214,8 @@ app.all("/api/method/real_estate_crm.real_estate_crm.api.log_call", (req, res) =
           date: "Just now",
           outcome: outcome,
           duration: duration,
-          note: notes || `Outcome: ${outcome}`
+          note: notes || `Outcome: ${outcome}`,
+          recordingUrl: body.recordedAudioUrl || body.recordingUrl || body.recording_url || ""
         },
         ...(Array.isArray(lead.history) ? lead.history : [])
       ]

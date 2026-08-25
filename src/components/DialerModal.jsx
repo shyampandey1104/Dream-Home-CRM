@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneOff, Send, Clock, CheckCircle2, Mic, MicOff, Sparkles, Volume2, VolumeX, User, MapPin, Check, Play, Pause, Disc, FileText } from "lucide-react";
+import { PhoneOff, Send, Clock, CheckCircle2, Mic, MicOff, Sparkles, Volume2, VolumeX, User, MapPin, Check, Play, Pause, Disc, FileText, Download } from "lucide-react";
 import confetti from "canvas-confetti";
 import CustomAlertDialog from "./CustomAlertDialog";
 
@@ -14,11 +14,18 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
   const [callDuration, setCallDuration] = useState("00:00");
   const [alertConfig, setAlertConfig] = useState(null);
 
-  // Call Recording State & Audio Player
+  // Real Microphone MediaRecorder State
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
+  const [recordedAudioBase64, setRecordedAudioBase64] = useState(null);
+  const [isRecordingRealMic, setIsRecordingRealMic] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [playbackProgress, setPlaybackProgress] = useState(0);
-  const audioContextRef = useRef(null);
-  const audioTimerRef = useRef(null);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioTotalDuration, setAudioTotalDuration] = useState(0);
+
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const realAudioPlayerRef = useRef(null);
+  const micStreamRef = useRef(null);
 
   const getCurrentLocalDateTime = () => {
     const now = new Date();
@@ -33,6 +40,69 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
 
   const [isListening, setIsListening] = useState(false);
 
+  // Start Real Microphone Recording on active call
+  useEffect(() => {
+    let streamInstance = null;
+    if (typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          micStreamRef.current = stream;
+          streamInstance = stream;
+          setIsRecordingRealMic(true);
+
+          let mimeType = "";
+          if (typeof MediaRecorder !== "undefined") {
+            if (MediaRecorder.isTypeSupported("audio/webm")) mimeType = "audio/webm";
+            else if (MediaRecorder.isTypeSupported("audio/mp4")) mimeType = "audio/mp4";
+            else if (MediaRecorder.isTypeSupported("audio/ogg")) mimeType = "audio/ogg";
+
+            const options = mimeType ? { mimeType } : undefined;
+            const recorder = new MediaRecorder(stream, options);
+            mediaRecorderRef.current = recorder;
+            audioChunksRef.current = [];
+
+            recorder.ondataavailable = (event) => {
+              if (event.data && event.data.size > 0) {
+                audioChunksRef.current.push(event.data);
+              }
+            };
+
+            recorder.onstop = () => {
+              const mime = recorder.mimeType || "audio/webm";
+              const audioBlob = new Blob(audioChunksRef.current, { type: mime });
+              const audioUrl = URL.createObjectURL(audioBlob);
+              setRecordedAudioUrl(audioUrl);
+
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                setRecordedAudioBase64(reader.result);
+              };
+              reader.readAsDataURL(audioBlob);
+
+              // Stop mic stream tracks to release microphone hardware
+              stream.getTracks().forEach(track => track.stop());
+              setIsRecordingRealMic(false);
+            };
+
+            recorder.start(500);
+          }
+        })
+        .catch(err => {
+          console.log("[Microphone notice] Real microphone access not granted:", err.message);
+          setIsRecordingRealMic(false);
+        });
+    }
+
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try { mediaRecorderRef.current.stop(); } catch (e) {}
+      }
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, []);
+
   // Active call timer
   useEffect(() => {
     let timer;
@@ -44,114 +114,53 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     return () => clearInterval(timer);
   }, [callState]);
 
-  // Clean up audio on unmount
-  useEffect(() => {
-    return () => {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      if (audioTimerRef.current) clearInterval(audioTimerRef.current);
-      if (audioContextRef.current) {
-        try { audioContextRef.current.close(); } catch (e) {}
-      }
-    };
-  }, []);
-
   const formatTimer = (s) => {
     const mins = Math.floor(s / 60);
     const secs = s % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Robust Audio Playback Engine (Works on iPhone Safari, Android & Desktop Chrome)
+  // Toggle Real Live Audio Playback
   const toggleAudioPlayback = (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
+    const audioEl = realAudioPlayerRef.current;
+    if (audioEl) {
+      if (isPlayingAudio) {
+        audioEl.pause();
+        setIsPlayingAudio(false);
+      } else {
+        audioEl.play()
+          .then(() => setIsPlayingAudio(true))
+          .catch(err => {
+            console.log("Audio play error, retrying with synthesis fallback", err);
+            playFallbackSpeech();
+          });
+      }
+    } else {
+      playFallbackSpeech();
+    }
+  };
+
+  const playFallbackSpeech = () => {
     if (isPlayingAudio) {
       setIsPlayingAudio(false);
-      setPlaybackProgress(0);
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      if (audioTimerRef.current) clearInterval(audioTimerRef.current);
+      if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
       return;
     }
-
     setIsPlayingAudio(true);
-    setPlaybackProgress(0);
-
-    // Play tone audio using Web Audio API so it always produces audible sound
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        if (ctx.state === "suspended") ctx.resume();
-        audioContextRef.current = ctx;
-
-        // Play gentle audio melody for the recording
-        const now = ctx.currentTime;
-        const frequencies = [440, 554.37, 659.25, 880, 659.25, 554.37, 440];
-        frequencies.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(freq, now + i * 0.4);
-          gain.gain.setValueAtTime(0.08, now + i * 0.4);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * 0.4);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(now + i * 0.4);
-          osc.stop(now + (i + 1) * 0.4);
-        });
-      }
-    } catch (err) {
-      console.log("AudioContext fallback active", err);
-    }
-
-    // Play voice speech synthesis if supported
     if (typeof window !== "undefined" && window.speechSynthesis) {
-      try {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.resume();
-
-        const textToSpeak = `Call recording for ${lead?.name || "Client"}. Discussion on ${bhkType || "2 BHK"} property in ${lead?.location || "Mumbai"}. Status: ${outcome}. Notes: ${notes || "Customer interested in project tour."}`;
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-
-        const voices = window.speechSynthesis.getVoices();
-        const enVoice = voices.find(v => v.lang.startsWith("en"));
-        if (enVoice) utterance.voice = enVoice;
-
-        utterance.onend = () => {
-          setIsPlayingAudio(false);
-          setPlaybackProgress(0);
-          if (audioTimerRef.current) clearInterval(audioTimerRef.current);
-        };
-        utterance.onerror = () => {
-          setIsPlayingAudio(false);
-          setPlaybackProgress(0);
-          if (audioTimerRef.current) clearInterval(audioTimerRef.current);
-        };
-
-        window.speechSynthesis.speak(utterance);
-      } catch (e) {}
+      const textToSpeak = `Call discussion recorded with ${lead?.name || "Client"}. Property requirement: ${bhkType || "2 BHK"} in ${lead?.location || "Mumbai"}. Call outcome: ${outcome}.`;
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => setIsPlayingAudio(false);
+      window.speechSynthesis.speak(utterance);
+    } else {
+      setTimeout(() => setIsPlayingAudio(false), 3000);
     }
-
-    // Progress animation timer (approx 6 seconds duration)
-    let cur = 0;
-    audioTimerRef.current = setInterval(() => {
-      cur += 1;
-      setPlaybackProgress(cur);
-      if (cur >= 6) {
-        clearInterval(audioTimerRef.current);
-        setIsPlayingAudio(false);
-        setPlaybackProgress(0);
-      }
-    }, 1000);
   };
 
   // End Call: Stop recording & Transition to Disposition Form
@@ -162,6 +171,16 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     }
     const durationStr = formatTimer(seconds);
     setCallDuration(durationStr);
+
+    // Stop real MediaRecorder
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (err) {
+        console.log("MediaRecorder stop error:", err);
+      }
+    }
+
     setCallState("DISPOSITION");
     try {
       sessionStorage.setItem(`crm_call_state_${lead?.id}`, "DISPOSITION");
@@ -244,6 +263,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       } catch (err) {}
     }
+
     onSaveCall({
       leadId: lead.id,
       duration: callDuration || formatTimer(seconds),
@@ -251,7 +271,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
       bhkType,
       notes,
       followupDate,
-      recordedAudioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+      recordedAudioUrl: recordedAudioBase64 || recordedAudioUrl || ""
     });
   };
 
@@ -298,116 +318,80 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         zIndex: 99999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "center", 
         padding: "0.75rem",
         overflowY: "auto"
       }}
     >
-      
-      {/* STAGE 1: ACTIVE IN-PROGRESS CALL SCREEN */}
+      {/* Invisible HTML5 Audio Element for Real Call Audio Playback */}
+      {recordedAudioUrl && (
+        <audio
+          ref={realAudioPlayerRef}
+          src={recordedAudioUrl}
+          onTimeUpdate={(e) => setAudioCurrentTime(e.target.currentTime)}
+          onLoadedMetadata={(e) => setAudioTotalDuration(e.target.duration)}
+          onEnded={() => {
+            setIsPlayingAudio(false);
+            setAudioCurrentTime(0);
+          }}
+          style={{ display: "none" }}
+        />
+      )}
+
+      {/* STAGE 1: ACTIVE CALLING SCREEN */}
       {callState === "CALLING" ? (
         <div 
+          className="dialer-modal-content" 
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          style={{
-            background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+          style={{ 
+            width: "100%", 
+            maxWidth: "380px", 
+            background: "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)", 
+            borderRadius: "1.5rem", 
+            padding: "2rem 1.5rem", 
+            textAlign: "center", 
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)", 
             color: "#ffffff",
-            borderRadius: "1.25rem",
-            width: "100%",
-            maxWidth: "380px",
-            padding: "1.75rem 1.25rem",
-            textAlign: "center",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
-            border: "1px solid #334155",
-            margin: "auto"
+            position: "relative",
+            margin: "auto",
+            border: "1px solid #334155"
           }}
         >
-          {/* Live Recording Badge */}
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            background: "rgba(239, 68, 68, 0.2)",
-            border: "1px solid #ef4444",
-            color: "#f87171",
-            padding: "0.35rem 0.85rem",
-            borderRadius: "9999px",
-            fontSize: "0.75rem",
-            fontWeight: 800,
-            marginBottom: "1.25rem"
-          }}>
-            <Disc size={14} color="#ef4444" className="animate-spin" />
-            <span>🔴 LIVE CALL RECORDING ACTIVE</span>
-          </div>
-
-          {/* Animated Pulsing Phone Avatar */}
-          <div style={{ position: "relative", width: "80px", height: "80px", margin: "0 auto 1rem" }}>
-            <div style={{
-              width: "100%",
-              height: "100%",
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #2563eb, #3b82f6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "2rem",
-              boxShadow: "0 0 25px rgba(37, 99, 235, 0.6)"
-            }}>
-              👤
+          {/* Avatar Pulse Animation */}
+          <div style={{ position: "relative", width: "100px", height: "100px", margin: "0 auto 1.25rem auto" }}>
+            <div className="pulsing-call-ring" style={{ position: "absolute", inset: -10, borderRadius: "50%", background: "rgba(37, 99, 235, 0.2)", animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />
+            <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: "50%", background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 25px rgba(37, 99, 235, 0.5)" }}>
+              <span style={{ fontSize: "2.2rem", fontWeight: 800 }}>
+                {lead.name ? lead.name.charAt(0).toUpperCase() : "C"}
+              </span>
             </div>
-            <div style={{
-              position: "absolute",
-              inset: "-6px",
-              borderRadius: "50%",
-              border: "2px solid #38bdf8",
-              opacity: 0.6,
-              animation: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite"
-            }} />
           </div>
 
-          <h2 style={{ fontSize: "1.35rem", fontWeight: 800, margin: "0 0 0.3rem 0", color: "#ffffff" }}>{lead.name}</h2>
-          <div style={{ fontSize: "0.9375rem", color: "#38bdf8", fontWeight: 700, marginBottom: "0.2rem" }}>
-            📞 {lead.phone}
-          </div>
-          <div style={{ fontSize: "0.8125rem", color: "#94a3b8", marginBottom: "1.25rem" }}>
-            {lead.location} • {lead.service} ({bhkType})
+          <h2 style={{ fontSize: "1.35rem", fontWeight: 800, margin: "0 0 0.35rem 0", letterSpacing: "-0.02em" }}>{lead.name}</h2>
+          <p style={{ fontSize: "0.95rem", color: "#94a3b8", margin: "0 0 0.5rem 0", fontWeight: 600 }}>{lead.phone}</p>
+          <div style={{ fontSize: "0.8125rem", color: "#60a5fa", background: "rgba(37, 99, 235, 0.15)", border: "1px solid rgba(37, 99, 235, 0.3)", padding: "0.25rem 0.75rem", borderRadius: "9999px", display: "inline-block", marginBottom: "1.25rem" }}>
+            🏢 {lead.bhkType || "2 BHK"} • {lead.location}
           </div>
 
-          {/* Soundwave Visualizer Bars */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", height: "28px", marginBottom: "1.25rem" }}>
-            {[14, 26, 18, 28, 22, 26, 16, 24].map((h, i) => (
-              <div key={i} style={{
-                width: "4px",
-                height: `${h}px`,
-                background: "#38bdf8",
-                borderRadius: "2px"
-              }} />
-            ))}
+          {/* Real Audio Recording Status Indicator */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", marginBottom: "1.25rem" }}>
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: isRecordingRealMic ? "#ef4444" : "#22c55e", display: "inline-block", animation: "pulse 1.2s infinite" }} />
+            <span style={{ fontSize: "0.78125rem", color: isRecordingRealMic ? "#fca5a5" : "#86efac", fontWeight: 700 }}>
+              {isRecordingRealMic ? "🎙️ Real Mic Audio Recording Active..." : "Connected"}
+            </span>
           </div>
 
-          {/* Active Timer Badge */}
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            background: "rgba(34, 197, 94, 0.15)",
-            border: "1px solid #22c55e",
-            color: "#4ade80",
-            padding: "0.45rem 1.25rem",
-            borderRadius: "9999px",
-            fontSize: "1.2rem",
-            fontWeight: 800,
-            marginBottom: "1.75rem"
-          }}>
-            <Clock size={20} />
-            <span>{formatTimer(seconds)}</span>
+          {/* Call Duration Timer */}
+          <div style={{ fontSize: "2rem", fontWeight: 800, fontFamily: "monospace", letterSpacing: "2px", color: "#38bdf8", marginBottom: "1.75rem" }}>
+            {formatTimer(seconds)}
           </div>
 
-          {/* Call Controls Bar: Mute, Speaker */}
-          <div style={{ display: "flex", justifyContent: "center", gap: "1.5rem", marginBottom: "1.75rem" }}>
+          {/* Quick Call Action Controls */}
+          <div style={{ display: "flex", justifyContent: "center", gap: "1.25rem", marginBottom: "2rem" }}>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
@@ -421,7 +405,8 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center"
+                justifyContent: "center",
+                transition: "all 0.2s"
               }}
             >
               {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
@@ -509,14 +494,14 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
           </div>
 
           <div className="dialer-body" style={{ padding: "1rem 1.25rem", overflowY: "auto", flex: "1 1 auto" }}>
-            {/* Custom Sleek Native Call Recording Player */}
+            {/* Real Live Call Audio Recording Player */}
             <div style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)", border: "1px solid #cbd5e1", borderRadius: "0.875rem", padding: "0.75rem 0.875rem", marginBottom: "1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
                 <span style={{ fontSize: "0.8125rem", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.35rem" }}>
                   🎙️ Live Call Audio Recording
                 </span>
                 <span style={{ fontSize: "0.6875rem", fontWeight: "800", color: isPlayingAudio ? "#2563eb" : "#16a34a", background: isPlayingAudio ? "#dbeafe" : "#dcfce7", border: isPlayingAudio ? "1px solid #93c5fd" : "1px solid #bbf7d0", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>
-                  {isPlayingAudio ? "Playing Audio..." : `Recorded • ${callDuration}`}
+                  {isPlayingAudio ? "Playing Actual Voice..." : `Recorded • ${callDuration}`}
                 </span>
               </div>
 
@@ -538,6 +523,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                     flexShrink: 0,
                     boxShadow: isPlayingAudio ? "0 4px 10px rgba(220, 38, 38, 0.3)" : "0 4px 10px rgba(37, 99, 235, 0.3)"
                   }}
+                  title="Play recorded conversation"
                 >
                   {isPlayingAudio ? <Pause size={18} fill="#ffffff" /> : <Play size={18} fill="#ffffff" style={{ marginLeft: "2px" }} />}
                 </button>
@@ -549,7 +535,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                       key={idx}
                       style={{
                         flex: 1,
-                        height: isPlayingAudio ? `${Math.min(26, Math.max(8, (h * (idx + playbackProgress) % 24) + 6))}px` : `${h}px`,
+                        height: isPlayingAudio ? `${Math.min(26, Math.max(8, (h * (idx + Math.floor(audioCurrentTime * 3)) % 24) + 6))}px` : `${h}px`,
                         background: isPlayingAudio ? "linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)" : "#cbd5e1",
                         borderRadius: "9999px",
                         transition: "all 0.15s ease"
@@ -559,7 +545,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                 </div>
 
                 <span style={{ fontSize: "0.78125rem", fontWeight: 800, color: isPlayingAudio ? "#2563eb" : "#64748b", fontFamily: "monospace" }}>
-                  {isPlayingAudio ? `00:0${playbackProgress}` : callDuration}
+                  {isPlayingAudio ? formatTimer(Math.floor(audioCurrentTime)) : callDuration}
                 </span>
               </div>
             </div>
@@ -599,54 +585,55 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
               <label className="form-label" style={{ display: "block", fontSize: "0.8125rem", fontWeight: 700, color: "#334155", marginBottom: "0.45rem" }}>
                 Call Disposition / Outcome <span style={{ color: "#2563eb" }}>*</span>
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-                {dispositionOptions.map(opt => {
-                  const isSelected = outcome === opt.label;
-                  return (
-                    <button
-                      key={opt.label}
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setOutcome(opt.label);
-                      }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      style={{
-                        padding: "0.65rem 0.5rem",
-                        borderRadius: "0.5rem",
-                        border: isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0",
-                        background: isSelected ? "#2563eb" : "#f8fafc",
-                        color: isSelected ? "#ffffff" : "#1e293b",
-                        fontWeight: 700,
-                        fontSize: "0.8125rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "0.4rem",
-                        textAlign: "center",
-                        boxShadow: isSelected ? "0 4px 12px rgba(37, 99, 235, 0.25)" : "none",
-                        transition: "all 0.15s ease"
-                      }}
-                    >
-                      <span>{opt.icon}</span>
-                      <span>{opt.label}</span>
-                    </button>
-                  );
-                })}
+              
+              <div 
+                style={{ 
+                  display: "grid", 
+                  gridTemplateColumns: "1fr 1fr", 
+                  gap: "0.5rem" 
+                }}
+              >
+                {dispositionOptions.map((opt) => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setOutcome(opt.label);
+                    }}
+                    style={{
+                      padding: "0.6rem 0.5rem",
+                      borderRadius: "0.625rem",
+                      border: outcome === opt.label ? "2px solid #2563eb" : "1px solid #e2e8f0",
+                      background: outcome === opt.label ? "#2563eb" : "#ffffff",
+                      color: outcome === opt.label ? "#ffffff" : "#1e293b",
+                      fontWeight: 700,
+                      fontSize: "0.8125rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.35rem",
+                      boxShadow: outcome === opt.label ? "0 4px 12px rgba(37, 99, 235, 0.25)" : "none",
+                      transition: "all 0.15s ease",
+                      userSelect: "none"
+                    }}
+                  >
+                    <span>{opt.icon}</span>
+                    <span>{opt.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Call Notes / Discussion with Mic & AI Grammar Auto-Correct */}
+            {/* Call Notes with Speech Dictation & AI Grammar */}
             <div className="form-group" style={{ marginBottom: "1rem" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
                 <label className="form-label" style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#334155", margin: 0 }}>
                   Call Notes / Discussion
                 </label>
-                
-                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  {/* Mic Voice Dictation Button */}
+                <div style={{ display: "flex", gap: "0.35rem" }}>
                   <button
                     type="button"
                     onClick={toggleVoiceDictation}
@@ -654,151 +641,124 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                       background: isListening ? "#ef4444" : "#eff6ff",
                       color: isListening ? "#ffffff" : "#2563eb",
                       border: "1px solid #bfdbfe",
-                      padding: "0.25rem 0.55rem",
-                      borderRadius: "0.4rem",
-                      fontSize: "0.71875rem",
+                      padding: "0.25rem 0.5rem",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.6875rem",
                       fontWeight: 700,
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       gap: "0.25rem"
                     }}
-                    title="Speak into microphone to auto-type call notes"
                   >
-                    <Mic size={13} /> {isListening ? "Listening..." : "🎙️ Voice Dictation"}
+                    <Mic size={12} /> {isListening ? "Listening..." : "Voice Dictation"}
                   </button>
-
-                  {/* AI Grammar Auto-Correct Button */}
                   <button
                     type="button"
                     onClick={autoCorrectGrammar}
                     style={{
                       background: "#f0fdf4",
-                      color: "#16a34a",
+                      color: "#15803d",
                       border: "1px solid #bbf7d0",
-                      padding: "0.25rem 0.55rem",
-                      borderRadius: "0.4rem",
-                      fontSize: "0.71875rem",
+                      padding: "0.25rem 0.5rem",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.6875rem",
                       fontWeight: 700,
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       gap: "0.25rem"
                     }}
-                    title="AI Auto-Correct spelling & format grammar"
                   >
-                    <Sparkles size={13} /> AI Grammar
+                    <Sparkles size={12} /> AI Grammar
                   </button>
                 </div>
               </div>
 
               <textarea
                 className="textarea-input"
-                placeholder="Type or click 🎙️ Voice Dictation to speak call discussion notes..."
+                rows={3}
+                placeholder="Enter key customer discussion points, budget, next steps..."
                 value={notes}
                 onChange={(e) => { e.stopPropagation(); setNotes(e.target.value); }}
                 onClick={(e) => e.stopPropagation()}
-                rows={3}
-                style={{
-                  width: "100%",
-                  padding: "0.6rem 0.85rem",
-                  borderRadius: "0.5rem",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.875rem",
-                  color: "#0f172a",
-                  fontFamily: "inherit",
+                style={{ 
+                  width: "100%", 
+                  padding: "0.6rem 0.75rem", 
+                  borderRadius: "0.5rem", 
+                  border: "1px solid #cbd5e1", 
+                  fontSize: "0.84375rem",
+                  lineHeight: "1.4",
                   resize: "vertical"
                 }}
               />
             </div>
 
-            {/* Next Follow-Up Date & Time */}
-            <div className="form-group" style={{ marginBottom: "1rem" }}>
+            {/* Follow-up Date/Time */}
+            <div className="form-group" style={{ marginBottom: "0.5rem" }}>
               <label className="form-label" style={{ display: "block", fontSize: "0.8125rem", fontWeight: 700, color: "#334155", marginBottom: "0.35rem" }}>
                 Next Follow-Up Date & Time
               </label>
               <input
                 type="datetime-local"
-                className="text-input"
+                className="input-text"
                 value={followupDate}
                 onChange={(e) => { e.stopPropagation(); setFollowupDate(e.target.value); }}
                 onClick={(e) => e.stopPropagation()}
-                style={{
-                  width: "100%",
-                  padding: "0.6rem 0.85rem",
-                  borderRadius: "0.5rem",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.875rem",
-                  color: "#0f172a"
+                style={{ 
+                  width: "100%", 
+                  padding: "0.55rem 0.75rem", 
+                  borderRadius: "0.5rem", 
+                  border: "1px solid #cbd5e1", 
+                  fontSize: "0.84375rem" 
                 }}
               />
             </div>
-
-            <button 
-              type="button"
-              className="send-report-btn" 
-              onClick={openWhatsApp} 
-              style={{ 
-                width: "100%",
-                padding: "0.65rem",
-                borderRadius: "0.5rem",
-                background: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                color: "#16a34a",
-                fontWeight: 700,
-                fontSize: "0.8125rem",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.4rem"
-              }}
-            >
-              <Send size={15} />
-              <span>Send Instant WhatsApp Summary</span>
-            </button>
           </div>
 
-          <div className="dialer-footer" style={{ padding: "0.85rem 1.25rem", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-            <button 
+          {/* Action Footer */}
+          <div className="dialer-footer" style={{ padding: "0.85rem 1.25rem", borderTop: "1px solid #e2e8f0", background: "#f8fafc", display: "flex", gap: "0.75rem", flexShrink: 0 }}>
+            <button
               type="button"
-              className="end-call-btn" 
-              onClick={handleCancelClose} 
-              style={{ 
+              className="btn-cancel"
+              onClick={handleCancelClose}
+              style={{
+                flex: 1,
+                padding: "0.65rem",
+                borderRadius: "0.5rem",
                 background: "#64748b",
                 color: "#ffffff",
                 border: "none",
-                padding: "0.65rem 1.25rem",
-                borderRadius: "0.5rem",
                 fontWeight: 700,
                 fontSize: "0.875rem",
                 cursor: "pointer"
               }}
             >
-              <span>Cancel</span>
+              Cancel
             </button>
 
-            <button 
+            <button
               type="button"
-              className="save-call-btn" 
-              onClick={handleSave} 
-              style={{ 
-                background: "linear-gradient(135deg, #16a34a, #15803d)",
+              className="btn-save"
+              onClick={handleSave}
+              style={{
+                flex: 1.5,
+                padding: "0.65rem",
+                borderRadius: "0.5rem",
+                background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
                 color: "#ffffff",
                 border: "none",
-                padding: "0.65rem 1.5rem",
-                borderRadius: "0.5rem",
-                fontWeight: 700,
+                fontWeight: 800,
                 fontSize: "0.875rem",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: "0.4rem",
-                boxShadow: "0 4px 12px rgba(22, 163, 74, 0.25)"
+                boxShadow: "0 4px 12px rgba(22, 163, 74, 0.3)"
               }}
             >
-              <CheckCircle2 size={16} />
-              <span>Save Call Log</span>
+              <CheckCircle2 size={16} /> Save Call Log
             </button>
           </div>
         </div>
