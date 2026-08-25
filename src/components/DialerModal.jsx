@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneOff, Send, Clock, CheckCircle2, Mic, MicOff, Sparkles, Volume2, VolumeX, User, MapPin, Check, Play, Pause, Disc, FileText, Download } from "lucide-react";
+import { PhoneOff, Send, Clock, CheckCircle2, Mic, MicOff, Sparkles, Volume2, VolumeX, User, MapPin, Check, Play, Pause, Disc, FileText, RotateCcw } from "lucide-react";
 import confetti from "canvas-confetti";
+import { UniversalAudioRecorder } from "../utils/audioRecorder";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function DialerModal({ lead, onClose, onSaveCall }) {
@@ -14,18 +15,16 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
   const [callDuration, setCallDuration] = useState("00:00");
   const [alertConfig, setAlertConfig] = useState(null);
 
-  // Real Microphone MediaRecorder State
+  // Audio Recorder State
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
   const [recordedAudioBase64, setRecordedAudioBase64] = useState(null);
-  const [isRecordingRealMic, setIsRecordingRealMic] = useState(false);
+  const [isRecordingMic, setIsRecordingMic] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
-  const [audioTotalDuration, setAudioTotalDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
 
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const realAudioPlayerRef = useRef(null);
-  const micStreamRef = useRef(null);
+  const recorderRef = useRef(null);
+  const audioElementRef = useRef(null);
 
   const getCurrentLocalDateTime = () => {
     const now = new Date();
@@ -40,65 +39,24 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
 
   const [isListening, setIsListening] = useState(false);
 
-  // Start Real Microphone Recording on active call
+  // Initialize Microphone Recording when Call Starts
   useEffect(() => {
-    let streamInstance = null;
-    if (typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-          micStreamRef.current = stream;
-          streamInstance = stream;
-          setIsRecordingRealMic(true);
+    let rec = new UniversalAudioRecorder();
+    recorderRef.current = rec;
 
-          let mimeType = "";
-          if (typeof MediaRecorder !== "undefined") {
-            if (MediaRecorder.isTypeSupported("audio/webm")) mimeType = "audio/webm";
-            else if (MediaRecorder.isTypeSupported("audio/mp4")) mimeType = "audio/mp4";
-            else if (MediaRecorder.isTypeSupported("audio/ogg")) mimeType = "audio/ogg";
-
-            const options = mimeType ? { mimeType } : undefined;
-            const recorder = new MediaRecorder(stream, options);
-            mediaRecorderRef.current = recorder;
-            audioChunksRef.current = [];
-
-            recorder.ondataavailable = (event) => {
-              if (event.data && event.data.size > 0) {
-                audioChunksRef.current.push(event.data);
-              }
-            };
-
-            recorder.onstop = () => {
-              const mime = recorder.mimeType || "audio/webm";
-              const audioBlob = new Blob(audioChunksRef.current, { type: mime });
-              const audioUrl = URL.createObjectURL(audioBlob);
-              setRecordedAudioUrl(audioUrl);
-
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setRecordedAudioBase64(reader.result);
-              };
-              reader.readAsDataURL(audioBlob);
-
-              // Stop mic stream tracks to release microphone hardware
-              stream.getTracks().forEach(track => track.stop());
-              setIsRecordingRealMic(false);
-            };
-
-            recorder.start(500);
-          }
-        })
-        .catch(err => {
-          console.log("[Microphone notice] Real microphone access not granted:", err.message);
-          setIsRecordingRealMic(false);
-        });
-    }
+    rec.start()
+      .then(() => {
+        setIsRecordingMic(true);
+        console.log("[DialerModal] Microphone recording started successfully");
+      })
+      .catch((err) => {
+        console.log("[DialerModal] Microphone permission notice:", err.message);
+        setIsRecordingMic(false);
+      });
 
     return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-        try { mediaRecorderRef.current.stop(); } catch (e) {}
-      }
-      if (micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach(t => t.stop());
+      if (recorderRef.current && recorderRef.current.isRecording) {
+        recorderRef.current.stop().catch(() => {});
       }
     };
   }, []);
@@ -116,55 +74,12 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
 
   const formatTimer = (s) => {
     const mins = Math.floor(s / 60);
-    const secs = s % 60;
+    const secs = Math.floor(s % 60);
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Toggle Real Live Audio Playback
-  const toggleAudioPlayback = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    const audioEl = realAudioPlayerRef.current;
-    if (audioEl) {
-      if (isPlayingAudio) {
-        audioEl.pause();
-        setIsPlayingAudio(false);
-      } else {
-        audioEl.play()
-          .then(() => setIsPlayingAudio(true))
-          .catch(err => {
-            console.log("Audio play error, retrying with synthesis fallback", err);
-            playFallbackSpeech();
-          });
-      }
-    } else {
-      playFallbackSpeech();
-    }
-  };
-
-  const playFallbackSpeech = () => {
-    if (isPlayingAudio) {
-      setIsPlayingAudio(false);
-      if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
-      return;
-    }
-    setIsPlayingAudio(true);
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      const textToSpeak = `Call discussion recorded with ${lead?.name || "Client"}. Property requirement: ${bhkType || "2 BHK"} in ${lead?.location || "Mumbai"}. Call outcome: ${outcome}.`;
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.onend = () => setIsPlayingAudio(false);
-      utterance.onerror = () => setIsPlayingAudio(false);
-      window.speechSynthesis.speak(utterance);
-    } else {
-      setTimeout(() => setIsPlayingAudio(false), 3000);
-    }
-  };
-
-  // End Call: Stop recording & Transition to Disposition Form
-  const handleEndCall = (e) => {
+  // Stop Recording & Transition to Disposition
+  const handleEndCall = async (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -172,20 +87,98 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     const durationStr = formatTimer(seconds);
     setCallDuration(durationStr);
 
-    // Stop real MediaRecorder
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    if (recorderRef.current && recorderRef.current.isRecording) {
       try {
-        mediaRecorderRef.current.stop();
+        const result = await recorderRef.current.stop();
+        if (result && result.url) {
+          setRecordedAudioUrl(result.url);
+          setRecordedAudioBase64(result.base64);
+        }
       } catch (err) {
-        console.log("MediaRecorder stop error:", err);
+        console.error("Error stopping recorder:", err);
       }
     }
+    setIsRecordingMic(false);
 
     setCallState("DISPOSITION");
     try {
       sessionStorage.setItem(`crm_call_state_${lead?.id}`, "DISPOSITION");
     } catch (err) {}
     if (isListening) setIsListening(false);
+  };
+
+  // Re-record Voice Note if needed
+  const startManualReRecord = async () => {
+    if (isRecordingMic) {
+      // Stop recording
+      if (recorderRef.current) {
+        const res = await recorderRef.current.stop();
+        if (res && res.url) {
+          setRecordedAudioUrl(res.url);
+          setRecordedAudioBase64(res.base64);
+        }
+      }
+      setIsRecordingMic(false);
+    } else {
+      // Start recording
+      const rec = new UniversalAudioRecorder();
+      recorderRef.current = rec;
+      try {
+        await rec.start();
+        setIsRecordingMic(true);
+        setRecordedAudioUrl(null);
+      } catch (e) {
+        setAlertConfig({
+          title: "Microphone Access Required",
+          message: "Please allow microphone access in your browser to record audio.",
+          type: "warning"
+        });
+      }
+    }
+  };
+
+  // Toggle Audio Playback
+  const toggleAudioPlayback = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    const audio = audioElementRef.current;
+    if (!audio) {
+      playSyntheticFallback();
+      return;
+    }
+
+    if (isPlayingAudio) {
+      audio.pause();
+      setIsPlayingAudio(false);
+    } else {
+      audio.play()
+        .then(() => setIsPlayingAudio(true))
+        .catch((err) => {
+          console.log("Audio play error, using speech fallback:", err);
+          playSyntheticFallback();
+        });
+    }
+  };
+
+  const playSyntheticFallback = () => {
+    if (isPlayingAudio) {
+      setIsPlayingAudio(false);
+      if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+      return;
+    }
+    setIsPlayingAudio(true);
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      const textToSpeak = `Call discussion recorded with ${lead?.name || "Client"} for ${bhkType} property in ${lead?.location}. Status: ${outcome}.`;
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => setIsPlayingAudio(false);
+      window.speechSynthesis.speak(utterance);
+    } else {
+      setTimeout(() => setIsPlayingAudio(false), 3000);
+    }
   };
 
   // Voice-to-Text Speech Recognition (Web Speech API)
@@ -286,17 +279,6 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     onClose();
   };
 
-  const openWhatsApp = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    const text = encodeURIComponent(
-      `Hello ${lead.name},\nThank you for speaking with Dream Homes Real Estate. Here is your property summary for ${bhkType} (${lead.service}) in ${lead.location}.`
-    );
-    window.open(`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}?text=${text}`, "_blank");
-  };
-
   if (!lead) return null;
 
   const dispositionOptions = [
@@ -325,16 +307,16 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
         overflowY: "auto"
       }}
     >
-      {/* Invisible HTML5 Audio Element for Real Call Audio Playback */}
+      {/* Real HTML5 Audio Element for Playback */}
       {recordedAudioUrl && (
         <audio
-          ref={realAudioPlayerRef}
+          ref={audioElementRef}
           src={recordedAudioUrl}
-          onTimeUpdate={(e) => setAudioCurrentTime(e.target.currentTime)}
-          onLoadedMetadata={(e) => setAudioTotalDuration(e.target.duration)}
+          onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+          onLoadedMetadata={(e) => setTotalDuration(e.target.duration)}
           onEnded={() => {
             setIsPlayingAudio(false);
-            setAudioCurrentTime(0);
+            setCurrentTime(0);
           }}
           style={{ display: "none" }}
         />
@@ -379,9 +361,9 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
 
           {/* Real Audio Recording Status Indicator */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", marginBottom: "1.25rem" }}>
-            <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: isRecordingRealMic ? "#ef4444" : "#22c55e", display: "inline-block", animation: "pulse 1.2s infinite" }} />
-            <span style={{ fontSize: "0.78125rem", color: isRecordingRealMic ? "#fca5a5" : "#86efac", fontWeight: 700 }}>
-              {isRecordingRealMic ? "🎙️ Real Mic Audio Recording Active..." : "Connected"}
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: isRecordingMic ? "#ef4444" : "#22c55e", display: "inline-block", animation: "pulse 1.2s infinite" }} />
+            <span style={{ fontSize: "0.78125rem", color: isRecordingMic ? "#fca5a5" : "#86efac", fontWeight: 700 }}>
+              {isRecordingMic ? "🎙️ Real Mic Audio Recording Active..." : "Connected"}
             </span>
           </div>
 
@@ -500,9 +482,33 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                 <span style={{ fontSize: "0.8125rem", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.35rem" }}>
                   🎙️ Live Call Audio Recording
                 </span>
-                <span style={{ fontSize: "0.6875rem", fontWeight: "800", color: isPlayingAudio ? "#2563eb" : "#16a34a", background: isPlayingAudio ? "#dbeafe" : "#dcfce7", border: isPlayingAudio ? "1px solid #93c5fd" : "1px solid #bbf7d0", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>
-                  {isPlayingAudio ? "Playing Actual Voice..." : `Recorded • ${callDuration}`}
-                </span>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <button
+                    type="button"
+                    onClick={startManualReRecord}
+                    style={{
+                      background: isRecordingMic ? "#ef4444" : "#eff6ff",
+                      color: isRecordingMic ? "#ffffff" : "#2563eb",
+                      border: "1px solid #bfdbfe",
+                      padding: "0.15rem 0.4rem",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.6875rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.2rem"
+                    }}
+                    title="Record extra voice note"
+                  >
+                    <Mic size={11} /> {isRecordingMic ? "Stop Mic" : "Re-record"}
+                  </button>
+
+                  <span style={{ fontSize: "0.6875rem", fontWeight: "800", color: isPlayingAudio ? "#2563eb" : "#16a34a", background: isPlayingAudio ? "#dbeafe" : "#dcfce7", border: isPlayingAudio ? "1px solid #93c5fd" : "1px solid #bbf7d0", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>
+                    {isPlayingAudio ? "Playing Voice..." : `Recorded • ${callDuration}`}
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", background: "#ffffff", padding: "0.6rem 0.85rem", borderRadius: "0.625rem", border: "1px solid #e2e8f0" }}>
@@ -510,8 +516,8 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                   type="button"
                   onClick={toggleAudioPlayback}
                   style={{
-                    width: "36px",
-                    height: "36px",
+                    width: "38px",
+                    height: "38px",
                     borderRadius: "50%",
                     background: isPlayingAudio ? "#dc2626" : "#2563eb",
                     color: "#ffffff",
@@ -523,7 +529,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                     flexShrink: 0,
                     boxShadow: isPlayingAudio ? "0 4px 10px rgba(220, 38, 38, 0.3)" : "0 4px 10px rgba(37, 99, 235, 0.3)"
                   }}
-                  title="Play recorded conversation"
+                  title="Play recorded voice"
                 >
                   {isPlayingAudio ? <Pause size={18} fill="#ffffff" /> : <Play size={18} fill="#ffffff" style={{ marginLeft: "2px" }} />}
                 </button>
@@ -535,7 +541,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                       key={idx}
                       style={{
                         flex: 1,
-                        height: isPlayingAudio ? `${Math.min(26, Math.max(8, (h * (idx + Math.floor(audioCurrentTime * 3)) % 24) + 6))}px` : `${h}px`,
+                        height: isPlayingAudio ? `${Math.min(26, Math.max(8, (h * (idx + Math.floor(currentTime * 4)) % 24) + 6))}px` : `${h}px`,
                         background: isPlayingAudio ? "linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)" : "#cbd5e1",
                         borderRadius: "9999px",
                         transition: "all 0.15s ease"
@@ -545,7 +551,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                 </div>
 
                 <span style={{ fontSize: "0.78125rem", fontWeight: 800, color: isPlayingAudio ? "#2563eb" : "#64748b", fontFamily: "monospace" }}>
-                  {isPlayingAudio ? formatTimer(Math.floor(audioCurrentTime)) : callDuration}
+                  {isPlayingAudio ? formatTimer(currentTime) : (totalDuration ? formatTimer(totalDuration) : callDuration)}
                 </span>
               </div>
             </div>
