@@ -58,7 +58,7 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated }) {
 
     setAlertConfig({
       title: "Lead Created!",
-      message: `🎉 Fresh Lead '${name}' added successfully & synced to CRM Database!`,
+      message: `🎉 Fresh Lead '${name}' saved to Database! (Lead ID: ${res?.lead_id || newLeadObj.id})`,
       type: "success"
     });
     
