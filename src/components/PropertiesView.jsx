@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { 
   Building2, MapPin, Share2, Info, AlertTriangle, FileText, 
   Video, Layers, Calculator, ClipboardList, CheckCircle, Search, Filter,
-  Phone, UserCheck, CheckSquare, Download, Play, Shield, Upload, Plus, Trash2, FileUp, Eye
+  Phone, UserCheck, CheckSquare, Download, Play, Shield, Upload, Plus, Trash2, FileUp, Eye, Edit3
 } from "lucide-react";
 import { fetchCrmInventory, submitProjectSurvey, calculateCmaApi } from "../services/apiService";
 import UploadPropertyModal from "./UploadPropertyModal";
@@ -10,6 +10,7 @@ import UploadInventoryModal from "./UploadInventoryModal";
 import DocUploadModal from "./DocUploadModal";
 import DocumentViewerModal from "./DocumentViewerModal";
 import VideoPlayerModal from "./VideoPlayerModal";
+import EditRecordModal from "./EditRecordModal";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function PropertiesView({ onShareProperty }) {
@@ -18,105 +19,257 @@ export default function PropertiesView({ onShareProperty }) {
   const [cmaLocation, setCmaLocation] = useState("");
   const [cmaArea, setCmaArea] = useState("");
   const [cmaResult, setCmaResult] = useState(null);
-  const [liveProperties, setLiveProperties] = useState([]);
-  const [backendCategories, setBackendCategories] = useState(null);
+  
+  // Modals state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [selectedViewDoc, setSelectedViewDoc] = useState(null);
   const [selectedVideo, setSelectedVideo] = useState(null);
-  const [uploadedProperties, setUploadedProperties] = useState([]);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [editingType, setEditingType] = useState("");
   const [alertConfig, setAlertConfig] = useState(null);
+  const [deleteAction, setDeleteAction] = useState(null);
 
   // Sub-tab Upload Modals State
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [itemModalMode, setItemModalMode] = useState("unit_plan");
   const [itemListingCategory, setItemListingCategory] = useState("My Listing");
 
-  const [uploadedUnitPlans, setUploadedUnitPlans] = useState([]);
-  const [uploadedDocs, setUploadedDocs] = useState(() => {
+  // Editable lists persisted in localStorage
+  const [propertiesList, setPropertiesList] = useState(() => {
     try {
-      const saved = localStorage.getItem("crm_property_docs");
-      return saved ? JSON.parse(saved) : [];
+      const saved = localStorage.getItem("crm_focus_projects");
+      return saved ? JSON.parse(saved) : [
+        {
+          id: "PROP-001",
+          title: "Kalpataru Vian",
+          builder: "Kalpataru Limited",
+          location: "Andheri West, Mumbai",
+          priceRange: "₹ 2.45 Cr - 4.10 Cr",
+          price: "₹ 2.45 Cr - 4.10 Cr",
+          tag: "Featured Focus",
+          bhk: "2 & 3 BHK Luxury",
+          carpet: "740 - 1180 sq.ft",
+          highlights: ["Sea Facing High-Rise Towers", "Infinity Sky Pool & Fitness Arena", "Next to Western Express Metro"],
+          img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"
+        },
+        {
+          id: "PROP-002",
+          title: "Godrej Horizon",
+          builder: "Godrej Properties",
+          location: "Wadala, Mumbai",
+          priceRange: "₹ 1.85 Cr - 3.20 Cr",
+          price: "₹ 1.85 Cr - 3.20 Cr",
+          tag: "Hot Selling",
+          bhk: "2 & 3 BHK",
+          carpet: "680 - 1050 sq.ft",
+          highlights: ["Private 5-Acre Parkland", "5 Mins from Eastern Freeway", "Double-Height Grand Lobby"],
+          img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80"
+        },
+        {
+          id: "PROP-003",
+          title: "Oberoi Sky City",
+          builder: "Oberoi Realty",
+          location: "Borivali East, Mumbai",
+          priceRange: "₹ 3.40 Cr - 6.20 Cr",
+          price: "₹ 3.40 Cr - 6.20 Cr",
+          tag: "Ready Soon",
+          bhk: "3 & 4 BHK Luxury",
+          carpet: "1050 - 1980 sq.ft",
+          highlights: ["Integrated 25-Acre Township", "Adjoining Western Express Highway", "Clubhouse & Grand Sports Complex"],
+          img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"
+        }
+      ];
     } catch (e) {
       return [];
     }
   });
-  const [uploadedVids, setUploadedVids] = useState([]);
-  const [uploadedListings, setUploadedListings] = useState([]);
+
+  const [documentsList, setDocumentsList] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_property_docs");
+      return saved ? JSON.parse(saved) : [
+        { id: "DOC-DEF-01", name: "Kalpataru Vian RERA Brochure", fileName: "Kalpataru_Vian_Brochure.pdf", fileType: "PDF", size: "3.4 MB", date: "24 Aug 2026", category: "Brochure / Layout" },
+        { id: "DOC-DEF-02", name: "Godrej Horizon Cost Sheet & Payment Plan", fileName: "Godrej_Horizon_Cost_Sheet.docx", fileType: "DOC", size: "1.8 MB", date: "22 Aug 2026", category: "Price Sheet & Costing" },
+        { id: "DOC-DEF-03", name: "Oberoi Sky City RERA Title Certificate", fileName: "Oberoi_Title_Certificate.pdf", fileType: "PDF", size: "5.6 MB", date: "20 Aug 2026", category: "RERA Approval" }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [unitPlansList, setUnitPlansList] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_unit_plans");
+      return saved ? JSON.parse(saved) : [
+        { id: "UP-01", project: "Kalpataru Vian (2 BHK Master Plan)", area: "780 sq.ft Carpet", planImg: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80" },
+        { id: "UP-02", project: "Godrej Horizon (3 BHK Sea View Layout)", area: "1180 sq.ft Carpet", planImg: "https://images.unsplash.com/photo-1600573472592-401b489a3cdc?auto=format&fit=crop&w=800&q=80" },
+        { id: "UP-03", project: "Oberoi Sky City (3 BHK Premium Floor)", area: "1350 sq.ft Carpet", planImg: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=800&q=80" }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [videosList, setVideosList] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_videos");
+      return saved ? JSON.parse(saved) : [
+        { id: "VID-01", title: "Kalpataru Vian 4K Drone Tour & Sample Flat", duration: "03:45", img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=kXYiU_JCYtU" },
+        { id: "VID-02", title: "Godrej Horizon Eastern Bay Sunset View Walkthrough", duration: "04:10", img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=ysz5S6PUM-U" },
+        { id: "VID-03", title: "Oberoi Sky City Clubhouse & Olympic Pool Virtual Tour", duration: "05:15", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=jNQXAC9IVRw" }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [myListingData, setMyListingData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_my_listings");
+      return saved ? JSON.parse(saved) : [
+        { id: "LST-101", property: "3 BHK Kalpataru Vian", locality: "Andheri West", price: "₹ 2.95 Cr", owner: "Sanjay Singhania", status: "Verified" },
+        { id: "LST-102", property: "2 BHK Godrej Horizon", locality: "Wadala", price: "₹ 2.60 Cr", owner: "Vikram Kapoor", status: "Verified" },
+        { id: "LST-103", property: "4 BHK Oberoi Sky City", locality: "Borivali East", price: "₹ 5.40 Cr", owner: "Deepika Padukone", status: "Active" }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [employeeListingData, setEmployeeListingData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_emp_listings");
+      return saved ? JSON.parse(saved) : [
+        { id: "EMP-201", property: "2 BHK Sea Pearl Apartment", locality: "Bandra West", price: "₹ 3.10 Cr", agent: "Rahul Sharma (Sr. Telecaller)", status: "Active" },
+        { id: "EMP-202", property: "3 BHK Oberoi Exquisite", locality: "Goregaon East", price: "₹ 4.25 Cr", agent: "Priya Sharma", status: "Under Offer" }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [ownerLeadsData, setOwnerLeadsData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_owner_leads");
+      return saved ? JSON.parse(saved) : [
+        { id: "OWN-301", name: "Sunil Gavaskar", property: "3 BHK Penthouse in Pali Hill", locality: "Bandra West", phone: "+91 98200 11223" },
+        { id: "OWN-302", name: "Kareena Kapoor", property: "4 BHK Luxury Residence", locality: "Khar West", phone: "+91 98211 44556" }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [cpListingData, setCpListingData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_cp_listings");
+      return saved ? JSON.parse(saved) : [
+        { id: "CP-401", broker: "Apex Prime Realtors (Mr. Gupta)", property: "4 BHK Duplex Penthouse", locality: "Worli Sea Face", commission: "2.0% Verified Split" },
+        { id: "CP-402", broker: "Kapadia Real Estate Consultants", property: "3 BHK Sea Facing Flat", locality: "Juhu Scheme", commission: "2.5% Super Split" }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
 
   // Survey Form State
   const [surveyBuilder, setSurveyBuilder] = useState("");
   const [surveyLocation, setSurveyLocation] = useState("");
   const [surveyPrice, setSurveyPrice] = useState("");
 
-  useEffect(() => {
-    fetchCrmInventory().then((res) => {
-      if (res) {
-        if (res.categories) setBackendCategories(res.categories);
-        if (res.data) setLiveProperties(res.data);
-      }
-    });
-  }, []);
+  // Save helpers
+  const saveStateAndStorage = (key, data, setter) => {
+    setter(data);
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {}
+  };
 
   const handlePropertyUploaded = (newProp) => {
-    setUploadedProperties(prev => [newProp, ...prev]);
+    const updated = [newProp, ...propertiesList];
+    saveStateAndStorage("crm_focus_projects", updated, setPropertiesList);
   };
 
   const handleDocumentUploaded = (newDoc) => {
-    const updated = [newDoc, ...uploadedDocs];
-    setUploadedDocs(updated);
-    try {
-      localStorage.setItem("crm_property_docs", JSON.stringify(updated));
-    } catch (e) {}
+    const updated = [newDoc, ...documentsList];
+    saveStateAndStorage("crm_property_docs", updated, setDocumentsList);
     setSelectedSubTab("Documents");
   };
 
-  const handleDeleteDoc = (docId) => {
-    const updated = uploadedDocs.filter(d => d.id !== docId);
-    setUploadedDocs(updated);
-    try {
-      localStorage.setItem("crm_property_docs", JSON.stringify(updated));
-    } catch (e) {}
-  };
-
-  const handleDownloadDoc = (doc) => {
-    if (doc.dataUrl) {
-      const link = document.createElement("a");
-      link.href = doc.dataUrl;
-      link.download = doc.fileName || `${doc.name}.${doc.fileType === "PDF" ? "pdf" : "docx"}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      setSelectedViewDoc(doc);
+  const handleItemUploaded = (type, item) => {
+    if (type === "unit_plan") {
+      const updated = [{ id: `UP-${Date.now().toString().slice(-4)}`, ...item }, ...unitPlansList];
+      saveStateAndStorage("crm_unit_plans", updated, setUnitPlansList);
+    } else if (type === "document") {
+      handleDocumentUploaded(item);
+    } else if (type === "video") {
+      const updated = [{ id: `VID-${Date.now().toString().slice(-4)}`, ...item }, ...videosList];
+      saveStateAndStorage("crm_videos", updated, setVideosList);
+    } else if (type === "listing") {
+      if (item.listing_type === "My Listing") {
+        const updated = [item, ...myListingData];
+        saveStateAndStorage("crm_my_listings", updated, setMyListingData);
+      } else if (item.listing_type === "Employee Listing") {
+        const updated = [item, ...employeeListingData];
+        saveStateAndStorage("crm_emp_listings", updated, setEmployeeListingData);
+      } else if (item.listing_type === "Owner Lead") {
+        const updated = [item, ...ownerLeadsData];
+        saveStateAndStorage("crm_owner_leads", updated, setOwnerLeadsData);
+      } else if (item.listing_type === "CP Listing") {
+        const updated = [item, ...cpListingData];
+        saveStateAndStorage("crm_cp_listings", updated, setCpListingData);
+      }
     }
   };
 
-  const handleItemUploaded = (type, item) => {
-    if (type === "unit_plan") setUploadedUnitPlans(prev => [item, ...prev]);
-    else if (type === "document") handleDocumentUploaded(item);
-    else if (type === "video") setUploadedVids(prev => [item, ...prev]);
-    else if (type === "listing") setUploadedListings(prev => [item, ...prev]);
+  // Edit record handler
+  const handleEditRecord = (record, type) => {
+    setEditingRecord(record);
+    setEditingType(type);
   };
 
-  const initialProps = (backendCategories && backendCategories.focusProjects)
-    ? backendCategories.focusProjects
-    : liveProperties;
+  const handleSaveEditedRecord = (updatedRecord) => {
+    if (editingType === "Property") {
+      const updated = propertiesList.map(p => p.id === updatedRecord.id ? updatedRecord : p);
+      saveStateAndStorage("crm_focus_projects", updated, setPropertiesList);
+    } else if (editingType === "Document") {
+      const updated = documentsList.map(d => d.id === updatedRecord.id ? updatedRecord : d);
+      saveStateAndStorage("crm_property_docs", updated, setDocumentsList);
+    } else if (editingType === "Unit Plan") {
+      const updated = unitPlansList.map(u => u.id === updatedRecord.id ? updatedRecord : u);
+      saveStateAndStorage("crm_unit_plans", updated, setUnitPlansList);
+    } else if (editingType === "Video") {
+      const updated = videosList.map(v => v.id === updatedRecord.id ? updatedRecord : v);
+      saveStateAndStorage("crm_videos", updated, setVideosList);
+    } else if (editingType === "My Listing") {
+      const updated = myListingData.map(l => l.id === updatedRecord.id ? updatedRecord : l);
+      saveStateAndStorage("crm_my_listings", updated, setMyListingData);
+    } else if (editingType === "Employee Listing") {
+      const updated = employeeListingData.map(l => l.id === updatedRecord.id ? updatedRecord : l);
+      saveStateAndStorage("crm_emp_listings", updated, setEmployeeListingData);
+    } else if (editingType === "Owner Lead") {
+      const updated = ownerLeadsData.map(l => l.id === updatedRecord.id ? updatedRecord : l);
+      saveStateAndStorage("crm_owner_leads", updated, setOwnerLeadsData);
+    } else if (editingType === "CP Listing") {
+      const updated = cpListingData.map(l => l.id === updatedRecord.id ? updatedRecord : l);
+      saveStateAndStorage("crm_cp_listings", updated, setCpListingData);
+    }
+    setEditingRecord(null);
+    setEditingType("");
+  };
 
-  const propertiesList = [...uploadedProperties, ...initialProps];
-  const unitPlansList = [...uploadedUnitPlans, ...((backendCategories && backendCategories.unitPlans) ? backendCategories.unitPlans : [])];
-  const documentsList = [...uploadedDocs, ...((backendCategories && backendCategories.documents) ? backendCategories.documents : [
-    { id: "DOC-DEF-01", name: "Kalpataru Vian RERA Brochure", fileName: "Kalpataru_Vian_Brochure.pdf", fileType: "PDF", size: "3.4 MB", date: "15 Aug 2026", category: "Brochure / Layout" },
-    { id: "DOC-DEF-02", name: "Godrej Horizon Cost Sheet & Payment Plan", fileName: "Godrej_Horizon_Cost_Sheet.docx", fileType: "DOC", size: "1.8 MB", date: "12 Aug 2026", category: "Price Sheet & Costing" }
-  ])];
-  const videosList = [...uploadedVids, ...((backendCategories && backendCategories.videos) ? backendCategories.videos : [
-    { id: "VID-01", title: "Kalpataru Vian 4K Drone Tour & Sample Flat", duration: "03:45", img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-    { id: "VID-02", title: "Oberoi Sky City Sky-Deck Penthouse Tour", duration: "04:10", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
-  ])];
-  const myListingData = [...uploadedListings.filter(l => l.listing_type === "My Listing"), ...((backendCategories && backendCategories.myListings) ? backendCategories.myListings : [])];
-  const employeeListingData = [...uploadedListings.filter(l => l.listing_type === "Employee Listing"), ...((backendCategories && backendCategories.employeeListings) ? backendCategories.employeeListings : [])];
-  const ownerLeadsData = [...uploadedListings.filter(l => l.listing_type === "Owner Lead"), ...((backendCategories && backendCategories.ownerLeads) ? backendCategories.ownerLeads : [])];
-  const cpListingData = [...uploadedListings.filter(l => l.listing_type === "CP Listing"), ...((backendCategories && backendCategories.cpListings) ? backendCategories.cpListings : [])];
+  // Delete confirmation handler
+  const confirmDeleteRecord = (item, type, onDeleteCallback) => {
+    const itemName = item.title || item.name || item.property || item.project || "this item";
+    setDeleteAction(() => onDeleteCallback);
+    setAlertConfig({
+      title: `Delete ${type}?`,
+      message: `Are you sure you want to delete '${itemName}'? This action cannot be undone.`,
+      type: "warning",
+      showConfirm: true
+    });
+  };
 
   const handleCalculateCMA = async (e) => {
     e.preventDefault();
@@ -180,6 +333,15 @@ export default function PropertiesView({ onShareProperty }) {
         isOpen={!!selectedVideo}
         onClose={() => setSelectedVideo(null)}
         video={selectedVideo}
+      />
+
+      {/* In-App Universal Edit Record Modal */}
+      <EditRecordModal
+        isOpen={!!editingRecord}
+        onClose={() => { setEditingRecord(null); setEditingType(""); }}
+        record={editingRecord}
+        recordType={editingType}
+        onSave={handleSaveEditedRecord}
       />
 
       <UploadInventoryModal
@@ -369,37 +531,27 @@ export default function PropertiesView({ onShareProperty }) {
                   <Eye size={13} /> View
                 </button>
 
-                {/* Download Button */}
-                <button 
-                  style={{ 
-                    background: "#f1f5f9", 
-                    border: "1px solid #cbd5e1", 
-                    color: "#334155", 
-                    padding: "0.35rem 0.5rem", 
-                    borderRadius: "0.375rem", 
-                    fontSize: "0.75rem", 
-                    fontWeight: "700", 
-                    cursor: "pointer", 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "0.2rem" 
-                  }} 
-                  onClick={() => handleDownloadDoc(doc)}
-                  title="Download File"
+                {/* Edit Button */}
+                <button
+                  type="button"
+                  onClick={() => handleEditRecord(doc, "Document")}
+                  style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  title="Edit Document Details"
                 >
-                  <Download size={13} />
+                  <Edit3 size={13} />
                 </button>
 
                 {/* Delete button */}
-                {doc.id && doc.id.startsWith("DOC-") && (
-                  <button 
-                    style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} 
-                    onClick={() => handleDeleteDoc(doc.id)}
-                    title="Delete Document"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
+                <button 
+                  style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} 
+                  onClick={() => confirmDeleteRecord(doc, "Document", () => {
+                    const updated = documentsList.filter(d => (d.id || d.name) !== (doc.id || doc.name));
+                    saveStateAndStorage("crm_property_docs", updated, setDocumentsList);
+                  })}
+                  title="Delete Document"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             </div>
           ))}
@@ -473,8 +625,29 @@ export default function PropertiesView({ onShareProperty }) {
             <Plus size={16} /> + Add Unit Floor Plan
           </button>
           {unitPlansList.map((plan, idx) => (
-            <div key={idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", overflow: "hidden", padding: "0.875rem" }}>
-              <h4 style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>📐 {plan.project}</h4>
+            <div key={plan.id || idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", overflow: "hidden", padding: "0.875rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.3rem" }}>
+                <h4 style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a", margin: 0 }}>📐 {plan.project}</h4>
+                <div style={{ display: "flex", gap: "0.3rem" }}>
+                  <button
+                    onClick={() => handleEditRecord(plan, "Unit Plan")}
+                    style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem 0.45rem", borderRadius: "0.375rem", cursor: "pointer" }}
+                    title="Edit Unit Plan"
+                  >
+                    <Edit3 size={13} />
+                  </button>
+                  <button
+                    onClick={() => confirmDeleteRecord(plan, "Unit Plan", () => {
+                      const updated = unitPlansList.filter(u => (u.id || u.project) !== (plan.id || plan.project));
+                      saveStateAndStorage("crm_unit_plans", updated, setUnitPlansList);
+                    })}
+                    style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem 0.45rem", borderRadius: "0.375rem", cursor: "pointer" }}
+                    title="Delete Unit Plan"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
               <p style={{ fontSize: "0.75rem", color: "#64748b", marginBottom: "0.5rem" }}>Area: {plan.area}</p>
               <img 
                 src={plan.planImg || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80"} 
@@ -502,20 +675,20 @@ export default function PropertiesView({ onShareProperty }) {
           
           {videosList.map((vid, idx) => (
             <div 
-              key={idx} 
-              onClick={() => setSelectedVideo(vid)}
+              key={vid.id || idx} 
               style={{ 
                 background: "#ffffff", 
                 border: "1px solid #e2e8f0", 
                 borderRadius: "0.75rem", 
                 overflow: "hidden", 
                 padding: "0.875rem",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
                 boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
               }}
             >
-              <div style={{ position: "relative", width: "100%", height: "150px", background: "#0f172a", borderRadius: "0.5rem", overflow: "hidden" }}>
+              <div 
+                onClick={() => setSelectedVideo(vid)}
+                style={{ position: "relative", width: "100%", height: "150px", background: "#0f172a", borderRadius: "0.5rem", overflow: "hidden", cursor: "pointer" }}
+              >
                 <img 
                   src={vid.img || vid.thumbnail || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"} 
                   alt={vid.title} 
@@ -534,33 +707,55 @@ export default function PropertiesView({ onShareProperty }) {
                   {vid.duration || "4K Tour"}
                 </div>
               </div>
+
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.6rem" }}>
                 <div>
                   <h4 style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a", margin: 0 }}>{vid.title}</h4>
                   <div style={{ fontSize: "0.71875rem", color: "#64748b", marginTop: "2px" }}>Duration: {vid.duration || "03:30"} • Tap to Play 3D Tour</div>
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedVideo(vid);
-                  }}
-                  style={{
-                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "0.35rem 0.7rem",
-                    borderRadius: "0.375rem",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.25rem"
-                  }}
-                >
-                  <Play size={12} fill="#ffffff" /> Play
-                </button>
+
+                <div style={{ display: "flex", gap: "0.3rem", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedVideo(vid)}
+                    style={{
+                      background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "0.35rem 0.65rem",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.25rem"
+                    }}
+                  >
+                    <Play size={12} fill="#ffffff" /> Play
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleEditRecord(vid, "Video")}
+                    style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer" }}
+                    title="Edit Video"
+                  >
+                    <Edit3 size={13} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => confirmDeleteRecord(vid, "Video", () => {
+                      const updated = videosList.filter(v => (v.id || v.title) !== (vid.id || vid.title));
+                      saveStateAndStorage("crm_videos", updated, setVideosList);
+                    })}
+                    style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer" }}
+                    title="Delete Video"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -577,7 +772,14 @@ export default function PropertiesView({ onShareProperty }) {
             <div key={item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#2563eb" }}>{item.id}</span>
-                <span style={{ fontSize: "0.6875rem", background: "#dcfce7", color: "#15803d", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{item.status}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <span style={{ fontSize: "0.6875rem", background: "#dcfce7", color: "#15803d", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{item.status}</span>
+                  <button onClick={() => handleEditRecord(item, "My Listing")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
+                  <button onClick={() => confirmDeleteRecord(item, "My Listing", () => {
+                    const updated = myListingData.filter(l => l.id !== item.id);
+                    saveStateAndStorage("crm_my_listings", updated, setMyListingData);
+                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
+                </div>
               </div>
               <h4 style={{ fontSize: "0.9375rem", fontWeight: "700", color: "#0f172a", marginTop: "0.3rem" }}>{item.property}</h4>
               <div style={{ fontSize: "0.78125rem", color: "#64748b" }}>Location: {item.locality} | Price: <strong style={{ color: "#0f172a" }}>{item.price}</strong></div>
@@ -597,7 +799,14 @@ export default function PropertiesView({ onShareProperty }) {
             <div key={item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#0f172a" }}>Agent: {item.agent}</span>
-                <span style={{ fontSize: "0.6875rem", background: "#eff6ff", color: "#1d4ed8", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{item.status}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <span style={{ fontSize: "0.6875rem", background: "#eff6ff", color: "#1d4ed8", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{item.status}</span>
+                  <button onClick={() => handleEditRecord(item, "Employee Listing")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
+                  <button onClick={() => confirmDeleteRecord(item, "Employee Listing", () => {
+                    const updated = employeeListingData.filter(l => l.id !== item.id);
+                    saveStateAndStorage("crm_emp_listings", updated, setEmployeeListingData);
+                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
+                </div>
               </div>
               <h4 style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a", marginTop: "0.3rem" }}>{item.property}</h4>
               <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{item.locality} - {item.price}</div>
@@ -622,7 +831,16 @@ export default function PropertiesView({ onShareProperty }) {
           </button>
           {ownerLeadsData.map(item => (
             <div key={item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
-              <div style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>Owner: {item.name}</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>Owner: {item.name}</div>
+                <div style={{ display: "flex", gap: "0.3rem" }}>
+                  <button onClick={() => handleEditRecord(item, "Owner Lead")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
+                  <button onClick={() => confirmDeleteRecord(item, "Owner Lead", () => {
+                    const updated = ownerLeadsData.filter(l => l.id !== item.id);
+                    saveStateAndStorage("crm_owner_leads", updated, setOwnerLeadsData);
+                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
+                </div>
+              </div>
               <div style={{ fontSize: "0.78125rem", color: "#2563eb", fontWeight: "600" }}>{item.property}</div>
               <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{item.locality} | {item.phone}</div>
             </div>
@@ -640,7 +858,14 @@ export default function PropertiesView({ onShareProperty }) {
             <div key={item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>{item.broker}</span>
-                <span style={{ fontSize: "0.6875rem", background: "#fef9c3", color: "#854d0e", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{item.commission}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <span style={{ fontSize: "0.6875rem", background: "#fef9c3", color: "#854d0e", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{item.commission}</span>
+                  <button onClick={() => handleEditRecord(item, "CP Listing")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
+                  <button onClick={() => confirmDeleteRecord(item, "CP Listing", () => {
+                    const updated = cpListingData.filter(l => l.id !== item.id);
+                    saveStateAndStorage("crm_cp_listings", updated, setCpListingData);
+                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
+                </div>
               </div>
               <div style={{ fontSize: "0.78125rem", color: "#475569", marginTop: "0.3rem" }}>{item.property} ({item.locality})</div>
             </div>
@@ -670,7 +895,31 @@ export default function PropertiesView({ onShareProperty }) {
               </div>
 
               <div className="property-card-body">
-                <h3 style={{ fontSize: "1.0625rem", fontWeight: "700", color: "#0f172a" }}>{prop.title}</h3>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                  <h3 style={{ fontSize: "1.0625rem", fontWeight: "700", color: "#0f172a", margin: 0 }}>{prop.title}</h3>
+                  <div style={{ display: "flex", gap: "0.3rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => handleEditRecord(prop, "Property")}
+                      style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem 0.45rem", borderRadius: "0.35rem", cursor: "pointer" }}
+                      title="Edit Property"
+                    >
+                      <Edit3 size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => confirmDeleteRecord(prop, "Property", () => {
+                        const updated = propertiesList.filter(p => p.id !== prop.id);
+                        saveStateAndStorage("crm_focus_projects", updated, setPropertiesList);
+                      })}
+                      style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem 0.45rem", borderRadius: "0.35rem", cursor: "pointer" }}
+                      title="Delete Property"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+
                 <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78125rem", color: "#64748b", margin: "0.2rem 0 0.5rem 0" }}>
                   <MapPin size={13} color="#2563eb" />
                   {prop.location}
@@ -718,14 +967,68 @@ export default function PropertiesView({ onShareProperty }) {
         </div>
       )}
 
+      {/* Confirmation & Alert Modal */}
       {alertConfig && (
-        <CustomAlertDialog
-          isOpen={!!alertConfig}
-          onClose={() => setAlertConfig(null)}
-          title={alertConfig.title}
-          message={alertConfig.message}
-          type={alertConfig.type}
-        />
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15, 23, 42, 0.8)",
+          backdropFilter: "blur(6px)",
+          zIndex: 999999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "1rem"
+        }}>
+          <div style={{
+            background: "#ffffff",
+            borderRadius: "1rem",
+            width: "100%",
+            maxWidth: "360px",
+            padding: "1.5rem",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
+            textAlign: "center"
+          }}>
+            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>
+              {alertConfig.showConfirm ? "🗑️" : (alertConfig.type === "success" ? "✅" : "ℹ️")}
+            </div>
+            <h3 style={{ fontSize: "1.05rem", fontWeight: 800, color: "#0f172a", marginBottom: "0.5rem" }}>
+              {alertConfig.title}
+            </h3>
+            <p style={{ fontSize: "0.84375rem", color: "#64748b", marginBottom: "1.25rem", lineHeight: 1.4, whiteSpace: "pre-line" }}>
+              {alertConfig.message}
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              {alertConfig.showConfirm ? (
+                <>
+                  <button
+                    onClick={() => { setAlertConfig(null); setDeleteAction(null); }}
+                    style={{ flex: 1, padding: "0.65rem", borderRadius: "0.5rem", background: "#f1f5f9", color: "#475569", border: "none", fontWeight: 700, fontSize: "0.875rem", cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (deleteAction) deleteAction();
+                      setAlertConfig(null);
+                      setDeleteAction(null);
+                    }}
+                    style={{ flex: 1, padding: "0.65rem", borderRadius: "0.5rem", background: "#ef4444", color: "#ffffff", border: "none", fontWeight: 700, fontSize: "0.875rem", cursor: "pointer", boxShadow: "0 4px 12px rgba(239, 68, 68, 0.3)" }}
+                  >
+                    Yes, Delete
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setAlertConfig(null)}
+                  style={{ width: "100%", padding: "0.65rem", borderRadius: "0.5rem", background: "#2563eb", color: "#ffffff", border: "none", fontWeight: 700, fontSize: "0.875rem", cursor: "pointer" }}
+                >
+                  OK
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
