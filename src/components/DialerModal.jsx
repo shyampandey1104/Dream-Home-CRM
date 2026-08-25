@@ -5,7 +5,9 @@ import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function DialerModal({ lead, onClose, onSaveCall }) {
   // Stage: 'CALLING' (active call screen) or 'DISPOSITION' (post-call form)
-  const [callState, setCallState] = useState("CALLING");
+  const [callState, setCallState] = useState(() => {
+    return sessionStorage.getItem(`crm_call_state_${lead?.id}`) || "CALLING";
+  });
   const [seconds, setSeconds] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
@@ -161,6 +163,9 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     const durationStr = formatTimer(seconds);
     setCallDuration(durationStr);
     setCallState("DISPOSITION");
+    try {
+      sessionStorage.setItem(`crm_call_state_${lead?.id}`, "DISPOSITION");
+    } catch (err) {}
     if (isListening) setIsListening(false);
   };
 
@@ -231,6 +236,9 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
       e.preventDefault();
       e.stopPropagation();
     }
+    try {
+      sessionStorage.removeItem(`crm_call_state_${lead?.id}`);
+    } catch (err) {}
     if (outcome === "Deal Closed (Won)") {
       try {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
@@ -245,6 +253,17 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
       followupDate,
       recordedAudioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
     });
+  };
+
+  const handleCancelClose = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    try {
+      sessionStorage.removeItem(`crm_call_state_${lead?.id}`);
+    } catch (err) {}
+    onClose();
   };
 
   const openWhatsApp = (e) => {
@@ -746,7 +765,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
             <button 
               type="button"
               className="end-call-btn" 
-              onClick={(e) => { e.stopPropagation(); onClose(); }} 
+              onClick={handleCancelClose} 
               style={{ 
                 background: "#64748b",
                 color: "#ffffff",

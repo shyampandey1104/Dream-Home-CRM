@@ -167,13 +167,15 @@ export default function App() {
     const userEmail = userProfile?.email || "shyampandey1104@gmail.com";
 
     const syncLiveData = () => {
+      // Don't poll and trigger re-renders if user is currently on a call or filling disposition form
+      if (activeCallLead) return;
       fetchCrmLeads(userEmail).then((data) => {
         if (data && data.length > 0) setLeads(data);
       });
     };
 
     syncLiveData();
-    const pollInterval = setInterval(syncLiveData, 5000); // Live sync every 5s across all devices
+    const pollInterval = setInterval(syncLiveData, 15000);
 
     fetchCrmMetrics().then((data) => {
       if (data) setMetrics(data);
@@ -195,7 +197,7 @@ export default function App() {
     }
 
     return () => clearInterval(pollInterval);
-  }, [userProfile]);
+  }, [userProfile?.email, activeCallLead]);
 
   const handleLoginSuccess = (profile) => {
     const defaultProfile = {
@@ -245,7 +247,10 @@ export default function App() {
           try {
             const savedLead = JSON.parse(savedNativeLeadJson);
             sessionStorage.removeItem("crm_pending_native_call_lead");
-            setActiveCallLead(prev => prev || savedLead);
+            setActiveCallLead((prev) => {
+              if (prev && prev.id === savedLead.id) return prev;
+              return savedLead;
+            });
           } catch (e) {}
         }
       }
@@ -262,13 +267,14 @@ export default function App() {
     if (!lead) return;
     const phoneNum = lead.phone ? lead.phone.replace(/[^0-9+]/g, "") : "+919820591823";
     
-    // Save lead in sessionStorage for native return auto-disposition
-    sessionStorage.setItem("crm_pending_native_call_lead", JSON.stringify(lead));
+    // Only trigger tel: scheme on real touch/mobile devices so desktop browser does not lose window focus or open FaceTime
+    const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+    if (isTouchDevice) {
+      sessionStorage.setItem("crm_pending_native_call_lead", JSON.stringify(lead));
+      window.location.href = `tel:${phoneNum}`;
+    }
     
     setActiveCallLead(lead);
-
-    // Trigger SIM card phone dialer app redirect
-    window.location.href = `tel:${phoneNum}`;
   };
 
   const handleSaveCall = async ({ leadId, duration, outcome, bhkType, notes, followupDate, recordedAudioUrl }) => {
