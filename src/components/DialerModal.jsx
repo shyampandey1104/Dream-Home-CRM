@@ -299,9 +299,9 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
         WebkitBackdropFilter: "blur(8px)",
         zIndex: 99999,
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "center",
-        padding: "2rem 1rem",
+        padding: "0.75rem",
         overflowY: "auto"
       }}
     >
@@ -317,12 +317,12 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
             color: "#ffffff",
             borderRadius: "1.25rem",
             width: "100%",
-            maxWidth: "390px",
-            padding: "2rem 1.5rem",
+            maxWidth: "380px",
+            padding: "1.75rem 1.25rem",
             textAlign: "center",
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
             border: "1px solid #334155",
-            margin: "auto 0"
+            margin: "auto"
           }}
         >
           {/* Live Recording Badge */}
@@ -480,20 +480,23 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
           onTouchStart={(e) => e.stopPropagation()}
           style={{ 
             width: "100%", 
-            maxWidth: "480px", 
+            maxWidth: "390px", 
+            maxHeight: "88vh",
             background: "#ffffff", 
             borderRadius: "1.25rem", 
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
             margin: "auto",
             position: "relative",
-            border: "1px solid #cbd5e1"
+            border: "1px solid #cbd5e1",
+            overflow: "hidden"
           }}
         >
           {/* Header Summary */}
-          <div className="dialer-header" style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc" }}>
+          <div className="dialer-header" style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", flexShrink: 0 }}>
             <div className="dialer-caller-info">
-              <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0f172a" }}>{lead.name}</div>
+              <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#0f172a" }}>{lead.name}</div>
               <div style={{ fontSize: "0.8125rem", color: "#64748b", marginTop: "2px" }}>
                 {lead.phone} • {lead.location} ({bhkType})
               </div>
@@ -505,7 +508,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
             </div>
           </div>
 
-          <div className="dialer-body" style={{ padding: "1.25rem 1.5rem" }}>
+          <div className="dialer-body" style={{ padding: "1rem 1.25rem", overflowY: "auto", flex: "1 1 auto" }}>
             {/* Custom Sleek Native Call Recording Player */}
             <div style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)", border: "1px solid #cbd5e1", borderRadius: "0.875rem", padding: "0.75rem 0.875rem", marginBottom: "1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
@@ -756,7 +759,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
             </button>
           </div>
 
-          <div className="dialer-footer" style={{ padding: "1rem 1.5rem", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="dialer-footer" style={{ padding: "0.85rem 1.25rem", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
             <button 
               type="button"
               className="end-call-btn" 

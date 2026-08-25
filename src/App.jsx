@@ -788,33 +788,70 @@ export default function App() {
   }
 
   return (
-    <div className="app-container" style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <Header
-        currentTab={currentTab}
-        setTab={handleSetTab}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onSimulateInbound={simulateSocialInboundLead}
-        unreadCount={unreadCount}
-        onOpenNotifications={() => setShowNotificationsModal(true)}
-        userProfile={userProfile}
-        onOpenProfile={() => setShowProfileModal(true)}
-        onOpenIntegrations={() => setShowIntegrationsModal(true)}
-        orgProfile={orgProfile}
-      />
+    <div className={isRealMobile ? "native-mobile-app-shell" : "mobile-frame-wrapper"} style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0f172a" }}>
+      <div className={isRealMobile ? "native-mobile-app-shell" : "phone-device-container"} style={{ width: isRealMobile ? "100%" : "412px", height: isRealMobile ? "100vh" : "890px", maxHeight: isRealMobile ? "100vh" : "95vh", background: "#ffffff", borderRadius: isRealMobile ? "0" : "36px", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative", boxShadow: isRealMobile ? "none" : "0 25px 60px rgba(0,0,0,0.7)" }}>
+        
+        {!isRealMobile && (
+          <div className="phone-status-bar" style={{ background: "#ffffff", height: "36px", padding: "0 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: 700, borderBottom: "1px solid #f1f5f9" }}>
+            <span>9:41</span>
+            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+              <Signal size={12} />
+              <Wifi size={12} />
+              <Battery size={14} />
+            </div>
+          </div>
+        )}
 
-      <main className="main-content-container" style={{ flex: 1, padding: "1.5rem 2rem", maxWidth: "1400px", margin: "0 auto", width: "100%" }}>
-        {renderContent()}
-      </main>
+        <MobileHeader
+          unreadCount={unreadCount}
+          onDirectCall={handleDirectCall}
+          onOpenNotifications={() => setShowNotificationsModal(true)}
+          userProfile={userProfile}
+          onOpenProfile={() => setShowProfileModal(true)}
+          onOpenSidebar={() => setShowSidebar(true)}
+          onOpenIntegrations={() => setShowIntegrationsModal(true)}
+          onOpenInstallApp={() => setShowInstallModal(true)}
+          orgProfile={orgProfile}
+        />
 
-      {renderModals()}
-
-      {/* Toast Banner */}
-      {toastMsg && (
-        <div className="toast-notification">
-          <span>{toastMsg}</span>
+        <div className="phone-screen-content" style={{ flex: 1, overflowY: "auto" }}>
+          {renderContent()}
         </div>
-      )}
+
+        <MobileBottomNav currentTab={currentTab} setTab={handleSetTab} />
+
+        {/* Slide-out Sidebar Drawer */}
+        <SidebarDrawer
+          isOpen={showSidebar}
+          onClose={() => setShowSidebar(false)}
+          currentUser={userProfile}
+          onNavigate={(tab) => {
+            if (tab === "tcf-list" || tab === "mcf-list" || tab === "announcements") {
+              handleSetTab("activities");
+            } else {
+              handleSetTab("properties");
+            }
+          }}
+          onOpenProfile={() => setShowProfileModal(true)}
+          onOpenAttendance={() => setShowAttendanceModal(true)}
+          onOpenBusinessCard={() => setShowBusinessCardModal(true)}
+          onOpenTCF={() => setShowTCFModal(true)}
+          onOpenMCF={() => setShowMCFModal(true)}
+          onOpenGpt={() => setShowGptModal(true)}
+          onOpenLocation={() => setShowLocationModal(true)}
+          onOpenStories={() => setShowStoriesModal(true)}
+          onOpenCalculator={() => setShowCalculatorModal(true)}
+          onOpenInstallApp={() => setShowInstallModal(true)}
+        />
+
+        {renderModals()}
+
+        {toastMsg && (
+          <div className="toast-notification">
+            <span>{toastMsg}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
