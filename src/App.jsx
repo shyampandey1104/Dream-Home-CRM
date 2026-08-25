@@ -691,119 +691,32 @@ export default function App() {
   );
 
   if (!isAuthenticated) {
-    if (isRealMobile) {
-      return (
-        <div className="native-mobile-app-shell">
-          <div className="phone-screen-content">
-            <LoginScreen onLoginSuccess={handleLoginSuccess} />
-          </div>
-        </div>
-      );
-    }
     return (
-      <div className={isMobileView ? "mobile-frame-wrapper" : "app-container"}>
-        {isMobileView ? (
-          <div className="phone-device-container">
-            <div className="phone-top-notch"></div>
-            <div className="phone-status-bar">
-              <span>9:41</span>
-              <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                <Signal size={12} />
-                <Wifi size={12} />
-                <Battery size={14} />
-              </div>
-            </div>
-            <div className="phone-screen-content">
-              <LoginScreen onLoginSuccess={handleLoginSuccess} />
-            </div>
-            <div className="phone-bottom-bar"></div>
-          </div>
-        ) : (
-          <LoginScreen onLoginSuccess={handleLoginSuccess} />
-        )}
+      <div className={isRealMobile ? "native-mobile-app-shell" : "app-container"} style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)" }}>
+        <LoginScreen onLoginSuccess={handleLoginSuccess} />
       </div>
     );
   }
 
   if (viewMode === "admin") {
-    if (isRealMobile) {
-      return (
-        <div className="native-mobile-app-shell">
-          <Header
-            currentTab={currentTab}
-            setTab={handleSetTab}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onSimulateInbound={simulateSocialInboundLead}
-            unreadCount={unreadCount}
-            onOpenNotifications={() => setShowNotificationsModal(true)}
-            userProfile={userProfile}
-            onOpenProfile={() => setShowProfileModal(true)}
-            orgProfile={orgProfile}
-          />
-          <div className="phone-screen-content" style={{ padding: "0.5rem" }}>
-            <AdminPortal userProfile={userProfile} onSwitchToTelecaller={() => setViewMode("telecaller")} />
-          </div>
-          {renderModals()}
-        </div>
-      );
-    }
     return (
-      <div className={isMobileView ? "mobile-frame-wrapper" : "app-container"}>
-        {isMobileView ? (
-          <div className="phone-device-container">
-            <div className="phone-top-notch"></div>
-            <div className="phone-status-bar">
-              <span>9:41</span>
-              <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                <Signal size={12} />
-                <Wifi size={12} />
-                <Battery size={14} />
-              </div>
-            </div>
-            <div className="phone-screen-content">
-              <Header
-                currentTab={currentTab}
-                setTab={handleSetTab}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                onSimulateInbound={simulateSocialInboundLead}
-                unreadCount={unreadCount}
-                onOpenNotifications={() => setShowNotificationsModal(true)}
-                userProfile={userProfile}
-                onOpenProfile={() => setShowProfileModal(true)}
-                orgProfile={orgProfile}
-              />
-              <div style={{ padding: "0.5rem" }}>
-                <AdminPortal userProfile={userProfile} onSwitchToTelecaller={() => setViewMode("telecaller")} />
-              </div>
-            </div>
-            <div className="phone-bottom-bar"></div>
-
-            {/* Modals inside mobile frame */}
-            {renderModals()}
-          </div>
-        ) : (
-          <div>
-            <Header
-              currentTab={currentTab}
-              setTab={handleSetTab}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              onSimulateInbound={simulateSocialInboundLead}
-              unreadCount={unreadCount}
-              onOpenNotifications={() => setShowNotificationsModal(true)}
-              userProfile={userProfile}
-              onOpenProfile={() => setShowProfileModal(true)}
-              orgProfile={orgProfile}
-            />
-            <div className="main-content-container">
-              <AdminPortal userProfile={userProfile} onSwitchToTelecaller={() => setViewMode("telecaller")} />
-            </div>
-
-            {renderModals()}
-          </div>
-        )}
+      <div className={isRealMobile ? "native-mobile-app-shell" : "app-container"}>
+        <Header
+          currentTab={currentTab}
+          setTab={handleSetTab}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onSimulateInbound={simulateSocialInboundLead}
+          unreadCount={unreadCount}
+          onOpenNotifications={() => setShowNotificationsModal(true)}
+          userProfile={userProfile}
+          onOpenProfile={() => setShowProfileModal(true)}
+          orgProfile={orgProfile}
+        />
+        <main className="main-content-container" style={{ padding: isRealMobile ? "0.5rem" : "1.5rem" }}>
+          <AdminPortal userProfile={userProfile} onSwitchToTelecaller={() => setViewMode("telecaller")} />
+        </main>
+        {renderModals()}
       </div>
     );
   }
@@ -874,88 +787,26 @@ export default function App() {
   }
 
   return (
-    <div className={isMobileView ? "mobile-frame-wrapper" : "app-container"}>
-      {isMobileView ? (
-        <div className="phone-device-container">
-          <div className="phone-top-notch"></div>
+    <div className="app-container" style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <Header
+        currentTab={currentTab}
+        setTab={handleSetTab}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onSimulateInbound={simulateSocialInboundLead}
+        unreadCount={unreadCount}
+        onOpenNotifications={() => setShowNotificationsModal(true)}
+        userProfile={userProfile}
+        onOpenProfile={() => setShowProfileModal(true)}
+        onOpenIntegrations={() => setShowIntegrationsModal(true)}
+        orgProfile={orgProfile}
+      />
 
-          {/* Phone Status Bar */}
-          <div className="phone-status-bar">
-            <span>9:41</span>
-            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-              <Signal size={12} />
-              <Wifi size={12} />
-              <Battery size={14} />
-            </div>
-          </div>
+      <main className="main-content-container" style={{ flex: 1, padding: "1.5rem 2rem", maxWidth: "1400px", margin: "0 auto", width: "100%" }}>
+        {renderContent()}
+      </main>
 
-          <MobileHeader
-            unreadCount={unreadCount}
-            onDirectCall={handleDirectCall}
-            onOpenNotifications={() => setShowNotificationsModal(true)}
-            userProfile={userProfile}
-            onOpenProfile={() => setShowProfileModal(true)}
-            onOpenSidebar={() => setShowSidebar(true)}
-            onOpenIntegrations={() => setShowIntegrationsModal(true)}
-            orgProfile={orgProfile}
-          />
-
-          <div className="phone-screen-content">
-            {renderContent()}
-          </div>
-
-          <MobileBottomNav currentTab={currentTab} setTab={handleSetTab} />
-          <div className="phone-bottom-bar"></div>
-
-          {/* Slide-out Sidebar Drawer */}
-          <SidebarDrawer
-            isOpen={showSidebar}
-            onClose={() => setShowSidebar(false)}
-            currentUser={userProfile}
-            onNavigate={(tab) => {
-              if (tab === "tcf-list" || tab === "mcf-list" || tab === "announcements") {
-                handleSetTab("activities");
-              } else {
-                handleSetTab("properties");
-              }
-            }}
-            onOpenProfile={() => setShowProfileModal(true)}
-            onOpenAttendance={() => setShowAttendanceModal(true)}
-            onOpenBusinessCard={() => setShowBusinessCardModal(true)}
-            onOpenTCF={() => setShowTCFModal(true)}
-            onOpenMCF={() => setShowMCFModal(true)}
-            onOpenGpt={() => setShowGptModal(true)}
-            onOpenLocation={() => setShowLocationModal(true)}
-            onOpenStories={() => setShowStoriesModal(true)}
-            onOpenCalculator={() => setShowCalculatorModal(true)}
-          />
-
-          {/* Render All Modals INSIDE Mobile Phone Container */}
-          {renderModals()}
-        </div>
-      ) : (
-        <>
-          <Header
-            currentTab={currentTab}
-            setTab={handleSetTab}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onSimulateInbound={simulateSocialInboundLead}
-            unreadCount={unreadCount}
-            onOpenNotifications={() => setShowNotificationsModal(true)}
-            userProfile={userProfile}
-            onOpenProfile={() => setShowProfileModal(true)}
-            onOpenIntegrations={() => setShowIntegrationsModal(true)}
-            orgProfile={orgProfile}
-          />
-
-          <main className="main-content-container">
-            {renderContent()}
-          </main>
-
-          {renderModals()}
-        </>
-      )}
+      {renderModals()}
 
       {/* Toast Banner */}
       {toastMsg && (
