@@ -18,14 +18,15 @@ self.addEventListener("activate", (event) => {
 // Always Network-First to ensure instant fresh updates across all devices
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  if (!event.request.url.startsWith("http")) return;
   
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            try { cache.put(event.request, responseToCache); } catch (e) {}
           });
         }
         return networkResponse;

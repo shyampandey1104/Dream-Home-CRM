@@ -224,6 +224,61 @@ app.all("/api/method/real_estate_crm.real_estate_crm.api.log_call", (req, res) =
   res.json({ message: { status: "success", message: "Call logged successfully" } });
 });
 
+app.all("/api/method/real_estate_crm.real_estate_crm.api.get_dashboard_metrics", (req, res) => {
+  const leads = readDb();
+  const total = leads.length;
+  const connected = leads.filter(l => l.callCount > 0).length;
+  const followup = leads.filter(l => l.status === "FOLLOWUP_TODAY" || l.status === "FOLLOWUP").length;
+  const closed = leads.filter(l => l.status === "CLOSED").length;
+  res.json({
+    message: {
+      status: "success",
+      data: {
+        totalLeads: total,
+        connectedCalls: connected,
+        followupCount: followup,
+        closedDeals: closed,
+        totalSiteVisits: 14,
+        rewardPoints: 2400
+      }
+    }
+  });
+});
+
+app.all("/api/method/real_estate_crm.real_estate_crm.api.get_org_profile", (req, res) => {
+  res.json({
+    message: {
+      status: "success",
+      data: {
+        company_name: "Dream Homes Real Estate",
+        brand_color: "#2563eb",
+        logo_url: "",
+        currency: "INR"
+      }
+    }
+  });
+});
+
+app.all("/api/method/real_estate_crm.real_estate_crm.api.get_users", (req, res) => {
+  res.json({
+    message: {
+      status: "success",
+      data: [
+        { email: "shyampandey1104@gmail.com", full_name: "Shyamkumar Pandey", role: "Sales Consultant" }
+      ]
+    }
+  });
+});
+
+app.all("/api/method/real_estate_crm.real_estate_crm.api.get_notifications", (req, res) => {
+  res.json({
+    message: {
+      status: "success",
+      data: []
+    }
+  });
+});
+
 app.all("/api/method/real_estate_crm.real_estate_crm.api.login_user", (req, res) => {
   const { email, role } = req.body || {};
   res.json({

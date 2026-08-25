@@ -87,6 +87,7 @@ export default function App() {
   };
 
   const [leads, setLeads] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [metrics, setMetrics] = useState({});
   const [isMobileView, setIsMobileView] = useState(false);
   const [isRealMobile, setIsRealMobile] = useState(() => {
