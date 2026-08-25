@@ -219,9 +219,16 @@ app.all("/api/method/real_estate_crm.real_estate_crm.api.log_call", (req, res) =
         ...(Array.isArray(lead.history) ? lead.history : [])
       ]
     };
-    writeDb(leads);
+app.all("/api/method/real_estate_crm.real_estate_crm.api.delete_lead", (req, res) => {
+  const body = req.body || {};
+  const leadId = body.lead_id || body.leadId || req.query.lead_id;
+  if (!leadId) {
+    return res.status(400).json({ status: "error", message: "lead_id is required" });
   }
-  res.json({ message: { status: "success", message: "Call logged successfully" } });
+  let leads = readDb();
+  leads = leads.filter(l => l.id !== leadId);
+  writeDb(leads);
+  res.json({ message: { status: "success", message: `Lead ${leadId} deleted successfully` } });
 });
 
 app.all("/api/method/real_estate_crm.real_estate_crm.api.get_dashboard_metrics", (req, res) => {

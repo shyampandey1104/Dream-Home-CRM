@@ -259,6 +259,7 @@ export const uploadPropertyListingApi = async (data) => {
 
 export const saveLeadApi = async (leadData) => {
   const payload = {
+    lead_id: leadData.id || leadData.lead_id,
     name: leadData.name || leadData.lead_name,
     phone: leadData.phone,
     email: leadData.email || "",
@@ -302,7 +303,40 @@ export const saveLeadApi = async (leadData) => {
       console.log(`[saveLeadApi Notice ${endpoint}]`, e.message);
     }
   }
-  return { status: "success", lead_id: `LEAD-${Date.now().toString().slice(-4)}` };
+  return { status: "success", lead_id: leadData.id || `LEAD-${Date.now().toString().slice(-4)}` };
+};
+
+export const deleteLeadApi = async (leadId) => {
+  const endpoints = [
+    `${LIVE_BACKEND}.delete_lead`,
+    `${LOCAL_BACKEND}.delete_lead`,
+    "https://dream-home-crm.onrender.com/api/method/real_estate_crm.real_estate_crm.api.delete_lead"
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Bypass-Tunnel-Reminder": "true",
+          "ngrok-skip-browser-warning": "69420"
+        },
+        body: JSON.stringify({ lead_id: leadId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.message || data;
+      }
+    } catch (e) {
+      console.log(`[deleteLeadApi Notice ${endpoint}]`, e.message);
+    }
+  }
+
+  const stored = getStoredLeads();
+  const updated = stored.filter(l => l.id !== leadId);
+  saveStoredLeads(updated);
+  return { status: "success", message: `Lead ${leadId} deleted successfully` };
 };
 
 export const claimLeadsApi = async (leadIds, pointsUsed) => {

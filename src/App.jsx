@@ -466,6 +466,21 @@ export default function App() {
     showToast(`🎉 Inbound Lead '${newLead.name}' ingested via ${newLead.source}!`);
   };
 
+  const handleLeadUpdated = (updatedLead) => {
+    if (!updatedLead) return;
+    const updated = leads.map(l => l.id === updatedLead.id ? { ...l, ...updatedLead } : l);
+    setLeads(updated);
+    saveStoredLeads(updated);
+    showToast(`✅ Lead '${updatedLead.name}' updated successfully!`);
+  };
+
+  const handleLeadDeleted = (deletedLeadId) => {
+    const updated = leads.filter(l => l.id !== deletedLeadId);
+    setLeads(updated);
+    saveStoredLeads(updated);
+    showToast(`🗑️ Lead deleted successfully!`);
+  };
+
   const renderContent = () => {
     switch (currentTab) {
       case "dashboard":
@@ -493,7 +508,13 @@ export default function App() {
             leads={leads}
             onCallLead={handleCallLead}
             onSendReport={(lead) => setReportLead(lead)}
-            onLeadCreated={(newLead) => setLeads(prev => [newLead, ...prev])}
+            onLeadCreated={(newLead) => {
+              const updated = [newLead, ...leads.filter(l => l.id !== newLead.id)];
+              setLeads(updated);
+              saveStoredLeads(updated);
+            }}
+            onLeadUpdated={handleLeadUpdated}
+            onLeadDeleted={handleLeadDeleted}
           />
         );
       case "followup":
@@ -501,6 +522,8 @@ export default function App() {
           <FollowUpsView
             leads={leads}
             onCallLead={handleCallLead}
+            onLeadUpdated={handleLeadUpdated}
+            onLeadDeleted={handleLeadDeleted}
           />
         );
       case "properties":
