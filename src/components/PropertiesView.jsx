@@ -2,15 +2,16 @@ import React, { useState, useEffect } from "react";
 import { 
   Building2, MapPin, Share2, Info, AlertTriangle, FileText, 
   Video, Layers, Calculator, ClipboardList, CheckCircle, Search, Filter,
-  Phone, UserCheck, CheckSquare, Download, Play, Shield, Upload, Plus
+  Phone, UserCheck, CheckSquare, Download, Play, Shield, Upload, Plus, Trash2, FileUp
 } from "lucide-react";
 import { fetchCrmInventory, submitProjectSurvey, calculateCmaApi } from "../services/apiService";
 import UploadPropertyModal from "./UploadPropertyModal";
 import UploadInventoryModal from "./UploadInventoryModal";
+import DocUploadModal from "./DocUploadModal";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function PropertiesView({ onShareProperty }) {
-  const [activeMainTab, setActiveMainTab] = useState("properties"); // 'properties' or 'listing'
+  const [activeMainTab, setActiveMainTab] = useState("properties");
   const [selectedSubTab, setSelectedSubTab] = useState("Focus Projects");
   const [cmaLocation, setCmaLocation] = useState("");
   const [cmaArea, setCmaArea] = useState("");
@@ -18,6 +19,7 @@ export default function PropertiesView({ onShareProperty }) {
   const [liveProperties, setLiveProperties] = useState([]);
   const [backendCategories, setBackendCategories] = useState(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [uploadedProperties, setUploadedProperties] = useState([]);
   const [alertConfig, setAlertConfig] = useState(null);
 
@@ -27,7 +29,14 @@ export default function PropertiesView({ onShareProperty }) {
   const [itemListingCategory, setItemListingCategory] = useState("My Listing");
 
   const [uploadedUnitPlans, setUploadedUnitPlans] = useState([]);
-  const [uploadedDocs, setUploadedDocs] = useState([]);
+  const [uploadedDocs, setUploadedDocs] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_property_docs");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [uploadedVids, setUploadedVids] = useState([]);
   const [uploadedListings, setUploadedListings] = useState([]);
 
@@ -49,9 +58,43 @@ export default function PropertiesView({ onShareProperty }) {
     setUploadedProperties(prev => [newProp, ...prev]);
   };
 
+  const handleDocumentUploaded = (newDoc) => {
+    const updated = [newDoc, ...uploadedDocs];
+    setUploadedDocs(updated);
+    try {
+      localStorage.setItem("crm_property_docs", JSON.stringify(updated));
+    } catch (e) {}
+    setSelectedSubTab("Documents");
+  };
+
+  const handleDeleteDoc = (docId) => {
+    const updated = uploadedDocs.filter(d => d.id !== docId);
+    setUploadedDocs(updated);
+    try {
+      localStorage.setItem("crm_property_docs", JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  const handleDownloadDoc = (doc) => {
+    if (doc.dataUrl) {
+      const link = document.createElement("a");
+      link.href = doc.dataUrl;
+      link.download = doc.fileName || `${doc.name}.${doc.fileType === "PDF" ? "pdf" : "docx"}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      setAlertConfig({
+        title: "Downloading Document",
+        message: `Downloading ${doc.name} from CRM File Storage...`,
+        type: "info"
+      });
+    }
+  };
+
   const handleItemUploaded = (type, item) => {
     if (type === "unit_plan") setUploadedUnitPlans(prev => [item, ...prev]);
-    else if (type === "document") setUploadedDocs(prev => [item, ...prev]);
+    else if (type === "document") handleDocumentUploaded(item);
     else if (type === "video") setUploadedVids(prev => [item, ...prev]);
     else if (type === "listing") setUploadedListings(prev => [item, ...prev]);
   };
@@ -61,19 +104,15 @@ export default function PropertiesView({ onShareProperty }) {
     : liveProperties;
 
   const propertiesList = [...uploadedProperties, ...initialProps];
-
   const unitPlansList = [...uploadedUnitPlans, ...((backendCategories && backendCategories.unitPlans) ? backendCategories.unitPlans : [])];
-
-  const documentsList = [...uploadedDocs, ...((backendCategories && backendCategories.documents) ? backendCategories.documents : [])];
-
+  const documentsList = [...uploadedDocs, ...((backendCategories && backendCategories.documents) ? backendCategories.documents : [
+    { id: "DOC-DEF-01", name: "Kalpataru Vian RERA Brochure", fileName: "Kalpataru_Vian_Brochure.pdf", fileType: "PDF", size: "3.4 MB", date: "15 Aug 2026", category: "Brochure / Layout" },
+    { id: "DOC-DEF-02", name: "Godrej Horizon Cost Sheet & Payment Plan", fileName: "Godrej_Horizon_Cost_Sheet.docx", fileType: "DOC", size: "1.8 MB", date: "12 Aug 2026", category: "Price Sheet & Costing" }
+  ])];
   const videosList = [...uploadedVids, ...((backendCategories && backendCategories.videos) ? backendCategories.videos : [])];
-
   const myListingData = [...uploadedListings.filter(l => l.listing_type === "My Listing"), ...((backendCategories && backendCategories.myListings) ? backendCategories.myListings : [])];
-
   const employeeListingData = [...uploadedListings.filter(l => l.listing_type === "Employee Listing"), ...((backendCategories && backendCategories.employeeListings) ? backendCategories.employeeListings : [])];
-
   const ownerLeadsData = [...uploadedListings.filter(l => l.listing_type === "Owner Lead"), ...((backendCategories && backendCategories.ownerLeads) ? backendCategories.ownerLeads : [])];
-
   const cpListingData = [...uploadedListings.filter(l => l.listing_type === "CP Listing"), ...((backendCategories && backendCategories.cpListings) ? backendCategories.cpListings : [])];
 
   const handleCalculateCMA = async (e) => {
@@ -119,6 +158,13 @@ export default function PropertiesView({ onShareProperty }) {
         onPropertyUploaded={handlePropertyUploaded}
       />
 
+      <DocUploadModal
+        isOpen={isDocModalOpen}
+        onClose={() => setIsDocModalOpen(false)}
+        onDocumentUploaded={handleDocumentUploaded}
+        categoryTitle="Property & Inventory Documents"
+      />
+
       <UploadInventoryModal
         isOpen={isItemModalOpen}
         onClose={() => setIsItemModalOpen(false)}
@@ -127,33 +173,58 @@ export default function PropertiesView({ onShareProperty }) {
         onItemUploaded={handleItemUploaded}
       />
 
-      {/* Header Bar with Upload Button */}
+      {/* Header Bar with Action Buttons */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.875rem", flexWrap: "wrap", gap: "0.5rem" }}>
         <div>
           <h2 style={{ fontSize: "1.0625rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>🏢 Property & Focus Inventory</h2>
           <p style={{ fontSize: "0.75rem", color: "#64748b", margin: "0.1rem 0 0 0" }}>Manage inventory, floor plans & project brochures</p>
         </div>
 
-        <button
-          onClick={() => setIsUploadModalOpen(true)}
-          style={{
-            background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
-            color: "#ffffff",
-            border: "none",
-            padding: "0.5rem 0.85rem",
-            borderRadius: "0.6rem",
-            fontSize: "0.8125rem",
-            fontWeight: 700,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
-            whiteSpace: "nowrap"
-          }}
-        >
-          <Upload size={16} /> + Upload Property
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+          {/* Direct PDF / DOC Upload Button */}
+          <button
+            onClick={() => setIsDocModalOpen(true)}
+            style={{
+              background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+              color: "#ffffff",
+              border: "none",
+              padding: "0.45rem 0.75rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.78125rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              boxShadow: "0 4px 12px rgba(2,132,199,0.3)",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <FileUp size={15} /> + Upload PDF / DOC
+          </button>
+
+          {/* Upload Property Button */}
+          <button
+            onClick={() => setIsUploadModalOpen(true)}
+            style={{
+              background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+              color: "#ffffff",
+              border: "none",
+              padding: "0.45rem 0.75rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.78125rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <Upload size={15} /> + Property
+          </button>
+        </div>
       </div>
 
       {/* Main Tab Toggle: Properties vs Listing */}
@@ -178,17 +249,17 @@ export default function PropertiesView({ onShareProperty }) {
       <div className="sub-tabs-scroll">
         {activeMainTab === "properties" ? (
           <>
-            {["Focus Projects", "CMA Analysis", "Project Survey", "Unit Plans", "Documents", "Videos"].map(tab => (
+            {["Focus Projects", "Documents", "Unit Plans", "CMA Analysis", "Project Survey", "Videos"].map(tab => (
               <button 
                 key={tab}
                 className={`sub-tab-chip ${selectedSubTab === tab ? "active" : ""}`}
                 onClick={() => setSelectedSubTab(tab)}
               >
                 {tab === "Focus Projects" && "⭐ "}
+                {tab === "Documents" && "📁 "}
+                {tab === "Unit Plans" && "📐 "}
                 {tab === "CMA Analysis" && "📊 "}
                 {tab === "Project Survey" && "📝 "}
-                {tab === "Unit Plans" && "📐 "}
-                {tab === "Documents" && "📁 "}
                 {tab === "Videos" && "🎥 "}
                 {tab}
               </button>
@@ -210,7 +281,59 @@ export default function PropertiesView({ onShareProperty }) {
       </div>
 
       {/* Dynamic Content Rendering */}
-      {selectedSubTab === "CMA Analysis" ? (
+      {selectedSubTab === "Documents" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+          {/* Quick PDF/DOC Upload Banner */}
+          <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", padding: "0.85rem", borderRadius: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+            <div>
+              <div style={{ fontSize: "0.84375rem", fontWeight: 800, color: "#1e40af" }}>📁 Project Documents & PDF Brochures</div>
+              <div style={{ fontSize: "0.71875rem", color: "#3b82f6" }}>Upload and share verified RERA PDFs, brochures, cost sheets (.pdf, .doc, .docx)</div>
+            </div>
+            <button
+              onClick={() => setIsDocModalOpen(true)}
+              style={{ background: "#2563eb", color: "#ffffff", border: "none", padding: "0.45rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.25rem", whiteSpace: "nowrap" }}
+            >
+              <FileUp size={14} /> + Upload
+            </button>
+          </div>
+
+          {documentsList.map((doc, idx) => (
+            <div key={doc.id || idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.625rem", padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, minWidth: 0 }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "0.5rem", background: doc.fileType === "PDF" ? "#fee2e2" : "#e0e7ff", color: doc.fileType === "PDF" ? "#dc2626" : "#4338ca", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.6875rem", flexShrink: 0 }}>
+                  {doc.fileType || "PDF"}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "0.8125rem", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {doc.name}
+                  </div>
+                  <div style={{ fontSize: "0.6875rem", color: "#64748b" }}>
+                    {doc.category || "Brochure"} • {doc.size || "1.5 MB"} • {doc.date}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
+                <button 
+                  style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.35rem 0.65rem", borderRadius: "0.375rem", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.25rem" }} 
+                  onClick={() => handleDownloadDoc(doc)}
+                >
+                  <Download size={13} /> Open / Download
+                </button>
+                {doc.id && doc.id.startsWith("DOC-") && (
+                  <button 
+                    style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} 
+                    onClick={() => handleDeleteDoc(doc.id)}
+                    title="Delete Document"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : selectedSubTab === "CMA Analysis" ? (
         <div style={{ background: "#ffffff", padding: "1.25rem", borderRadius: "0.875rem", border: "1px solid #e2e8f0" }}>
           <h4 style={{ fontSize: "0.9375rem", fontWeight: "700", marginBottom: "0.3rem" }}>📊 Comparative Market Analysis (CMA)</h4>
           <p style={{ fontSize: "0.8125rem", color: "#64748b", marginBottom: "1rem" }}>Calculate fair market value & price trends in Bandra, Andheri, Lokhandwala & Thane.</p>
@@ -285,26 +408,6 @@ export default function PropertiesView({ onShareProperty }) {
               <img src={plan.planImg} alt={plan.project} style={{ width: "100%", height: "160px", objectFit: "cover", borderRadius: "0.5rem" }} />
               <button style={{ width: "100%", marginTop: "0.6rem", background: "#2563eb", color: "#ffffff", border: "none", padding: "0.4rem", borderRadius: "0.375rem", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }} onClick={() => setAlertConfig({ title: "Downloading Layout", message: `Downloading High-Res 2D/3D Floor Plan PDF for ${plan.project}...`, type: "info" })}>
                 <Download size={13} style={{ verticalAlign: "middle", marginRight: "4px" }} /> Download Floor Layout PDF
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : selectedSubTab === "Documents" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-          <button
-            onClick={() => { setItemModalMode("document"); setIsItemModalOpen(true); }}
-            style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "0.6rem", fontSize: "0.8125rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", marginBottom: "0.3rem" }}
-          >
-            <Plus size={16} /> + Upload Project Document
-          </button>
-          {documentsList.map((doc, idx) => (
-            <div key={idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.625rem", padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontSize: "0.8125rem", fontWeight: "700", color: "#0f172a" }}>📁 {doc.name}</div>
-                <div style={{ fontSize: "0.6875rem", color: "#64748b" }}>{doc.size} | {doc.date}</div>
-              </div>
-              <button style={{ background: "#f1f5f9", border: "1px solid #cbd5e1", padding: "0.35rem 0.65rem", borderRadius: "0.375rem", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer" }} onClick={() => setAlertConfig({ title: "Downloading Document", message: `Downloading ${doc.name} from CRM File Storage...`, type: "info" })}>
-                Download
               </button>
             </div>
           ))}
@@ -446,7 +549,7 @@ export default function PropertiesView({ onShareProperty }) {
                 <div className="property-price-tag">{prop.priceRange || prop.price || "Price on Request"}</div>
 
                 <div style={{ margin: "0.6rem 0", background: "#f8fafc", padding: "0.5rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.75rem", color: "#475569" }}>
-                  {prop.highlights.map((point, idx) => (
+                  {prop.highlights && prop.highlights.map((point, idx) => (
                     <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "0.35rem", margin: "0.2rem 0" }}>
                       <span style={{ color: "#2563eb", fontWeight: "800" }}>•</span>
                       <span>{point}</span>
@@ -469,13 +572,13 @@ export default function PropertiesView({ onShareProperty }) {
 
                 {/* Sub Features row */}
                 <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.6rem", paddingTop: "0.6rem", borderTop: "1px solid #f1f5f9" }}>
-                  <button style={{ flex: 1, border: "1px solid #e2e8f0", background: "#fff", padding: "0.35rem", borderRadius: "0.375rem", fontSize: "0.6875rem", color: "#475569", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }} onClick={() => setAlertConfig({ title: "Downloading Plans", message: "Downloading High-Res Floor Plans PDF...", type: "info" })}>
+                  <button style={{ flex: 1, border: "1px solid #e2e8f0", background: "#fff", padding: "0.35rem", borderRadius: "0.375rem", fontSize: "0.6875rem", color: "#475569", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }} onClick={() => setSelectedSubTab("Unit Plans")}>
                     <Layers size={11} /> Unit Plans
                   </button>
-                  <button style={{ flex: 1, border: "1px solid #e2e8f0", background: "#fff", padding: "0.35rem", borderRadius: "0.375rem", fontSize: "0.6875rem", color: "#475569", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }} onClick={() => setAlertConfig({ title: "Project Documents", message: "Opening Verified RERA Project Documents...", type: "info" })}>
+                  <button style={{ flex: 1, border: "1px solid #e2e8f0", background: "#fff", padding: "0.35rem", borderRadius: "0.375rem", fontSize: "0.6875rem", color: "#475569", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }} onClick={() => setSelectedSubTab("Documents")}>
                     <FileText size={11} /> Documents
                   </button>
-                  <button style={{ flex: 1, border: "1px solid #e2e8f0", background: "#fff", padding: "0.35rem", borderRadius: "0.375rem", fontSize: "0.6875rem", color: "#475569", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }} onClick={() => setAlertConfig({ title: "Virtual Video Tour", message: "Playing 4K Virtual Video Walkthrough Tour...", type: "info" })}>
+                  <button style={{ flex: 1, border: "1px solid #e2e8f0", background: "#fff", padding: "0.35rem", borderRadius: "0.375rem", fontSize: "0.6875rem", color: "#475569", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }} onClick={() => setSelectedSubTab("Videos")}>
                     <Video size={11} /> Videos
                   </button>
                 </div>

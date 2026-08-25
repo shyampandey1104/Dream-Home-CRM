@@ -2,16 +2,28 @@ import React, { useState, useEffect } from "react";
 import { 
   Calendar, CheckCircle2, Users, Award, Video, Clock, 
   MapPin, ChevronRight, UserCheck, Star, ShieldCheck, Zap,
-  FileCheck, UserPlus, Play, PhoneCall, Filter, ExternalLink
+  FileCheck, UserPlus, Play, PhoneCall, Filter, ExternalLink,
+  FileUp, Download, Trash2, FileText
 } from "lucide-react";
 import { fetchCrmActivities } from "../services/apiService";
+import DocUploadModal from "./DocUploadModal";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function ActivitiesView() {
   const [selectedTab, setSelectedTab] = useState("My Visits");
   const [liveActivities, setLiveActivities] = useState([]);
   const [backendCategories, setBackendCategories] = useState(null);
+  const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [alertConfig, setAlertConfig] = useState(null);
+
+  const [uploadedActivityDocs, setUploadedActivityDocs] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_activity_docs");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   useEffect(() => {
     fetchCrmActivities().then((res) => {
@@ -21,6 +33,39 @@ export default function ActivitiesView() {
       }
     });
   }, []);
+
+  const handleDocumentUploaded = (newDoc) => {
+    const updated = [newDoc, ...uploadedActivityDocs];
+    setUploadedActivityDocs(updated);
+    try {
+      localStorage.setItem("crm_activity_docs", JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  const handleDeleteDoc = (docId) => {
+    const updated = uploadedActivityDocs.filter(d => d.id !== docId);
+    setUploadedActivityDocs(updated);
+    try {
+      localStorage.setItem("crm_activity_docs", JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  const handleDownloadDoc = (doc) => {
+    if (doc.dataUrl) {
+      const link = document.createElement("a");
+      link.href = doc.dataUrl;
+      link.download = doc.fileName || `${doc.name}.${doc.fileType === "PDF" ? "pdf" : "docx"}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      setAlertConfig({
+        title: "Downloading Document",
+        message: `Downloading ${doc.name} from CRM File Storage...`,
+        type: "info"
+      });
+    }
+  };
 
   const handleStartVisit = (clientName) => {
     setAlertConfig({
@@ -39,7 +84,8 @@ export default function ActivitiesView() {
     "Meeting Schedule",
     "Video Call Schedule",
     "My Team",
-    "Three Minute Calls"
+    "Three Minute Calls",
+    "Activity Documents"
   ];
 
   // Mock data datasets for each tab
@@ -87,11 +133,48 @@ export default function ActivitiesView() {
     { id: "CALL-303", client: "Deepak Reddy", duration: "05:20 mins", topic: "Penthouse Sea Facing View & Car Parking Allocation", qualityScore: "9.8/10 Pitch Score" }
   ];
 
+  const allActivityDocs = [
+    ...uploadedActivityDocs,
+    { id: "ACT-DOC-1", name: "August Site Visit Itinerary & Logistics Plan", fileName: "Site_Visit_Itinerary_Aug.pdf", fileType: "PDF", size: "2.1 MB", date: "16 Aug 2026", category: "Client Visit Report" },
+    { id: "ACT-DOC-2", name: "Sales Pitch Negotiation Script & Closing Guide", fileName: "Sales_Closing_Script.docx", fileType: "DOC", size: "1.2 MB", date: "14 Aug 2026", category: "Training & Scripts" }
+  ];
+
   return (
     <div style={{ padding: "0.875rem 0.75rem", paddingBottom: "5rem" }}>
-      <div style={{ marginBottom: "0.75rem" }}>
-        <h2 style={{ fontSize: "1.125rem", fontWeight: "700", color: "#0f172a" }}>⚡ Activity & Schedules</h2>
-        <p style={{ fontSize: "0.78125rem", color: "#64748b" }}>Track client visits, qualified SQLs, team performance & video tours</p>
+      <DocUploadModal
+        isOpen={isDocModalOpen}
+        onClose={() => setIsDocModalOpen(false)}
+        onDocumentUploaded={handleDocumentUploaded}
+        categoryTitle="Activity & Schedule Documents"
+      />
+
+      {/* Header Bar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.5rem" }}>
+        <div>
+          <h2 style={{ fontSize: "1.125rem", fontWeight: "700", color: "#0f172a", margin: 0 }}>⚡ Activity & Schedules</h2>
+          <p style={{ fontSize: "0.78125rem", color: "#64748b", margin: "0.1rem 0 0 0" }}>Track client visits, qualified SQLs & schedule reports</p>
+        </div>
+
+        <button
+          onClick={() => setIsDocModalOpen(true)}
+          style={{
+            background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+            color: "#ffffff",
+            border: "none",
+            padding: "0.45rem 0.75rem",
+            borderRadius: "0.5rem",
+            fontSize: "0.78125rem",
+            fontWeight: 700,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.35rem",
+            boxShadow: "0 4px 12px rgba(2,132,199,0.3)",
+            whiteSpace: "nowrap"
+          }}
+        >
+          <FileUp size={15} /> + Upload PDF / DOC
+        </button>
       </div>
 
       {/* Horizontal Sub Tabs */}
@@ -102,12 +185,75 @@ export default function ActivitiesView() {
             className={`sub-tab-chip ${selectedTab === tab ? "active" : ""}`}
             onClick={() => setSelectedTab(tab)}
           >
+            {tab === "Activity Documents" && "📁 "}
+            {tab === "My Visits" && "🚗 "}
+            {tab === "Qualified Leads" && "⭐ "}
+            {tab === "Leads Claimed" && "🏆 "}
+            {tab === "Site Visit Schedule" && "⏰ "}
+            {tab === "Meeting Schedule" && "📅 "}
+            {tab === "Video Call Schedule" && "🎥 "}
+            {tab === "My Team" && "👥 "}
+            {tab === "Three Minute Calls" && "⏱️ "}
             {tab}
           </button>
         ))}
       </div>
 
       {/* Dynamic View rendering per selected sub-tab */}
+      {selectedTab === "Activity Documents" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+          {/* Quick PDF/DOC Upload Banner */}
+          <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", padding: "0.85rem", borderRadius: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+            <div>
+              <div style={{ fontSize: "0.84375rem", fontWeight: 800, color: "#1e40af" }}>📁 Activity & Schedule PDF / DOC Reports</div>
+              <div style={{ fontSize: "0.71875rem", color: "#3b82f6" }}>Upload and share visit summaries, itineraries, scripts & schedule docs (.pdf, .doc, .docx)</div>
+            </div>
+            <button
+              onClick={() => setIsDocModalOpen(true)}
+              style={{ background: "#2563eb", color: "#ffffff", border: "none", padding: "0.45rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.25rem", whiteSpace: "nowrap" }}
+            >
+              <FileUp size={14} /> + Upload
+            </button>
+          </div>
+
+          {allActivityDocs.map((doc, idx) => (
+            <div key={doc.id || idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.625rem", padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, minWidth: 0 }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "0.5rem", background: doc.fileType === "PDF" ? "#fee2e2" : "#e0e7ff", color: doc.fileType === "PDF" ? "#dc2626" : "#4338ca", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.6875rem", flexShrink: 0 }}>
+                  {doc.fileType || "PDF"}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "0.8125rem", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {doc.name}
+                  </div>
+                  <div style={{ fontSize: "0.6875rem", color: "#64748b" }}>
+                    {doc.category || "Report"} • {doc.size || "1.2 MB"} • {doc.date}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
+                <button 
+                  style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.35rem 0.65rem", borderRadius: "0.375rem", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.25rem" }} 
+                  onClick={() => handleDownloadDoc(doc)}
+                >
+                  <Download size={13} /> Open / Download
+                </button>
+                {doc.id && doc.id.startsWith("DOC-") && (
+                  <button 
+                    style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} 
+                    onClick={() => handleDeleteDoc(doc.id)}
+                    title="Delete Document"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {selectedTab === "My Visits" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {(backendCategories?.myVisits || visitsData).map(item => (
@@ -166,31 +312,18 @@ export default function ActivitiesView() {
         </div>
       )}
 
-      {selectedTab === "Unique Views" && (
+      {selectedTab === "Unique Leads Created" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          {(backendCategories?.uniqueViews || uniqueViewsData).map(view => (
-            <div key={view.id} style={{ background: "#ffffff", padding: "0.875rem", borderRadius: "0.75rem", border: "1px solid #e2e8f0" }}>
+          {uniqueLeadsData.map(lead => (
+            <div key={lead.id} style={{ background: "#ffffff", padding: "0.875rem", borderRadius: "0.75rem", border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>{view.title}</div>
+                <div style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>{lead.name}</div>
                 <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#2563eb", background: "#eff6ff", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>
-                  👀 {view.views} Views
+                  {lead.bhk}
                 </span>
               </div>
-              <div style={{ fontSize: "0.78125rem", color: "#64748b", marginTop: "0.2rem" }}>Avg Time: {view.avgTime}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {selectedTab === "Announcements" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          {(backendCategories?.announcements || announcementsData).map(ann => (
-            <div key={ann.id} style={{ background: "#ffffff", padding: "0.875rem", borderRadius: "0.75rem", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>{ann.title}</div>
-                <span style={{ fontSize: "0.6875rem", color: "#94a3b8" }}>{ann.timeAgo}</span>
-              </div>
-              <p style={{ fontSize: "0.78125rem", color: "#475569", margin: "0.4rem 0 0 0" }}>{ann.msg}</p>
+              <div style={{ fontSize: "0.78125rem", color: "#64748b", marginTop: "0.2rem" }}>Source: {lead.source} • {lead.phone}</div>
+              <div style={{ fontSize: "0.71875rem", color: "#94a3b8", marginTop: "0.2rem" }}>Created: {lead.date}</div>
             </div>
           ))}
         </div>
@@ -291,6 +424,16 @@ export default function ActivitiesView() {
             </div>
           ))}
         </div>
+      )}
+
+      {alertConfig && (
+        <CustomAlertDialog
+          isOpen={!!alertConfig}
+          onClose={() => setAlertConfig(null)}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+        />
       )}
     </div>
   );
