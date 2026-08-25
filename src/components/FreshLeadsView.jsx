@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { MapPin, User, Clock, Phone, MessageSquare, FileSpreadsheet, UserPlus, Edit3, Trash2 } from "lucide-react";
+import { MapPin, User, Clock, Phone, MessageSquare, FileSpreadsheet, UserPlus, Edit3, Trash2, FileDown, FileUp } from "lucide-react";
 import FilterBar from "./FilterBar";
 import { exportLeadsToExcel } from "../utils/excelExport";
 import AddLeadModal from "./AddLeadModal";
+import ImportLeadsModal from "./ImportLeadsModal";
 import { deleteLeadApi } from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
-export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLeadCreated, onLeadUpdated, onLeadDeleted }) {
+export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLeadCreated, onLeadUpdated, onLeadDeleted, onLeadsImported }) {
   const [dateFilter, setDateFilter] = useState("Today");
   const [sourceFilter, setSourceFilter] = useState("All Sources");
   const [serviceFilter, setServiceFilter] = useState("All Services");
@@ -14,6 +15,7 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
   const [orderFilter, setOrderFilter] = useState("Freshest First");
   const [search, setSearch] = useState("");
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [alertConfig, setAlertConfig] = useState(null);
   const [leadToDelete, setLeadToDelete] = useState(null);
@@ -43,6 +45,14 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
     }
     setIsAddLeadOpen(false);
     setEditingLead(null);
+  };
+
+  const handleImportLeads = (newLeads) => {
+    if (onLeadsImported) {
+      onLeadsImported(newLeads);
+    } else if (onLeadCreated) {
+      newLeads.forEach(l => onLeadCreated(l));
+    }
   };
 
   const confirmDelete = (lead) => {
@@ -81,6 +91,13 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
           onLeadCreated={handleSaveLead}
         />
       )}
+
+      {/* Import Leads from Excel Modal */}
+      <ImportLeadsModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onLeadsImported={handleImportLeads}
+      />
 
       {/* Confirmation & Alert Dialog */}
       {alertConfig && (
@@ -150,6 +167,7 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
         </div>
       )}
 
+      {/* Header Toolbar */}
       <div className="view-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
         <div>
           <h1 className="view-title">
@@ -158,48 +176,73 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
           <p className="view-subtitle">{filtered.length} leads that have never been contacted</p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+          {/* Create Lead */}
           <button
             onClick={() => { setEditingLead(null); setIsAddLeadOpen(true); }}
             style={{
               background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
               color: "#ffffff",
               border: "none",
-              padding: "0.5rem 0.85rem",
+              padding: "0.45rem 0.75rem",
               borderRadius: "0.5rem",
-              fontSize: "0.8125rem",
+              fontSize: "0.78125rem",
               fontWeight: 700,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "0.35rem",
+              gap: "0.3rem",
               boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
-              transition: "all 0.2s ease"
+              whiteSpace: "nowrap"
             }}
           >
-            <UserPlus size={15} /> + Create Lead
+            <UserPlus size={14} /> + Lead
           </button>
 
+          {/* Import Excel */}
+          <button
+            onClick={() => setIsImportOpen(true)}
+            style={{
+              background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+              color: "#ffffff",
+              border: "none",
+              padding: "0.45rem 0.75rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.78125rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              boxShadow: "0 4px 12px rgba(2,132,199,0.3)",
+              whiteSpace: "nowrap"
+            }}
+            title="Import leads from CSV or Excel file"
+          >
+            <FileUp size={14} /> Import Excel
+          </button>
+
+          {/* Export Excel */}
           <button
             onClick={() => exportLeadsToExcel(filtered, "Fresh_Leads_Report")}
             style={{
               background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
               color: "#ffffff",
               border: "none",
-              padding: "0.5rem 0.85rem",
+              padding: "0.45rem 0.75rem",
               borderRadius: "0.5rem",
-              fontSize: "0.8125rem",
+              fontSize: "0.78125rem",
               fontWeight: 700,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "0.35rem",
+              gap: "0.3rem",
               boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
-              transition: "all 0.2s ease"
+              whiteSpace: "nowrap"
             }}
             title="Export currently filtered fresh leads to Excel / CSV"
           >
-            <FileSpreadsheet size={15} /> Export Excel ({filtered.length})
+            <FileDown size={14} /> Export ({filtered.length})
           </button>
         </div>
       </div>

@@ -515,6 +515,12 @@ export default function App() {
             }}
             onLeadUpdated={handleLeadUpdated}
             onLeadDeleted={handleLeadDeleted}
+            onLeadsImported={(importedLeads) => {
+              const updated = [...importedLeads, ...leads];
+              setLeads(updated);
+              saveStoredLeads(updated);
+              showToast(`🎉 Successfully imported ${importedLeads.length} leads from Excel!`);
+            }}
           />
         );
       case "followup":
