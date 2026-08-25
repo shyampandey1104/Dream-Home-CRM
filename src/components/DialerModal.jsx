@@ -120,7 +120,6 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
 
-        // Try selecting English voice if available
         const voices = window.speechSynthesis.getVoices();
         const enVoice = voices.find(v => v.lang.startsWith("en"));
         if (enVoice) utterance.voice = enVoice;
@@ -273,7 +272,12 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
   return (
     <div 
       className="modal-overlay" 
-      onClick={onClose}
+      onClick={(e) => {
+        // Only close if clicked directly on background overlay, never on child
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
       style={{ 
         position: "fixed",
         inset: 0,
@@ -293,6 +297,8 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
       {callState === "CALLING" ? (
         <div 
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           style={{
             background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
             color: "#ffffff",
@@ -457,6 +463,8 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
         <div 
           className="dialer-modal-content" 
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           style={{ 
             width: "100%", 
             maxWidth: "440px", 
@@ -464,7 +472,8 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
             borderRadius: "1rem", 
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.4)",
             overflow: "hidden",
-            margin: "auto 0"
+            margin: "auto 0",
+            position: "relative"
           }}
         >
           {/* Header Summary */}
@@ -585,6 +594,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                         e.stopPropagation();
                         setOutcome(opt.label);
                       }}
+                      onMouseDown={(e) => e.stopPropagation()}
                       style={{
                         padding: "0.65rem 0.5rem",
                         borderRadius: "0.5rem",

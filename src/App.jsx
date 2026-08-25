@@ -245,18 +245,16 @@ export default function App() {
           try {
             const savedLead = JSON.parse(savedNativeLeadJson);
             sessionStorage.removeItem("crm_pending_native_call_lead");
-            setActiveCallLead(savedLead);
+            setActiveCallLead(prev => prev || savedLead);
           } catch (e) {}
         }
       }
     };
 
     document.addEventListener("visibilitychange", handleNativeCallReturn);
-    window.addEventListener("focus", handleNativeCallReturn);
 
     return () => {
       document.removeEventListener("visibilitychange", handleNativeCallReturn);
-      window.removeEventListener("focus", handleNativeCallReturn);
     };
   }, []);
 
