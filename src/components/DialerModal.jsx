@@ -291,12 +291,6 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
   return (
     <div 
       className="modal-overlay" 
-      onClick={(e) => {
-        // Only close if clicked directly on background overlay, never on child
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
       style={{ 
         position: "fixed",
         inset: 0,
