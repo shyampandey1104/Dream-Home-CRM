@@ -60,18 +60,22 @@ export const fetchCrmUsers = async () => {
 
 export const fetchCrmLeads = async (userEmail = null) => {
   try {
+    const customHeaders = { "Bypass-Tunnel-Reminder": "true", "ngrok-skip-browser-warning": "69420" };
     const url = userEmail ? `${FRAPPE_API_URL}.get_leads?user_email=${encodeURIComponent(userEmail)}` : `${FRAPPE_API_URL}.get_leads`;
-    let res = await fetch(url);
+    let res = await fetch(url, { headers: customHeaders });
     if (!res.ok) {
       const directUrl = userEmail ? `${FRAPPE_DIRECT_URL}.get_leads?user_email=${encodeURIComponent(userEmail)}` : `${FRAPPE_DIRECT_URL}.get_leads`;
-      res = await fetch(directUrl);
+      res = await fetch(directUrl, { headers: customHeaders });
     }
     if (res.ok) {
-      const json = await res.json();
-      if (json.message && json.message.data && json.message.data.length > 0) {
-        saveStoredLeads(json.message.data);
-        return json.message.data;
-      }
+      const text = await res.text();
+      try {
+        const json = JSON.parse(text);
+        if (json.message && json.message.data && json.message.data.length > 0) {
+          saveStoredLeads(json.message.data);
+          return json.message.data;
+        }
+      } catch (err) {}
     }
   } catch (e) {
     console.log("[Frappe Leads Notice] Offline mode active.");
@@ -277,13 +281,22 @@ export const saveLeadApi = async (leadData) => {
     try {
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Bypass-Tunnel-Reminder": "true",
+          "ngrok-skip-browser-warning": "69420"
+        },
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        const data = await res.json();
-        console.log(`[saveLeadApi Success via ${endpoint}]`, data);
-        return data.message || data;
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          console.log(`[saveLeadApi Success via ${endpoint}]`, data);
+          return data.message || data;
+        } catch (jsonErr) {
+          console.log(`[saveLeadApi Non-JSON response from ${endpoint}]`, text.slice(0, 100));
+        }
       }
     } catch (e) {
       console.log(`[saveLeadApi Notice ${endpoint}]`, e.message);
