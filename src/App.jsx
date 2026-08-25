@@ -870,7 +870,31 @@ export default function App() {
         {renderModals()}
 
         {toastMsg && (
-          <div className="toast-notification">
+          <div 
+            style={{
+              position: "fixed",
+              top: "16px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 999999,
+              maxWidth: "340px",
+              width: "90%",
+              background: "rgba(15, 23, 42, 0.95)",
+              color: "#ffffff",
+              padding: "0.6rem 1rem",
+              borderRadius: "9999px",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+              backdropFilter: "blur(8px)",
+              fontSize: "0.8125rem",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              border: "1px solid rgba(255,255,255,0.15)",
+              pointerEvents: "none"
+            }}
+          >
             <span>{toastMsg}</span>
           </div>
         )}
