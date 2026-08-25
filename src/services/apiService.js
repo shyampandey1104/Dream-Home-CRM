@@ -2,7 +2,7 @@
 // Supports Frappe Bench REST APIs & Standalone Python Backend
 // Frappe API Base URL: http://127.0.0.1:8000/api/method/real_estate_crm.api
 
-const LIVE_BACKEND = "https://sic-collectables-ipod-findarticles.trycloudflare.com/api/method/real_estate_crm.real_estate_crm.api";
+const LIVE_BACKEND = "https://amenities-belong-gourmet-works.trycloudflare.com/api/method/real_estate_crm.real_estate_crm.api";
 const LOCAL_BACKEND = "http://127.0.0.1:8000/api/method/real_estate_crm.real_estate_crm.api";
 
 const isLocalHost = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
