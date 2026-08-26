@@ -279,27 +279,22 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
           flexShrink: 0
         }}>
           {/* Golden DH Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }} onClick={() => setActiveNav("Home")}>
-            <div style={{
-              width: "34px",
-              height: "34px",
-              border: "2px solid #ca8a04",
-              background: "#fefce8",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#ca8a04",
-              fontWeight: "900",
-              fontSize: "0.8125rem",
-              letterSpacing: "0.05em",
-              boxShadow: "0 2px 4px rgba(202, 138, 4, 0.15)",
-              flexShrink: 0
-            }}>
-              DH
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }} onClick={() => setActiveNav("Home")}>
+            <img 
+              src="/dreamhomes_gold_logo.jpg" 
+              alt="Dream Homes Logo" 
+              style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "6px",
+                objectFit: "contain",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                flexShrink: 0,
+                background: "#ffffff"
+              }} 
+            />
             <div>
-              <div style={{ fontSize: "0.75rem", fontWeight: "900", color: "#0f172a", lineHeight: 1.1 }}>DREAM HOMES</div>
+              <div style={{ fontSize: "0.78125rem", fontWeight: "900", color: "#0f172a", lineHeight: 1.1 }}>DREAM HOMES</div>
               <div style={{ fontSize: "0.59375rem", color: "#64748b" }}>Real Estate Advisory</div>
             </div>
           </div>

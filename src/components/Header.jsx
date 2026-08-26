@@ -30,14 +30,14 @@ export default function Header({
   };
 
   const companyName = orgProfile?.company_name || "Dream Homes";
-  const logoUrl = orgProfile?.logo_url || "/dreamhomes_logo.png";
+  const logoUrl = orgProfile?.logo_url || "/dreamhomes_gold_logo.jpg";
 
   return (
     <>
       <header className="app-header">
         <div className="brand-section">
           <div className="brand-logo" style={{ background: "transparent", width: "auto", height: "auto" }}>
-            <img src={logoUrl} alt={companyName} style={{ width: "36px", height: "36px", objectFit: "contain", borderRadius: "6px" }} />
+            <img src={logoUrl} alt={companyName} style={{ width: "38px", height: "38px", objectFit: "contain", borderRadius: "6px", boxShadow: "0 2px 6px rgba(0,0,0,0.12)" }} />
           </div>
           <div>
             <span className="brand-title" style={{ fontSize: "1.125rem", fontWeight: 800, color: "#1e293b" }}>{companyName}</span>
