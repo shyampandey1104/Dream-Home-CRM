@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { X, Upload, FileText, CheckCircle2, Sparkles, Building, MapPin, Tag, DollarSign } from "lucide-react";
+import { X, Upload, FileText, CheckCircle2, Sparkles, Building, MapPin, Tag, DollarSign, AlertCircle } from "lucide-react";
 import { uploadPropertyApi } from "../services/apiService";
+import { validateRequiredText } from "../utils/validators";
+import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploaded }) {
   const [title, setTitle] = useState("");
@@ -16,6 +18,7 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
   const [fileName, setFileName] = useState("");
   const [isAiParsing, setIsAiParsing] = useState(false);
   const [aiSuccess, setAiSuccess] = useState(false);
+  const [alertConfig, setAlertConfig] = useState(null);
 
   if (!isOpen) return null;
 
@@ -23,6 +26,11 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      setAlertConfig({ title: "File Too Large", message: "File size exceeds 25MB limit. Please upload a smaller file.", type: "warning" });
+      return;
+    }
 
     setFileName(file.name);
     setIsAiParsing(true);
@@ -32,7 +40,6 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
       setIsAiParsing(false);
       setAiSuccess(true);
 
-      // Extract clean title from filename
       const cleanName = file.name
         .replace(/\.[^/.]+$/, "")
         .replace(/_/g, " ")
@@ -53,15 +60,23 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setAlertConfig({ title: "Title Required", message: "Please enter Project Title!", type: "warning" });
+
+    const titleRes = validateRequiredText(title, "Project Title", 2);
+    if (!titleRes.isValid) {
+      setAlertConfig({ title: "Validation Error", message: titleRes.error, type: "warning" });
+      return;
+    }
+
+    const locRes = validateRequiredText(location || "Mumbai", "Location", 2);
+    if (!locRes.isValid) {
+      setAlertConfig({ title: "Validation Error", message: locRes.error, type: "warning" });
       return;
     }
 
     const highlightsArr = highlights.split(",").map(s => s.trim()).filter(Boolean);
 
     const newPropertyObj = {
-      id: Date.now(),
+      id: `PROP-${Date.now().toString().slice(-4)}`,
       title: title.trim(),
       builder: builder.trim() || "Independent Developer",
       location: location.trim() || "Mumbai",
@@ -77,20 +92,23 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
       brochureFile: fileName || `${title.replace(/\s+/g, '_')}_Brochure.pdf`
     };
 
-    // Save to Frappe MariaDB
     const res = await uploadPropertyApi(newPropertyObj);
     
     if (onPropertyUploaded) {
       onPropertyUploaded(newPropertyObj);
     }
 
-    const successText = typeof res.message === "string" ? res.message : `🎉 Property '${title}' uploaded & synced to CRM Database!`;
+    const successText = typeof res?.message === "string" ? res.message : `🎉 Property '${title}' uploaded & saved to Database!`;
     setAlertConfig({ title: "Property Uploaded!", message: successText, type: "success" });
   };
 
   const handleCloseAll = () => {
-    setAlertConfig(null);
-    onClose();
+    if (alertConfig?.type === "success") {
+      setAlertConfig(null);
+      onClose();
+    } else {
+      setAlertConfig(null);
+    }
   };
 
   return (
@@ -133,7 +151,7 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
               <Upload size={20} color="#38bdf8" /> Upload Property & PDF Brochure
             </h3>
             <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0.2rem 0 0 0" }}>
-              Upload project PDF, floor plans & sync directly with CRM Database
+              Upload verified project PDF, floor plans & sync with CRM Database
             </p>
           </div>
 
@@ -172,7 +190,7 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
           }}>
             <input
               type="file"
-              accept=".pdf,.png,.jpg,.jpeg"
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
               onChange={handleFileUpload}
               style={{
                 position: "absolute",
@@ -186,7 +204,7 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
               {fileName ? `📄 Attached File: ${fileName}` : "Click or Drop PDF Brochure / RERA Certificate here"}
             </div>
             <div style={{ fontSize: "0.75rem", color: "#60a5fa", marginTop: "0.25rem" }}>
-              Supports PDF, PNG, JPG files up to 25MB
+              Supports PDF, DOC, DOCX, PNG, JPG files up to 25MB
             </div>
 
             {isAiParsing && (

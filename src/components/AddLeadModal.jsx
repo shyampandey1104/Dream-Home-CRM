@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, UserPlus, User, Phone, Mail, MapPin, Tag, FileText, Sparkles, Flame, CheckCircle2, Edit3 } from "lucide-react";
+import { X, UserPlus, User, Phone, Mail, MapPin, Tag, FileText, Sparkles, Flame, CheckCircle2, Edit3, AlertCircle } from "lucide-react";
 import { saveLeadApi } from "../services/apiService";
+import { validateName, validatePhone, validateEmail, validateRequiredText } from "../utils/validators";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialData = null }) {
@@ -15,6 +16,10 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
   const [source, setSource] = useState("Direct Walk-in");
   const [priority, setPriority] = useState("HOT");
   const [notes, setNotes] = useState("");
+  
+  // Validation error states
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [alertConfig, setAlertConfig] = useState(null);
 
   useEffect(() => {
@@ -39,26 +44,81 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
       setPriority("HOT");
       setNotes("");
     }
+    setErrors({});
+    setTouched({});
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
+  // Real-time field validation
+  const validateField = (field, value) => {
+    let result = { isValid: true, error: "" };
+    if (field === "name") {
+      result = validateName(value);
+    } else if (field === "phone") {
+      result = validatePhone(value);
+    } else if (field === "email") {
+      result = validateEmail(value, false);
+    } else if (field === "location") {
+      result = validateRequiredText(value, "Location", 2);
+    }
+
+    setErrors(prev => ({
+      ...prev,
+      [field]: result.isValid ? "" : result.error
+    }));
+    return result.isValid;
+  };
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    let val = "";
+    if (field === "name") val = name;
+    if (field === "phone") val = phone;
+    if (field === "email") val = email;
+    if (field === "location") val = location;
+    validateField(field, val);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setAlertConfig({ title: "Name Required", message: "Please enter Lead Full Name!", type: "warning" });
+
+    const isNameValid = validateName(name);
+    const isPhoneValid = validatePhone(phone);
+    const isEmailValid = validateEmail(email, false);
+    const isLocValid = validateRequiredText(location || "Mumbai", "Location", 2);
+
+    const newErrors = {
+      name: isNameValid.error,
+      phone: isPhoneValid.error,
+      email: isEmailValid.error,
+      location: isLocValid.error
+    };
+
+    setErrors(newErrors);
+    setTouched({ name: true, phone: true, email: true, location: true });
+
+    if (!isNameValid.isValid || !isPhoneValid.isValid || !isEmailValid.isValid || !isLocValid.isValid) {
+      setAlertConfig({
+        title: "Validation Error",
+        message: isNameValid.error || isPhoneValid.error || isEmailValid.error || isLocValid.error || "Please fix highlighted form errors!",
+        type: "warning"
+      });
       return;
     }
-    if (!phone.trim()) {
-      setAlertConfig({ title: "Phone Required", message: "Please enter Lead Phone Number!", type: "warning" });
-      return;
+
+    // Format phone with +91 if 10 digits
+    let formattedPhone = phone.trim();
+    const cleanDigits = phone.replace(/\D/g, "");
+    if (cleanDigits.length === 10) {
+      formattedPhone = `+91 ${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`;
     }
 
     const leadObj = {
       id: initialData?.id || `LEAD-${Date.now().toString().slice(-4)}`,
       name: name.trim(),
       lead_name: name.trim(),
-      phone: phone.trim(),
+      phone: formattedPhone,
       email: email.trim() || `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@gmail.com`,
       service: service,
       bhkType: bhkType,
@@ -93,8 +153,12 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
   };
 
   const handleAlertClose = () => {
-    setAlertConfig(null);
-    onClose();
+    if (alertConfig?.type === "success") {
+      setAlertConfig(null);
+      onClose();
+    } else {
+      setAlertConfig(null);
+    }
   };
 
   return (
@@ -152,7 +216,7 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
               )}
             </h3>
             <p style={{ fontSize: "0.71875rem", color: "#94a3b8", margin: "0.15rem 0 0 0" }}>
-              {isEditing ? `Editing lead: ${initialData?.id}` : "Create fresh lead & assign directly to telecallers"}
+              {isEditing ? `Editing lead: ${initialData?.id}` : "Create verified lead with phone & email validation"}
             </p>
           </div>
 
@@ -176,22 +240,38 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
         </div>
 
         {/* Modal Body - Scrollable Mobile App Form */}
-        <form onSubmit={handleSubmit} style={{ padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem", overflowY: "auto", flex: "1 1 auto" }}>
+        <form onSubmit={handleSubmit} noValidate style={{ padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem", overflowY: "auto", flex: "1 1 auto" }}>
           
           {/* Full Name */}
           <div>
-            <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-              Lead Full Name <span style={{ color: "#ef4444" }}>*</span>
-            </label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                Lead Full Name <span style={{ color: "#ef4444" }}>*</span>
+              </label>
+              {touched.name && errors.name && (
+                <span style={{ fontSize: "0.6875rem", color: "#dc2626", fontWeight: 600 }}>{errors.name}</span>
+              )}
+            </div>
             <div style={{ position: "relative" }}>
-              <User size={15} style={{ position: "absolute", left: 10, top: 11, color: "#94a3b8" }} />
+              <User size={15} style={{ position: "absolute", left: 10, top: 11, color: touched.name && errors.name ? "#ef4444" : "#94a3b8" }} />
               <input
                 type="text"
-                className="modern-search-input"
                 placeholder="e.g. Rohan Mehta"
-                style={{ paddingLeft: "2.1rem", fontSize: "0.84375rem", padding: "0.55rem 0.65rem 0.55rem 2.1rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+                style={{
+                  paddingLeft: "2.1rem",
+                  fontSize: "0.84375rem",
+                  padding: "0.55rem 0.65rem 0.55rem 2.1rem",
+                  width: "100%",
+                  borderRadius: "0.5rem",
+                  border: touched.name && errors.name ? "1.5px solid #ef4444" : "1px solid #cbd5e1",
+                  background: touched.name && errors.name ? "#fef2f2" : "#ffffff"
+                }}
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={e => {
+                  setName(e.target.value);
+                  if (touched.name) validateField("name", e.target.value);
+                }}
+                onBlur={() => handleBlur("name")}
                 required
               />
             </div>
@@ -199,18 +279,35 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
 
           {/* Phone Number */}
           <div>
-            <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-              Phone Number <span style={{ color: "#ef4444" }}>*</span>
-            </label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                Mobile Number (10 Digits) <span style={{ color: "#ef4444" }}>*</span>
+              </label>
+              {touched.phone && errors.phone && (
+                <span style={{ fontSize: "0.6875rem", color: "#dc2626", fontWeight: 600 }}>{errors.phone}</span>
+              )}
+            </div>
             <div style={{ position: "relative" }}>
-              <Phone size={15} style={{ position: "absolute", left: 10, top: 11, color: "#94a3b8" }} />
+              <Phone size={15} style={{ position: "absolute", left: 10, top: 11, color: touched.phone && errors.phone ? "#ef4444" : "#94a3b8" }} />
               <input
-                type="text"
-                className="modern-search-input"
-                placeholder="+91 98000 00000"
-                style={{ paddingLeft: "2.1rem", fontSize: "0.84375rem", padding: "0.55rem 0.65rem 0.55rem 2.1rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+                type="tel"
+                placeholder="98205 91823"
+                maxLength={14}
+                style={{
+                  paddingLeft: "2.1rem",
+                  fontSize: "0.84375rem",
+                  padding: "0.55rem 0.65rem 0.55rem 2.1rem",
+                  width: "100%",
+                  borderRadius: "0.5rem",
+                  border: touched.phone && errors.phone ? "1.5px solid #ef4444" : "1px solid #cbd5e1",
+                  background: touched.phone && errors.phone ? "#fef2f2" : "#ffffff"
+                }}
                 value={phone}
-                onChange={e => setPhone(e.target.value)}
+                onChange={e => {
+                  setPhone(e.target.value);
+                  if (touched.phone) validateField("phone", e.target.value);
+                }}
+                onBlur={() => handleBlur("phone")}
                 required
               />
             </div>
@@ -218,36 +315,68 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
 
           {/* Email Address */}
           <div>
-            <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-              Email Address
-            </label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                Email Address (Optional)
+              </label>
+              {touched.email && errors.email && (
+                <span style={{ fontSize: "0.6875rem", color: "#dc2626", fontWeight: 600 }}>{errors.email}</span>
+              )}
+            </div>
             <div style={{ position: "relative" }}>
-              <Mail size={15} style={{ position: "absolute", left: 10, top: 11, color: "#94a3b8" }} />
+              <Mail size={15} style={{ position: "absolute", left: 10, top: 11, color: touched.email && errors.email ? "#ef4444" : "#94a3b8" }} />
               <input
                 type="email"
-                className="modern-search-input"
-                placeholder="rohan@gmail.com"
-                style={{ paddingLeft: "2.1rem", fontSize: "0.84375rem", padding: "0.55rem 0.65rem 0.55rem 2.1rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+                placeholder="rohan.mehta@gmail.com"
+                style={{
+                  paddingLeft: "2.1rem",
+                  fontSize: "0.84375rem",
+                  padding: "0.55rem 0.65rem 0.55rem 2.1rem",
+                  width: "100%",
+                  borderRadius: "0.5rem",
+                  border: touched.email && errors.email ? "1.5px solid #ef4444" : "1px solid #cbd5e1",
+                  background: touched.email && errors.email ? "#fef2f2" : "#ffffff"
+                }}
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  if (touched.email) validateField("email", e.target.value);
+                }}
+                onBlur={() => handleBlur("email")}
               />
             </div>
           </div>
 
           {/* Preferred Locality */}
           <div>
-            <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-              Preferred Locality / Area
-            </label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                Preferred Locality / Area
+              </label>
+              {touched.location && errors.location && (
+                <span style={{ fontSize: "0.6875rem", color: "#dc2626", fontWeight: 600 }}>{errors.location}</span>
+              )}
+            </div>
             <div style={{ position: "relative" }}>
-              <MapPin size={15} style={{ position: "absolute", left: 10, top: 11, color: "#94a3b8" }} />
+              <MapPin size={15} style={{ position: "absolute", left: 10, top: 11, color: touched.location && errors.location ? "#ef4444" : "#94a3b8" }} />
               <input
                 type="text"
-                className="modern-search-input"
                 placeholder="e.g. Bandra West, Mumbai"
-                style={{ paddingLeft: "2.1rem", fontSize: "0.84375rem", padding: "0.55rem 0.65rem 0.55rem 2.1rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+                style={{
+                  paddingLeft: "2.1rem",
+                  fontSize: "0.84375rem",
+                  padding: "0.55rem 0.65rem 0.55rem 2.1rem",
+                  width: "100%",
+                  borderRadius: "0.5rem",
+                  border: touched.location && errors.location ? "1.5px solid #ef4444" : "1px solid #cbd5e1",
+                  background: touched.location && errors.location ? "#fef2f2" : "#ffffff"
+                }}
                 value={location}
-                onChange={e => setLocation(e.target.value)}
+                onChange={e => {
+                  setLocation(e.target.value);
+                  if (touched.location) validateField("location", e.target.value);
+                }}
+                onBlur={() => handleBlur("location")}
               />
             </div>
           </div>

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { X, CheckCircle2, Edit3 } from "lucide-react";
+import { X, CheckCircle2, Edit3, AlertCircle } from "lucide-react";
+import { validateName, validatePhone, validateEmail, validateRequiredText } from "../utils/validators";
 
 export default function EditRecordModal({ isOpen, onClose, record, recordType, onSave }) {
   const [formData, setFormData] = useState({});
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     if (record) {
       setFormData({ ...record });
+      setErrorMsg("");
     }
   }, [record]);
 
@@ -14,10 +17,40 @@ export default function EditRecordModal({ isOpen, onClose, record, recordType, o
 
   const handleChange = (key, value) => {
     setFormData(prev => ({ ...prev, [key]: value }));
+    setErrorMsg("");
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Check Phone validation if phone exists
+    if (formData.phone) {
+      const phoneRes = validatePhone(formData.phone);
+      if (!phoneRes.isValid) {
+        setErrorMsg(phoneRes.error);
+        return;
+      }
+    }
+
+    // Check Email validation if email exists
+    if (formData.email) {
+      const emailRes = validateEmail(formData.email, false);
+      if (!emailRes.isValid) {
+        setErrorMsg(emailRes.error);
+        return;
+      }
+    }
+
+    // Check Title/Name required validation
+    const nameVal = formData.title || formData.name || formData.property || formData.project;
+    if (nameVal !== undefined) {
+      const nameRes = validateRequiredText(nameVal, "Title/Name", 2);
+      if (!nameRes.isValid) {
+        setErrorMsg(nameRes.error);
+        return;
+      }
+    }
+
     onSave(formData);
     onClose();
   };
@@ -72,7 +105,7 @@ export default function EditRecordModal({ isOpen, onClose, record, recordType, o
                 Edit {recordType || "Record"}
               </h3>
               <p style={{ fontSize: "0.6875rem", color: "#94a3b8", margin: "0.1rem 0 0 0" }}>
-                Update details and save changes
+                Update details with real-time validation
               </p>
             </div>
           </div>
@@ -99,6 +132,12 @@ export default function EditRecordModal({ isOpen, onClose, record, recordType, o
         {/* Form Body */}
         <form onSubmit={handleSubmit} style={{ padding: "1.25rem", overflowY: "auto", flex: "1 1 auto", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           
+          {errorMsg && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", padding: "0.5rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.75rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.35rem" }}>
+              <AlertCircle size={14} /> {errorMsg}
+            </div>
+          )}
+
           {/* Title / Name */}
           {(formData.title !== undefined || formData.name !== undefined || formData.property !== undefined || formData.project !== undefined) && (
             <div>
@@ -207,7 +246,7 @@ export default function EditRecordModal({ isOpen, onClose, record, recordType, o
             {(formData.phone !== undefined || formData.status !== undefined || formData.tag !== undefined) && (
               <div>
                 <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
-                  {formData.phone !== undefined ? "Phone" : (formData.status !== undefined ? "Status" : "Tag")}
+                  {formData.phone !== undefined ? "Phone (10 Digits)" : (formData.status !== undefined ? "Status" : "Tag")}
                 </label>
                 <input
                   type="text"
@@ -223,6 +262,21 @@ export default function EditRecordModal({ isOpen, onClose, record, recordType, o
               </div>
             )}
           </div>
+
+          {/* Email if present */}
+          {formData.email !== undefined && (
+            <div>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                className="modern-search-input"
+                value={formData.email || ""}
+                onChange={e => handleChange("email", e.target.value)}
+              />
+            </div>
+          )}
 
           {/* Date / Time / Slot */}
           {(formData.date !== undefined || formData.time !== undefined || formData.slot !== undefined) && (
