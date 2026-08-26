@@ -19,10 +19,16 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
   const [contactMessage, setContactMessage] = useState("");
   const [formSubmitted, setFormSubmitted] = useState(false);
 
+  // Official Links Provided by User
   const websiteUrl = "https://dreamhomes42.com/";
   const contactPhone = "+91 9372721239";
   const contactEmail = "dreamhomes6631@gmail.com";
   const officeAddress = "Dream homes property, shop no.F38, runwal city centre,dattar colony, Kanjurmarg east 400042";
+
+  const facebookUrl = "https://www.facebook.com/share/1GfitGnEdy/";
+  const youtubeUrl = "https://youtube.com/@shreyashrepale2792?si=qY3WM8Tp1z8fpACR";
+  const instagramUrl = "https://www.instagram.com/dream_homes42?igsh=MWJhajhuNTZ5MHgzeg==";
+  const linkedinUrl = "https://www.linkedin.com/feed/";
 
   // Exact 8 Mumbai Micro-Market Listings from Website Screenshot
   const listingsData = [
@@ -128,34 +134,31 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
     }
   ];
 
-  // Real Estate Blogs Data
+  // Exact Real Estate Blogs from User Screenshot (media_1787728092799.png)
   const blogsData = [
     {
       id: 1,
-      title: "Top 5 Emerging Micro-Markets in Mumbai for High Rental Yield (2026)",
-      category: "Investment Guide",
-      readTime: "4 min read",
-      date: "24 Aug 2026",
-      desc: "Discover why Kanjurmarg, Vikhroli, and Mulund are delivering 4.5%+ rental yields with upcoming Metro line connectivity and business hub expansion.",
+      title: "Buy 1 & 2 BHK Flats in Thane | Starting at ₹40 Lakhs",
+      category: "Thane Focus",
+      date: "July 8, 2026",
+      desc: "Explore premium 1 & 2 BHK residential homes in Thane with world-class clubhouse, swimming pool, and seamless highway connectivity.",
       img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"
     },
     {
       id: 2,
-      title: "Complete Guide to RERA Carpet Area vs Built-Up Area for First-Time Homebuyers",
-      category: "Legal & RERA",
-      readTime: "5 min read",
-      date: "20 Aug 2026",
-      desc: "Understanding what you actually pay for. Learn how MahaRERA protects buyers and how to calculate usable carpet area accurately.",
+      title: "RERA Approved Projects in Mumbai: Why They Matter for Home Buyers",
+      category: "MahaRERA Guide",
+      date: "July 5, 2026",
+      desc: "Your complete guide to safe, transparent, and verified real estate investments in Mumbai with RERA carpet guidelines.",
       img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"
     },
     {
       id: 3,
-      title: "Why Powai and Ghatkopar Remain Prime Luxury Living Hotspots",
-      category: "Lifestyle & Luxury",
-      readTime: "3 min read",
-      date: "16 Aug 2026",
-      desc: "Explore the scenic lake views, top international schools, high-end fine dining, and integrated gated township lifestyle in Mumbai East.",
-      img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80"
+      title: "Best 1 & 2 BHK Property in Mumbai for Family & Investment",
+      category: "Market Insights",
+      date: "July 3, 2026",
+      desc: "Top handpicked 1 & 2 BHK properties in prime Mumbai locations with verified developer credibility and timely possession.",
+      img: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80"
     }
   ];
 
@@ -194,7 +197,6 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
       }
     }
 
-    // Create lead object for CRM
     const newInboundLead = {
       id: `LEAD-${Date.now().toString().slice(-4)}`,
       name: fullName || "Website Visitor",
@@ -266,10 +268,10 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
           flexDirection: "column"
         }}
       >
-        {/* TOP HEADER: White background with Golden DH Logo, Call, Email & Social */}
+        {/* TOP HEADER: White background with Golden DH Logo, Call, Email & Exact Social Icons */}
         <div style={{
           background: "#ffffff",
-          padding: "0.65rem 0.85rem",
+          padding: "0.65rem 0.75rem",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -277,10 +279,10 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
           flexShrink: 0
         }}>
           {/* Golden DH Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }} onClick={() => setActiveNav("Home")}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }} onClick={() => setActiveNav("Home")}>
             <div style={{
-              width: "36px",
-              height: "36px",
+              width: "34px",
+              height: "34px",
               border: "2px solid #ca8a04",
               background: "#fefce8",
               borderRadius: "4px",
@@ -289,34 +291,111 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
               justifyContent: "center",
               color: "#ca8a04",
               fontWeight: "900",
-              fontSize: "0.875rem",
+              fontSize: "0.8125rem",
               letterSpacing: "0.05em",
-              boxShadow: "0 2px 4px rgba(202, 138, 4, 0.15)"
+              boxShadow: "0 2px 4px rgba(202, 138, 4, 0.15)",
+              flexShrink: 0
             }}>
               DH
             </div>
             <div>
-              <div style={{ fontSize: "0.78125rem", fontWeight: "900", color: "#0f172a", lineHeight: 1.1 }}>DREAM HOMES</div>
-              <div style={{ fontSize: "0.625rem", color: "#64748b" }}>Real Estate Advisory</div>
+              <div style={{ fontSize: "0.75rem", fontWeight: "900", color: "#0f172a", lineHeight: 1.1 }}>DREAM HOMES</div>
+              <div style={{ fontSize: "0.59375rem", color: "#64748b" }}>Real Estate Advisory</div>
             </div>
           </div>
 
-          {/* Contacts & Close */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <a 
-              href={`tel:${contactPhone}`} 
-              style={{ background: "#eff6ff", color: "#2563eb", padding: "0.25rem 0.45rem", borderRadius: "4px", fontSize: "0.65625rem", fontWeight: "700", textDecoration: "none", display: "flex", alignItems: "center", gap: "0.2rem" }}
+          {/* Social Icons (Facebook, Youtube, Instagram, Linkedin) + Close */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+            
+            {/* Facebook */}
+            <div 
+              onClick={() => handleOpenLink(facebookUrl)}
+              style={{
+                width: "22px",
+                height: "22px",
+                borderRadius: "3px",
+                background: "#1877F2",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "0.75rem",
+                fontWeight: "900",
+                cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(24,119,242,0.3)"
+              }}
+              title="Facebook"
             >
-              <Phone size={11} /> Call
-            </a>
+              f
+            </div>
 
-            <a 
-              href={`mailto:${contactEmail}`} 
-              style={{ background: "#fef2f2", color: "#dc2626", padding: "0.25rem 0.45rem", borderRadius: "4px", fontSize: "0.65625rem", fontWeight: "700", textDecoration: "none", display: "flex", alignItems: "center", gap: "0.2rem" }}
+            {/* Youtube */}
+            <div 
+              onClick={() => handleOpenLink(youtubeUrl)}
+              style={{
+                width: "22px",
+                height: "22px",
+                borderRadius: "3px",
+                background: "#FF0000",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "0.625rem",
+                fontWeight: "900",
+                cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(255,0,0,0.3)"
+              }}
+              title="YouTube"
             >
-              <Mail size={11} /> Mail
-            </a>
+              ▶
+            </div>
 
+            {/* Instagram */}
+            <div 
+              onClick={() => handleOpenLink(instagramUrl)}
+              style={{
+                width: "22px",
+                height: "22px",
+                borderRadius: "3px",
+                background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "0.6875rem",
+                fontWeight: "900",
+                cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(220,39,67,0.3)"
+              }}
+              title="Instagram"
+            >
+              📸
+            </div>
+
+            {/* Linkedin */}
+            <div 
+              onClick={() => handleOpenLink(linkedinUrl)}
+              style={{
+                width: "22px",
+                height: "22px",
+                borderRadius: "3px",
+                background: "#0A66C2",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "0.6875rem",
+                fontWeight: "900",
+                cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(10,102,194,0.3)"
+              }}
+              title="LinkedIn"
+            >
+              in
+            </div>
+
+            {/* Close Button */}
             <button 
               onClick={onClose} 
               style={{
@@ -324,8 +403,8 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
                 border: "none",
                 color: "#475569",
                 cursor: "pointer",
-                width: "26px",
-                height: "26px",
+                width: "24px",
+                height: "24px",
                 borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
@@ -336,6 +415,31 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
               <X size={14} />
             </button>
           </div>
+        </div>
+
+        {/* Contact Info Header Ribbon (Call Us & Email) */}
+        <div style={{
+          background: "#f8fafc",
+          padding: "0.4rem 0.75rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid #e2e8f0",
+          fontSize: "0.65625rem"
+        }}>
+          <a 
+            href={`tel:${contactPhone}`} 
+            style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "#2563eb", textDecoration: "none", fontWeight: "700" }}
+          >
+            <Phone size={11} color="#ef4444" /> Call Us: <span style={{ color: "#0f172a" }}>{contactPhone}</span>
+          </a>
+
+          <a 
+            href={`mailto:${contactEmail}`} 
+            style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "#dc2626", textDecoration: "none", fontWeight: "700" }}
+          >
+            <Mail size={11} color="#ef4444" /> <span style={{ color: "#0f172a" }}>{contactEmail}</span>
+          </a>
         </div>
 
         {/* NAVIGATION BAR: Exact 4 Tabs from Website Screenshots */}
@@ -815,14 +919,15 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 4: REAL ESTATE BLOGS                                                  */}
+          {/* TAB 4: REAL ESTATE BLOGS (Exact Screenshot media_1787728092799.png)       */}
           {/* ========================================================================= */}
           {activeNav === "Real Estate Blogs" && (
             <div>
+              {/* Exact Green Grass Nature Backdrop with Bold Blue "Blogs" Title */}
               <div style={{
                 position: "relative",
                 height: "190px",
-                background: "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.8) 100%), url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80')",
+                background: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%), url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80')",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 display: "flex",
@@ -830,18 +935,30 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#ffffff",
-                textAlign: "center",
-                padding: "1rem"
+                textAlign: "center"
               }}>
-                <h1 style={{ fontSize: "1.75rem", fontWeight: "900", margin: 0, letterSpacing: "-0.02em" }}>
-                  Real Estate Blogs
+                <h1 style={{ fontSize: "2.5rem", fontWeight: "900", color: "#2563eb", margin: 0, letterSpacing: "-0.02em", textShadow: "0 2px 10px rgba(0,0,0,0.2)" }}>
+                  Blogs
                 </h1>
-                <p style={{ fontSize: "0.75rem", color: "#e2e8f0", margin: "0.3rem 0 0 0" }}>
-                  Mumbai Property Market Trends & Advisory Insights
-                </p>
               </div>
 
+              {/* Content with Yellow "All Posts" Tag */}
               <div style={{ padding: "1.25rem 1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div style={{ textAlign: "center" }}>
+                  <span style={{
+                    background: "#facc15",
+                    color: "#0f172a",
+                    fontWeight: "800",
+                    fontSize: "0.75rem",
+                    padding: "0.35rem 0.85rem",
+                    borderRadius: "4px",
+                    boxShadow: "0 2px 4px rgba(250, 204, 21, 0.4)"
+                  }}>
+                    All Posts
+                  </span>
+                </div>
+
+                {/* Exact 3 Real Blog Cards from Screenshot */}
                 {blogsData.map((blog) => (
                   <div key={blog.id} style={{
                     background: "#ffffff",
@@ -852,22 +969,25 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
                     display: "flex",
                     flexDirection: "column"
                   }}>
-                    <img src={blog.img} alt={blog.title} style={{ width: "100%", height: "130px", objectFit: "cover" }} />
+                    <img src={blog.img} alt={blog.title} style={{ width: "100%", height: "140px", objectFit: "cover" }} />
                     <div style={{ padding: "0.85rem" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                        <span style={{ background: "#eff6ff", color: "#2563eb", fontSize: "0.625rem", fontWeight: "800", padding: "0.15rem 0.45rem", borderRadius: "9999px" }}>
+                        <span style={{ background: "#eff6ff", color: "#2563eb", fontSize: "0.625rem", fontWeight: "800", padding: "0.15rem 0.45rem", borderRadius: "4px" }}>
                           {blog.category}
                         </span>
-                        <span style={{ fontSize: "0.625rem", color: "#94a3b8", display: "flex", alignItems: "center", gap: "0.2rem" }}>
-                          <Clock size={11} /> {blog.readTime}
+                        <span style={{ fontSize: "0.625rem", color: "#94a3b8" }}>
+                          {blog.date}
                         </span>
                       </div>
-                      <h3 style={{ fontSize: "0.875rem", fontWeight: "800", color: "#0f172a", margin: "0 0 0.35rem 0", lineHeight: 1.35 }}>
+
+                      <h3 style={{ fontSize: "0.9375rem", fontWeight: "900", color: "#0f172a", margin: "0 0 0.35rem 0", lineHeight: 1.35 }}>
                         {blog.title}
                       </h3>
+
                       <p style={{ fontSize: "0.6875rem", color: "#64748b", lineHeight: 1.45, margin: "0 0 0.65rem 0" }}>
                         {blog.desc}
                       </p>
+
                       <button
                         onClick={() => handleOpenLink("https://dreamhomes42.com/real-estate-blogs/")}
                         style={{
@@ -894,7 +1014,7 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
           )}
 
           {/* ========================================================================= */}
-          {/* SHARED OFFICIAL FOOTER (Exact Screenshot 1 on Every Page)                 */}
+          {/* SHARED OFFICIAL FOOTER (Exact Screenshot on Every Page)                   */}
           {/* ========================================================================= */}
           <div style={{
             background: "#0b0f19",
@@ -927,10 +1047,10 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
                   Social Media
                 </h5>
                 <div style={{ fontSize: "0.6875rem", color: "#94a3b8", display: "flex", flexDirection: "column", gap: "0.15rem" }}>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://instagram.com")}>Instagram</span>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://facebook.com")}>Facebook</span>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://youtube.com")}>Youtube</span>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://linkedin.com")}>Linkedin</span>
+                  <span style={{ cursor: "pointer", color: "#38bdf8" }} onClick={() => handleOpenLink(instagramUrl)}>Instagram</span>
+                  <span style={{ cursor: "pointer", color: "#38bdf8" }} onClick={() => handleOpenLink(facebookUrl)}>Facebook</span>
+                  <span style={{ cursor: "pointer", color: "#38bdf8" }} onClick={() => handleOpenLink(youtubeUrl)}>Youtube</span>
+                  <span style={{ cursor: "pointer", color: "#38bdf8" }} onClick={() => handleOpenLink(linkedinUrl)}>Linkedin</span>
                 </div>
               </div>
 
