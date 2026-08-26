@@ -55,6 +55,7 @@ export default function FollowUpsView({ leads, onCallLead, onLeadUpdated, onLead
           isOpen={!!editingLead}
           initialData={editingLead}
           onClose={() => setEditingLead(null)}
+          existingLeads={leads}
           onLeadCreated={handleSaveLead}
         />
       )}

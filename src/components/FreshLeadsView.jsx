@@ -88,6 +88,7 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
             setIsAddLeadOpen(false);
             setEditingLead(null);
           }}
+          existingLeads={leads}
           onLeadCreated={handleSaveLead}
         />
       )}

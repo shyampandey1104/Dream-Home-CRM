@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { X, UserPlus, User, Phone, Mail, MapPin, Tag, FileText, Sparkles, Flame, CheckCircle2, Edit3, AlertCircle } from "lucide-react";
+import { X, UserPlus, User, Phone, Mail, MapPin, Tag, FileText, Sparkles, Flame, CheckCircle2, Edit3, AlertCircle, AlertTriangle } from "lucide-react";
 import { saveLeadApi } from "../services/apiService";
-import { validateName, validatePhone, validateEmail, validateRequiredText } from "../utils/validators";
+import { validateName, validatePhone, validateEmail, validateRequiredText, checkDuplicateLead } from "../utils/validators";
 import CustomAlertDialog from "./CustomAlertDialog";
 
-export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialData = null }) {
+export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialData = null, existingLeads = [] }) {
   const isEditing = !!initialData;
 
   const [name, setName] = useState("");
@@ -20,6 +20,7 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
   // Validation error states
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [duplicateWarning, setDuplicateWarning] = useState("");
   const [alertConfig, setAlertConfig] = useState(null);
 
   useEffect(() => {
@@ -46,19 +47,37 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
     }
     setErrors({});
     setTouched({});
+    setDuplicateWarning("");
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
-  // Real-time field validation
+  // Real-time field validation & Duplicate Check
   const validateField = (field, value) => {
     let result = { isValid: true, error: "" };
     if (field === "name") {
       result = validateName(value);
     } else if (field === "phone") {
       result = validatePhone(value);
+      if (result.isValid) {
+        // Run Duplicate Check
+        const dupCheck = checkDuplicateLead(value, email, initialData?.id, existingLeads);
+        if (dupCheck.isDuplicate) {
+          result = { isValid: false, error: dupCheck.error };
+          setDuplicateWarning(dupCheck.error);
+        } else {
+          setDuplicateWarning("");
+        }
+      }
     } else if (field === "email") {
       result = validateEmail(value, false);
+      if (result.isValid && value.trim()) {
+        const dupCheck = checkDuplicateLead(phone, value, initialData?.id, existingLeads);
+        if (dupCheck.isDuplicate && dupCheck.field === "email") {
+          result = { isValid: false, error: dupCheck.error };
+          setDuplicateWarning(dupCheck.error);
+        }
+      }
     } else if (field === "location") {
       result = validateRequiredText(value, "Location", 2);
     }
@@ -88,15 +107,27 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
     const isEmailValid = validateEmail(email, false);
     const isLocValid = validateRequiredText(location || "Mumbai", "Location", 2);
 
+    // Duplicate Lead Verification
+    const dupCheck = checkDuplicateLead(phone, email, initialData?.id, existingLeads);
+
     const newErrors = {
       name: isNameValid.error,
-      phone: isPhoneValid.error,
+      phone: !isPhoneValid.isValid ? isPhoneValid.error : (dupCheck.isDuplicate ? dupCheck.error : ""),
       email: isEmailValid.error,
       location: isLocValid.error
     };
 
     setErrors(newErrors);
     setTouched({ name: true, phone: true, email: true, location: true });
+
+    if (dupCheck.isDuplicate) {
+      setAlertConfig({
+        title: "Duplicate Lead Detected!",
+        message: `⚠️ A lead with this mobile number already exists in the system:\n\n• Lead Name: ${dupCheck.existingLead.name}\n• Lead ID: ${dupCheck.existingLead.id}\n• Phone: ${dupCheck.existingLead.phone}\n\nPlease check the existing lead or enter a unique mobile number.`,
+        type: "warning"
+      });
+      return;
+    }
 
     if (!isNameValid.isValid || !isPhoneValid.isValid || !isEmailValid.isValid || !isLocValid.isValid) {
       setAlertConfig({
@@ -216,7 +247,7 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
               )}
             </h3>
             <p style={{ fontSize: "0.71875rem", color: "#94a3b8", margin: "0.15rem 0 0 0" }}>
-              {isEditing ? `Editing lead: ${initialData?.id}` : "Create verified lead with phone & email validation"}
+              {isEditing ? `Editing lead: ${initialData?.id}` : "Strict duplicate phone & email checking active"}
             </p>
           </div>
 
@@ -238,6 +269,14 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
             <X size={16} />
           </button>
         </div>
+
+        {/* Duplicate Warning Alert Banner */}
+        {duplicateWarning && (
+          <div style={{ background: "#fffbeb", borderBottom: "1px solid #fde68a", padding: "0.5rem 0.85rem", display: "flex", alignItems: "center", gap: "0.4rem", color: "#b45309", fontSize: "0.71875rem", fontWeight: 700 }}>
+            <AlertTriangle size={14} color="#d97706" flexShrink={0} />
+            <span>{duplicateWarning}</span>
+          </div>
+        )}
 
         {/* Modal Body - Scrollable Mobile App Form */}
         <form onSubmit={handleSubmit} noValidate style={{ padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem", overflowY: "auto", flex: "1 1 auto" }}>

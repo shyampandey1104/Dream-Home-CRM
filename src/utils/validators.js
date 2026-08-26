@@ -1,4 +1,4 @@
-// Comprehensive Form Validation Utilities for Dream Homes CRM
+// Comprehensive Form Validation & Deduplication Utilities for Dream Homes CRM
 
 export const validateName = (name) => {
   if (!name || !name.trim()) {
@@ -92,4 +92,52 @@ export const formatPhoneDisplay = (phone) => {
     return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
   }
   return phone;
+};
+
+// Check for Duplicate Lead in CRM (by Phone or Email)
+export const checkDuplicateLead = (phone, email, currentLeadId = null, existingLeads = []) => {
+  if (!existingLeads || existingLeads.length === 0) {
+    // Also check localStorage if available
+    try {
+      const stored = localStorage.getItem("crm_leads_cache");
+      if (stored) {
+        existingLeads = JSON.parse(stored);
+      }
+    } catch (e) {}
+  }
+
+  const cleanInputPhone = (phone || "").replace(/\D/g, "").slice(-10);
+  const cleanInputEmail = (email || "").trim().toLowerCase();
+
+  for (const lead of existingLeads) {
+    // Skip if comparing against the same lead in edit mode
+    if (currentLeadId && (lead.id === currentLeadId || lead.name === currentLeadId)) {
+      continue;
+    }
+
+    const leadPhone = (lead.phone || "").replace(/\D/g, "").slice(-10);
+    const leadEmail = (lead.email || "").trim().toLowerCase();
+
+    // Check matching 10-digit phone
+    if (cleanInputPhone && cleanInputPhone.length === 10 && leadPhone === cleanInputPhone) {
+      return {
+        isDuplicate: true,
+        field: "phone",
+        existingLead: lead,
+        error: `Duplicate Mobile: Lead '${lead.name}' (${lead.id || 'Existing'}) already registered with this phone number!`
+      };
+    }
+
+    // Check matching email if email provided
+    if (cleanInputEmail && leadEmail && leadEmail === cleanInputEmail && !cleanInputEmail.endsWith("@gmail.com")) {
+      return {
+        isDuplicate: true,
+        field: "email",
+        existingLead: lead,
+        error: `Duplicate Email: Lead '${lead.name}' (${lead.id || 'Existing'}) already registered with this email address!`
+      };
+    }
+  }
+
+  return { isDuplicate: false, error: "" };
 };
