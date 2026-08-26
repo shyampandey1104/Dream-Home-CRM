@@ -188,7 +188,7 @@ export default function Header({
       {/* Styled Mobile App Installation Instructions Modal */}
       {showInstallModal && (
         <div className="modal-overlay">
-          <div className="dialer-modal-content" style={{ maxWidth: "440px" }}>
+          <div className="dialer-modal-content" style={{ maxWidth: "390px", width: "94%" }}>
             <div className="dialer-header" style={{ background: "linear-gradient(135deg, #0284c7, #2563eb)" }}>
               <div className="dialer-caller-info">
                 <span className="dialer-caller-name" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>

@@ -56,7 +56,7 @@ export default function DocumentViewerModal({ isOpen, onClose, doc }) {
           background: "#ffffff",
           borderRadius: "1.25rem",
           width: "100%",
-          maxWidth: "400px",
+          maxWidth: "390px",
           maxHeight: "90vh",
           display: "flex",
           flexDirection: "column",

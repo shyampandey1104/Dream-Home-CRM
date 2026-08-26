@@ -38,7 +38,7 @@ export default function WhatsAppReportModal({ lead, onClose }) {
 
   return (
     <div className="modal-overlay">
-      <div className="dialer-modal-content" style={{ maxWidth: "440px", width: "94%" }}>
+      <div className="dialer-modal-content" style={{ maxWidth: "390px", width: "94%" }}>
         <div className="dialer-header" style={{ background: "linear-gradient(135deg, #15803d, #16a34a)" }}>
           <div className="dialer-caller-info">
             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>

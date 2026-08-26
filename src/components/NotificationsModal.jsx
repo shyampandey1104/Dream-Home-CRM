@@ -4,7 +4,7 @@ import { Bell, X, PhoneCall, MessageSquare, CheckCheck, Trash2, Clock, Sparkles,
 export default function NotificationsModal({ notifications, onClose, onCallLead, onWhatsAppLead, onClearAll, onMarkRead }) {
   return (
     <div className="modal-overlay">
-      <div className="dialer-modal-content" style={{ maxWidth: "420px" }}>
+      <div className="dialer-modal-content" style={{ maxWidth: "390px", width: "94%" }}>
         <div className="dialer-header" style={{ background: "linear-gradient(135deg, #1e293b, #0f172a)" }}>
           <div className="dialer-caller-info">
             <span className="dialer-caller-name" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>

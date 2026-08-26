@@ -69,7 +69,7 @@ export default function VideoPlayerModal({ isOpen, onClose, video }) {
           background: "#0f172a",
           borderRadius: "1.25rem",
           width: "100%",
-          maxWidth: "420px",
+          maxWidth: "390px",
           display: "flex",
           flexDirection: "column",
           boxShadow: "0 25px 50px -12px rgba(0,0,0,0.85)",

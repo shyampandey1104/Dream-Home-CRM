@@ -139,7 +139,7 @@ export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
         className="modal-container"
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: "480px",
+          maxWidth: "390px",
           width: "100%",
           height: "85vh",
           maxHeight: "650px",

@@ -112,46 +112,54 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
   };
 
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(15, 23, 42, 0.75)",
-      backdropFilter: "blur(6px)",
-      zIndex: 1000,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "1rem"
-    }}>
-      <div style={{
-        background: "#ffffff",
-        borderRadius: "1.25rem",
-        width: "100%",
-        maxWidth: "520px",
-        maxHeight: "90vh",
-        overflowY: "auto",
-        boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)",
-        border: "1px solid #cbd5e1",
-        position: "relative"
-      }}>
+    <div 
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15, 23, 42, 0.85)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+        zIndex: 99999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0.75rem",
+        overflowY: "auto"
+      }}
+    >
+      <div 
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: "#ffffff",
+          borderRadius: "1.25rem",
+          width: "100%",
+          maxWidth: "390px",
+          maxHeight: "88vh",
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+          border: "1px solid #cbd5e1",
+          position: "relative",
+          overflow: "hidden"
+        }}
+      >
         {/* Header */}
         <div style={{
-          padding: "1.25rem 1.5rem",
+          padding: "1rem 1.25rem",
           borderBottom: "1px solid #e2e8f0",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
           color: "#ffffff",
-          borderTopLeftRadius: "1.25rem",
-          borderTopRightRadius: "1.25rem"
+          flexShrink: 0
         }}>
           <div>
-            <h3 style={{ fontSize: "1.125rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Upload size={20} color="#38bdf8" /> Upload Property & PDF Brochure
+            <h3 style={{ fontSize: "1.05rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <Upload size={18} color="#38bdf8" /> Upload Property
             </h3>
-            <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0.2rem 0 0 0" }}>
-              Upload verified project PDF, floor plans & sync with CRM Database
+            <p style={{ fontSize: "0.71875rem", color: "#94a3b8", margin: "0.15rem 0 0 0" }}>
+              Upload project PDF, details & sync to CRM
             </p>
           </div>
 
@@ -161,8 +169,8 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
               background: "rgba(255,255,255,0.1)",
               border: "none",
               color: "#ffffff",
-              width: "32px",
-              height: "32px",
+              width: "28px",
+              height: "28px",
               borderRadius: "50%",
               cursor: "pointer",
               display: "flex",
@@ -170,18 +178,18 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
               justifyContent: "center"
             }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Modal Form Content */}
-        <form onSubmit={handleSubmit} style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+        <form onSubmit={handleSubmit} style={{ padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem", overflowY: "auto", flex: "1 1 auto" }}>
           
           {/* PDF Brochure Drag & Drop Upload Zone */}
           <div style={{
             border: "2px dashed #3b82f6",
-            borderRadius: "0.875rem",
-            padding: "1.25rem",
+            borderRadius: "0.75rem",
+            padding: "1rem 0.75rem",
             textAlign: "center",
             background: "#eff6ff",
             position: "relative",
@@ -199,37 +207,38 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
                 cursor: "pointer"
               }}
             />
-            <FileText size={32} color="#2563eb" style={{ margin: "0 auto 0.5rem" }} />
-            <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "#1e40af" }}>
-              {fileName ? `📄 Attached File: ${fileName}` : "Click or Drop PDF Brochure / RERA Certificate here"}
+            <FileText size={26} color="#2563eb" style={{ margin: "0 auto 0.35rem" }} />
+            <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#1e40af" }}>
+              {fileName ? `📄 Attached: ${fileName}` : "Click or Drop PDF Brochure / RERA"}
             </div>
-            <div style={{ fontSize: "0.75rem", color: "#60a5fa", marginTop: "0.25rem" }}>
-              Supports PDF, DOC, DOCX, PNG, JPG files up to 25MB
+            <div style={{ fontSize: "0.6875rem", color: "#60a5fa", marginTop: "0.15rem" }}>
+              Supports PDF, DOC, DOCX, PNG up to 25MB
             </div>
 
             {isAiParsing && (
-              <div style={{ marginTop: "0.75rem", fontSize: "0.78125rem", color: "#2563eb", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}>
-                <Sparkles className="spin" size={16} color="#2563eb" /> AI is auto-extracting project & brochure details...
+              <div style={{ marginTop: "0.5rem", fontSize: "0.71875rem", color: "#2563eb", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}>
+                <Sparkles className="spin" size={14} color="#2563eb" /> AI auto-extracting brochure details...
               </div>
             )}
 
             {aiSuccess && (
-              <div style={{ marginTop: "0.75rem", fontSize: "0.78125rem", color: "#16a34a", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}>
-                <CheckCircle2 size={16} color="#16a34a" /> AI successfully auto-filled form fields from brochure!
+              <div style={{ marginTop: "0.5rem", fontSize: "0.71875rem", color: "#16a34a", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }}>
+                <CheckCircle2 size={14} color="#16a34a" /> Auto-filled form from brochure!
               </div>
             )}
           </div>
 
-          {/* Form Fields */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.875rem" }}>
+          {/* Form Fields: Project Title & Builder */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
             <div>
-              <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
                 Project Title *
               </label>
               <input
                 type="text"
                 className="modern-search-input"
-                placeholder="e.g. Oberoi Sky City"
+                placeholder="Oberoi Sky City"
+                style={{ fontSize: "0.8125rem", padding: "0.5rem 0.6rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 required
@@ -237,69 +246,76 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
             </div>
 
             <div>
-              <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>
-                Builder / Developer
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
+                Builder
               </label>
               <input
                 type="text"
                 className="modern-search-input"
-                placeholder="e.g. Oberoi Realty"
+                placeholder="Oberoi Realty"
+                style={{ fontSize: "0.8125rem", padding: "0.5rem 0.6rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
                 value={builder}
                 onChange={e => setBuilder(e.target.value)}
               />
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.875rem" }}>
+          {/* Locality & Price Range */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
             <div>
-              <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>
-                Locality / Address
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
+                Locality / Area
               </label>
               <input
                 type="text"
                 className="modern-search-input"
-                placeholder="e.g. Borivali East, Mumbai"
+                placeholder="Borivali East"
+                style={{ fontSize: "0.8125rem", padding: "0.5rem 0.6rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
                 value={location}
                 onChange={e => setLocation(e.target.value)}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
                 Price Range
               </label>
               <input
                 type="text"
                 className="modern-search-input"
-                placeholder="e.g. ₹ 2.50 Cr onwards"
+                placeholder="₹ 2.50 Cr onwards"
+                style={{ fontSize: "0.8125rem", padding: "0.5rem 0.6rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
                 value={priceRange}
                 onChange={e => setPriceRange(e.target.value)}
               />
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.875rem" }}>
+          {/* BHK & Carpet Area */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
             <div>
-              <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>
-                BHK Configurations
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
+                BHK Config
               </label>
               <input
                 type="text"
                 className="modern-search-input"
-                placeholder="e.g. 2 & 3 BHK Luxury"
+                placeholder="2 & 3 BHK"
+                style={{ fontSize: "0.8125rem", padding: "0.5rem 0.6rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
                 value={bhk}
                 onChange={e => setBhk(e.target.value)}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
                 Carpet Area
               </label>
               <input
                 type="text"
                 className="modern-search-input"
-                placeholder="e.g. 780 - 1250 sq.ft."
+                placeholder="800 - 1200 sq.ft"
+                style={{ fontSize: "0.8125rem", padding: "0.5rem 0.6rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
                 value={carpet}
                 onChange={e => setCarpet(e.target.value)}
               />
@@ -307,14 +323,14 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
           </div>
 
           <div>
-            <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>
+            <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
               Project Tag
             </label>
             <select
               className="modern-search-input"
               value={tag}
               onChange={e => setTag(e.target.value)}
-              style={{ width: "100%" }}
+              style={{ width: "100%", fontSize: "0.8125rem", padding: "0.5rem 0.6rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
             >
               <option value="New Launch">🚀 New Launch</option>
               <option value="Focus Project">⭐ Focus Project</option>
@@ -325,16 +341,16 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
           </div>
 
           <div>
-            <label style={{ fontSize: "0.78125rem", fontWeight: 700, color: "#334155", marginBottom: "0.3rem", display: "block" }}>
+            <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
               Key Highlights (Comma Separated)
             </label>
             <textarea
               className="modern-search-input"
               rows={2}
-              placeholder="e.g. Sky Lounge, Infinity Pool, 5 mins from Western Express Highway"
+              placeholder="e.g. Sky Lounge, Infinity Pool, 5 mins from Metro"
               value={highlights}
               onChange={e => setHighlights(e.target.value)}
-              style={{ height: "auto", resize: "vertical" }}
+              style={{ width: "100%", fontSize: "0.8125rem", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1", resize: "vertical" }}
             />
           </div>
 
@@ -345,20 +361,20 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
               background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
               color: "#ffffff",
               border: "none",
-              padding: "0.85rem",
-              borderRadius: "0.75rem",
-              fontSize: "0.9375rem",
+              padding: "0.75rem",
+              borderRadius: "0.625rem",
+              fontSize: "0.875rem",
               fontWeight: 800,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "0.5rem",
-              boxShadow: "0 8px 20px rgba(37,99,235,0.35)",
-              marginTop: "0.5rem"
+              gap: "0.4rem",
+              boxShadow: "0 6px 16px rgba(37,99,235,0.3)",
+              marginTop: "0.25rem"
             }}
           >
-            <Upload size={18} /> Upload Property & Save to CRM Database
+            <Upload size={16} /> Save Property to CRM
           </button>
         </form>
 

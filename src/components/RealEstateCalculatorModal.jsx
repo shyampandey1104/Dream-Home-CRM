@@ -110,7 +110,7 @@ export default function RealEstateCalculatorModal({ isOpen, onClose }) {
           background: "#ffffff",
           borderRadius: "1.5rem",
           width: "92%",
-          maxWidth: "400px",
+          maxWidth: "390px",
           maxHeight: "calc(100% - 1rem)",
           overflowY: "auto",
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
