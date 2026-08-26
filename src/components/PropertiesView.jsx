@@ -13,7 +13,7 @@ import VideoPlayerModal from "./VideoPlayerModal";
 import EditRecordModal from "./EditRecordModal";
 import CustomAlertDialog from "./CustomAlertDialog";
 
-export default function PropertiesView({ onShareProperty }) {
+export default function PropertiesView({ onShareProperty, showToast }) {
   const [activeMainTab, setActiveMainTab] = useState("properties");
   const [selectedSubTab, setSelectedSubTab] = useState("Focus Projects");
   const [cmaLocation, setCmaLocation] = useState("");
@@ -189,23 +189,27 @@ export default function PropertiesView({ onShareProperty }) {
   const handlePropertyUploaded = (newProp) => {
     const updated = [newProp, ...propertiesList];
     saveStateAndStorage("crm_focus_projects", updated, setPropertiesList);
+    if (showToast) showToast(`🏢 Property '${newProp.title}' uploaded successfully!`);
   };
 
   const handleDocumentUploaded = (newDoc) => {
     const updated = [newDoc, ...documentsList];
     saveStateAndStorage("crm_property_docs", updated, setDocumentsList);
     setSelectedSubTab("Documents");
+    if (showToast) showToast(`📁 Document '${newDoc.name}' uploaded successfully!`);
   };
 
   const handleItemUploaded = (type, item) => {
     if (type === "unit_plan") {
       const updated = [{ id: `UP-${Date.now().toString().slice(-4)}`, ...item }, ...unitPlansList];
       saveStateAndStorage("crm_unit_plans", updated, setUnitPlansList);
+      if (showToast) showToast(`📐 Unit Plan added successfully!`);
     } else if (type === "document") {
       handleDocumentUploaded(item);
     } else if (type === "video") {
       const updated = [{ id: `VID-${Date.now().toString().slice(-4)}`, ...item }, ...videosList];
       saveStateAndStorage("crm_videos", updated, setVideosList);
+      if (showToast) showToast(`🎥 3D Video Tour added successfully!`);
     } else if (type === "listing") {
       if (item.listing_type === "My Listing") {
         const updated = [item, ...myListingData];
@@ -220,6 +224,7 @@ export default function PropertiesView({ onShareProperty }) {
         const updated = [item, ...cpListingData];
         saveStateAndStorage("crm_cp_listings", updated, setCpListingData);
       }
+      if (showToast) showToast(`📋 Listing added successfully!`);
     }
   };
 
@@ -230,6 +235,7 @@ export default function PropertiesView({ onShareProperty }) {
   };
 
   const handleSaveEditedRecord = (updatedRecord) => {
+    const itemName = updatedRecord.title || updatedRecord.name || updatedRecord.property || updatedRecord.project || "Record";
     if (editingType === "Property") {
       const updated = propertiesList.map(p => p.id === updatedRecord.id ? updatedRecord : p);
       saveStateAndStorage("crm_focus_projects", updated, setPropertiesList);
@@ -255,6 +261,7 @@ export default function PropertiesView({ onShareProperty }) {
       const updated = cpListingData.map(l => l.id === updatedRecord.id ? updatedRecord : l);
       saveStateAndStorage("crm_cp_listings", updated, setCpListingData);
     }
+    if (showToast) showToast(`✅ '${itemName}' updated successfully!`);
     setEditingRecord(null);
     setEditingType("");
   };
@@ -262,7 +269,10 @@ export default function PropertiesView({ onShareProperty }) {
   // Delete confirmation handler
   const confirmDeleteRecord = (item, type, onDeleteCallback) => {
     const itemName = item.title || item.name || item.property || item.project || "this item";
-    setDeleteAction(() => onDeleteCallback);
+    setDeleteAction(() => () => {
+      onDeleteCallback();
+      if (showToast) showToast(`🗑️ '${itemName}' deleted successfully!`);
+    });
     setAlertConfig({
       title: `Delete ${type}?`,
       message: `Are you sure you want to delete '${itemName}'? This action cannot be undone.`,

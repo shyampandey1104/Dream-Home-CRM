@@ -500,6 +500,7 @@ export default function App() {
             leads={leads}
             onSelectAction={(tab) => setCurrentTab(tab)}
             onOpenColdDialer={() => setShowColdDialer(true)}
+            showToast={showToast}
           />
         );
       case "fresh":
@@ -508,10 +509,12 @@ export default function App() {
             leads={leads}
             onCallLead={handleCallLead}
             onSendReport={(lead) => setReportLead(lead)}
+            showToast={showToast}
             onLeadCreated={(newLead) => {
               const updated = [newLead, ...leads.filter(l => l.id !== newLead.id)];
               setLeads(updated);
               saveStoredLeads(updated);
+              showToast(`🎉 Fresh Lead '${newLead.name}' created successfully!`);
             }}
             onLeadUpdated={handleLeadUpdated}
             onLeadDeleted={handleLeadDeleted}
@@ -530,19 +533,22 @@ export default function App() {
             onCallLead={handleCallLead}
             onLeadUpdated={handleLeadUpdated}
             onLeadDeleted={handleLeadDeleted}
+            showToast={showToast}
           />
         );
       case "properties":
         return (
           <PropertiesView
+            showToast={showToast}
             onShareProperty={(prop) => {
               window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${prop.title} in ${prop.location}. Price: ${prop.priceRange}`)}`, '_blank');
+              showToast(`📲 WhatsApp sharing link opened for '${prop.title}'!`);
             }}
           />
         );
       case "activities":
         return (
-          <ActivitiesView />
+          <ActivitiesView showToast={showToast} />
         );
       default:
         return (
@@ -551,6 +557,7 @@ export default function App() {
             onStartCalling={() => setCurrentTab("fresh")}
             onClaimLeads={handleClaimLeads}
             onOpenColdDialer={() => setShowColdDialer(true)}
+            showToast={showToast}
           />
         );
     }
@@ -564,6 +571,7 @@ export default function App() {
           lead={activeCallLead}
           onClose={() => setActiveCallLead(null)}
           onSaveCall={handleSaveCall}
+          showToast={showToast}
         />
       )}
 

@@ -40,8 +40,10 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
   const handleSaveLead = (savedLead) => {
     if (editingLead) {
       if (onLeadUpdated) onLeadUpdated(savedLead);
+      if (showToast) showToast(`✅ Lead '${savedLead.name}' updated successfully!`);
     } else {
       if (onLeadCreated) onLeadCreated(savedLead);
+      if (showToast) showToast(`🎉 Fresh Lead '${savedLead.name}' created successfully!`);
     }
     setIsAddLeadOpen(false);
     setEditingLead(null);
@@ -53,6 +55,7 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
     } else if (onLeadCreated) {
       newLeads.forEach(l => onLeadCreated(l));
     }
+    if (showToast) showToast(`📥 Imported ${newLeads.length} leads into CRM Database!`);
   };
 
   const confirmDelete = (lead) => {
@@ -68,6 +71,7 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
   const executeDelete = async () => {
     if (!leadToDelete) return;
     const targetId = leadToDelete.id;
+    const targetName = leadToDelete.name;
     setAlertConfig(null);
     setLeadToDelete(null);
     
@@ -75,6 +79,7 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
     if (onLeadDeleted) {
       onLeadDeleted(targetId);
     }
+    if (showToast) showToast(`🗑️ Lead '${targetName}' deleted successfully!`);
   };
 
   return (

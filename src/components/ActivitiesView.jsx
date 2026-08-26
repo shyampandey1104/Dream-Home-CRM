@@ -11,7 +11,7 @@ import DocumentViewerModal from "./DocumentViewerModal";
 import EditRecordModal from "./EditRecordModal";
 import CustomAlertDialog from "./CustomAlertDialog";
 
-export default function ActivitiesView() {
+export default function ActivitiesView({ showToast }) {
   const [selectedTab, setSelectedTab] = useState("My Visits");
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [selectedViewDoc, setSelectedViewDoc] = useState(null);
@@ -144,6 +144,7 @@ export default function ActivitiesView() {
   const handleDocumentUploaded = (newDoc) => {
     const updated = [newDoc, ...uploadedActivityDocs];
     saveStorage("crm_activity_docs", updated, setUploadedActivityDocs);
+    if (showToast) showToast(`📁 Document '${newDoc.name}' uploaded successfully!`);
   };
 
   const handleDownloadDoc = (doc) => {
@@ -154,6 +155,7 @@ export default function ActivitiesView() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      if (showToast) showToast(`📥 Downloading '${doc.name}'...`);
     } else {
       setSelectedViewDoc(doc);
     }
@@ -165,6 +167,7 @@ export default function ActivitiesView() {
       message: `Starting GPS Site Visit Navigation & Logging for ${clientName}...`,
       type: "info"
     });
+    if (showToast) showToast(`🚗 Site Visit started for ${clientName}!`);
   };
 
   // Edit record
@@ -174,6 +177,7 @@ export default function ActivitiesView() {
   };
 
   const handleSaveEditedRecord = (updatedRecord) => {
+    const itemName = updatedRecord.title || updatedRecord.name || updatedRecord.client || updatedRecord.project || "Record";
     if (editingType === "Visit") {
       const updated = visitsData.map(v => v.id === updatedRecord.id ? updatedRecord : v);
       saveStorage("crm_act_visits", updated, setVisitsData);
@@ -202,13 +206,17 @@ export default function ActivitiesView() {
       const updated = uploadedActivityDocs.map(d => d.id === updatedRecord.id ? updatedRecord : d);
       saveStorage("crm_activity_docs", updated, setUploadedActivityDocs);
     }
+    if (showToast) showToast(`✅ '${itemName}' updated successfully!`);
     setEditingRecord(null);
     setEditingType("");
   };
 
   const confirmDeleteRecord = (item, type, onDeleteCallback) => {
     const itemName = item.title || item.name || item.client || item.project || "this record";
-    setDeleteAction(() => onDeleteCallback);
+    setDeleteAction(() => () => {
+      onDeleteCallback();
+      if (showToast) showToast(`🗑️ '${itemName}' deleted successfully!`);
+    });
     setAlertConfig({
       title: `Delete ${type}?`,
       message: `Are you sure you want to delete '${itemName}'? This action cannot be undone.`,
