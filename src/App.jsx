@@ -125,44 +125,35 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Direct Call Alert: Shyam (+91 98200 44556) 📞",
-      message: "Client Rajesh Kumar (+91 98201 11223) called directly on Shyam's line regarding Kalpataru Vian 3BHK.",
-      source: "Direct Employee Call",
-      employeeName: "Shyam",
-      employeePhone: "+91 98200 44556",
-      type: "call",
-      timeAgo: "2 mins ago",
+  // Initialize notifications from localStorage or real scheduled leads
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_live_notifications");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+
+    // Initial real scheduled disposition alerts based on actual follow-up leads
+    const initialFollowups = INITIAL_LEADS.filter(l => l.status === "FOLLOWUP_TODAY" || l.callbackTime);
+    return initialFollowups.map((l, idx) => ({
+      id: `notif-init-${l.id}-${idx}`,
+      title: `⏰ Follow-up Due: ${l.name}`,
+      message: `Follow-up scheduled via call disposition (${l.notes || "Callback Requested"}). Client interested in ${l.bhkType} (${l.location}).`,
+      source: "Scheduled Follow-up",
+      type: "followup",
+      timeAgo: l.callbackTime || "Today",
       read: false,
-      lead: INITIAL_LEADS[2]
-    },
-    {
-      id: 2,
-      title: "Direct Call Alert: Priya Sharma (+91 98920 11223) 📞",
-      message: "Client Aarav Sharma (+91 98205 91823) called directly on Priya's assigned line regarding Bandra 3BHK Penthouse.",
-      source: "Direct Employee Call",
-      employeeName: "Priya Sharma",
-      employeePhone: "+91 98920 11223",
-      type: "call",
-      timeAgo: "10 mins ago",
-      read: false,
-      lead: INITIAL_LEADS[0]
-    },
-    {
-      id: 3,
-      title: "Direct Call Alert: Rajesh Kumar (+91 98920 33445) 📞",
-      message: "Client Deepak Reddy (+91 98921 00987) called directly on Rajesh's line for Thane Site Visit.",
-      source: "Direct Employee Call",
-      employeeName: "Rajesh Kumar",
-      employeePhone: "+91 98920 33445",
-      type: "call",
-      timeAgo: "25 mins ago",
-      read: false,
-      lead: INITIAL_LEADS[1]
-    }
-  ]);
+      lead: l
+    }));
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("crm_live_notifications", JSON.stringify(notifications));
+    } catch (e) {}
+  }, [notifications]);
 
   useEffect(() => {
     const userEmail = userProfile?.email || "shyampandey1104@gmail.com";
@@ -326,6 +317,30 @@ export default function App() {
     };
     setMetrics(newMetrics);
     saveStoredMetrics(newMetrics);
+
+    // Create real logic-based notification alert for scheduled disposition
+    const savedLead = updatedLeads.find(l => l.id === leadId);
+    if (savedLead && (followupDate || outcome.includes("Follow") || outcome.includes("Visit") || outcome.includes("Meeting") || outcome.includes("Call Back"))) {
+      const isVisit = outcome.includes("Visit");
+      const isMeeting = outcome.includes("Meeting");
+      
+      const newDispositionNotif = {
+        id: `notif-disp-${Date.now()}`,
+        title: isVisit 
+          ? `🚗 Site Visit Scheduled: ${savedLead.name}`
+          : isMeeting
+          ? `🤝 Meeting Scheduled: ${savedLead.name}`
+          : `⏰ Follow-up Due: ${savedLead.name}`,
+        message: `Disposition: '${outcome}'. Scheduled for: ${followupDate || "Today"}. Client interest: ${bhkType || savedLead.bhkType || "Property"} (${savedLead.location || "Mumbai"}).`,
+        source: `Scheduled Disposition (${outcome})`,
+        type: isVisit ? "visit" : "followup",
+        timeAgo: followupDate || "Scheduled",
+        read: false,
+        lead: savedLead
+      };
+
+      setNotifications(prev => [newDispositionNotif, ...prev.filter(n => n.lead?.id !== leadId)]);
+    }
 
     await syncWithFrappeBackend("log_call", {
       lead_id: leadId,

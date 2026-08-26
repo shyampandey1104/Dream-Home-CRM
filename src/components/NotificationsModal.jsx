@@ -1,39 +1,52 @@
 import React from "react";
-import { Bell, X, PhoneCall, MessageSquare, CheckCheck, Trash2, Clock, Sparkles, PhoneIncoming } from "lucide-react";
+import { Bell, X, PhoneCall, MessageSquare, CheckCheck, Trash2, Clock, Sparkles, PhoneIncoming, Calendar, Car, Flame } from "lucide-react";
 
 export default function NotificationsModal({ notifications, onClose, onCallLead, onWhatsAppLead, onClearAll, onMarkRead }) {
   return (
-    <div className="modal-overlay">
-      <div className="dialer-modal-content" style={{ maxWidth: "390px", width: "94%" }}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div 
+        className="dialer-modal-content" 
+        onClick={e => e.stopPropagation()} 
+        style={{ maxWidth: "390px", width: "94%" }}
+      >
+        {/* Header */}
         <div className="dialer-header" style={{ background: "linear-gradient(135deg, #1e293b, #0f172a)" }}>
           <div className="dialer-caller-info">
             <span className="dialer-caller-name" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <Bell size={18} color="#38bdf8" /> Live Lead Notifications
             </span>
-            <span className="dialer-caller-sub">{notifications.length} recent alerts</span>
+            <span className="dialer-caller-sub">
+              {notifications.filter(n => !n.read).length} unread • {notifications.length} total alerts
+            </span>
           </div>
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer" }}>
             <X size={20} />
           </button>
         </div>
 
-        <div className="dialer-body" style={{ padding: "0.75rem", maxHeight: "400px", overflowY: "auto" }}>
+        {/* Notifications List */}
+        <div className="dialer-body" style={{ padding: "0.75rem", maxHeight: "420px", overflowY: "auto" }}>
           {notifications.map((n) => {
-            const isWhatsApp = n.type === "whatsapp" || n.source?.toLowerCase().includes("whatsapp");
-            const isCall = n.type === "call" || n.title?.toLowerCase().includes("call") || n.source?.toLowerCase().includes("call");
+            const isVisit = n.type === "visit" || n.title?.toLowerCase().includes("visit");
+            const isFollowup = n.type === "followup" || n.title?.toLowerCase().includes("follow") || n.source?.toLowerCase().includes("disposition");
+            const isInbound = n.type === "inbound" || n.source?.toLowerCase().includes("inbound");
 
-            let badgeBg = "#dbeafe";
-            let badgeColor = "#1d4ed8";
-            let badgeIcon = <Sparkles size={12} />;
+            let badgeBg = "#eff6ff";
+            let badgeColor = "#2563eb";
+            let badgeIcon = <Calendar size={12} />;
 
-            if (isWhatsApp) {
-              badgeBg = "#dcfce7";
-              badgeColor = "#15803d";
-              badgeIcon = <MessageSquare size={12} />;
-            } else if (isCall) {
-              badgeBg = "#ffedd5";
-              badgeColor = "#c2410c";
-              badgeIcon = <PhoneIncoming size={12} />;
+            if (isVisit) {
+              badgeBg = "#fef3c7";
+              badgeColor = "#b45309";
+              badgeIcon = <Car size={12} />;
+            } else if (isFollowup) {
+              badgeBg = "#fef2f2";
+              badgeColor = "#dc2626";
+              badgeIcon = <Clock size={12} />;
+            } else if (isInbound) {
+              badgeBg = "#ecfdf5";
+              badgeColor = "#059669";
+              badgeIcon = <Flame size={12} />;
             }
 
             return (
@@ -63,10 +76,10 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
                     alignItems: "center",
                     gap: "0.3rem"
                   }}>
-                    {badgeIcon} {n.source || "System Alert"}
+                    {badgeIcon} {n.source || "Scheduled Disposition"}
                   </span>
-                  <span style={{ fontSize: "0.75rem", color: "#94a3b8", display: "flex", alignItems: "center", gap: "0.2rem" }}>
-                    <Clock size={12} /> {n.timeAgo || "Just now"}
+                  <span style={{ fontSize: "0.71875rem", color: "#94a3b8", display: "flex", alignItems: "center", gap: "0.2rem" }}>
+                    <Clock size={11} /> {n.timeAgo || "Scheduled"}
                   </span>
                 </div>
 
@@ -78,43 +91,22 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
                   {n.message}
                 </div>
 
-                {/* Interactive Logic Action Buttons */}
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.4rem" }}>
-                  {/* WhatsApp Action Button */}
-                  {isWhatsApp && n.lead && (
-                    <button
-                      onClick={() => {
-                        if (onMarkRead) onMarkRead(n.id);
-                        if (onWhatsAppLead) onWhatsAppLead(n.lead);
-                        onClose();
-                      }}
-                      style={{
-                        flex: 1,
-                        background: "#25d366",
-                        color: "#ffffff",
-                        border: "none",
-                        padding: "0.45rem 0.75rem",
-                        borderRadius: "0.4rem",
-                        fontSize: "0.75rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "0.35rem"
-                      }}
-                    >
-                      <MessageSquare size={14} />
-                      <span>Open WhatsApp Chat</span>
-                    </button>
-                  )}
+                {/* Lead Contact Badges if Lead Object Exists */}
+                {n.lead && (
+                  <div style={{ fontSize: "0.71875rem", color: "#64748b", background: "#f1f5f9", padding: "0.35rem 0.5rem", borderRadius: "0.35rem", display: "flex", justifyContent: "space-between" }}>
+                    <span>📞 {n.lead.phone}</span>
+                    <span>📍 {n.lead.bhkType || "Property"} • {n.lead.location || "Mumbai"}</span>
+                  </div>
+                )}
 
-                  {/* Call Action Button */}
-                  {(!isWhatsApp || n.lead) && (
+                {/* Interactive Action Buttons */}
+                <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.3rem" }}>
+                  {/* Call Now Button */}
+                  {n.lead && (
                     <button
                       onClick={() => {
                         if (onMarkRead) onMarkRead(n.id);
-                        if (onCallLead && n.lead) onCallLead(n.lead);
+                        if (onCallLead) onCallLead(n.lead);
                         onClose();
                       }}
                       style={{
@@ -122,7 +114,7 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
                         background: "#16a34a",
                         color: "#ffffff",
                         border: "none",
-                        padding: "0.45rem 0.75rem",
+                        padding: "0.45rem 0.6rem",
                         borderRadius: "0.4rem",
                         fontSize: "0.75rem",
                         fontWeight: 700,
@@ -130,11 +122,44 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: "0.35rem"
+                        gap: "0.3rem"
                       }}
                     >
-                      <PhoneCall size={14} />
+                      <PhoneCall size={13} />
                       <span>Call Now</span>
+                    </button>
+                  )}
+
+                  {/* WhatsApp Action Button */}
+                  {n.lead && (
+                    <button
+                      onClick={() => {
+                        if (onMarkRead) onMarkRead(n.id);
+                        if (onWhatsAppLead) onWhatsAppLead(n.lead);
+                        else {
+                          const text = encodeURIComponent(`Hello ${n.lead.name}, regarding our scheduled follow-up on ${n.lead.bhkType || "property"} in ${n.lead.location}...`);
+                          window.open(`https://api.whatsapp.com/send?phone=${n.lead.phone.replace(/[^0-9]/g, "")}&text=${text}`, '_blank');
+                        }
+                        onClose();
+                      }}
+                      style={{
+                        flex: 1,
+                        background: "#25d366",
+                        color: "#ffffff",
+                        border: "none",
+                        padding: "0.45rem 0.6rem",
+                        borderRadius: "0.4rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.3rem"
+                      }}
+                    >
+                      <MessageSquare size={13} />
+                      <span>WhatsApp</span>
                     </button>
                   )}
 
@@ -153,7 +178,7 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
                         cursor: "pointer"
                       }}
                     >
-                      <CheckCheck size={15} />
+                      <CheckCheck size={14} />
                     </button>
                   )}
                 </div>
@@ -163,11 +188,16 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
 
           {notifications.length === 0 && (
             <div style={{ textAlign: "center", padding: "2.5rem 1rem", color: "#64748b" }}>
-              No notifications right now.
+              <Bell size={28} color="#94a3b8" style={{ margin: "0 auto 0.5rem" }} />
+              <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "#334155" }}>No Scheduled Alerts</div>
+              <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.2rem" }}>
+                When you schedule follow-ups, site visits, or callback dispositions, reminders will appear here automatically!
+              </div>
             </div>
           )}
         </div>
 
+        {/* Footer */}
         <div className="dialer-footer">
           <button
             onClick={onClearAll}
