@@ -2,16 +2,17 @@ import React, { useState } from "react";
 import { 
   X, ExternalLink, Globe, Phone, Award, Users, Building2, 
   ChevronRight, Star, Heart, CheckCircle2, Share2, Play, Eye, ArrowRight,
-  Mail, MapPin
+  Mail, MapPin, MessageCircle
 } from "lucide-react";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function StoriesHighlightsModal({ isOpen, onClose }) {
-  const [activeTab, setActiveTab] = useState("all"); // 'all', 'listings', 'about'
+  const [activeNav, setActiveNav] = useState("Home");
   const [alertConfig, setAlertConfig] = useState(null);
 
   const websiteUrl = "https://dreamhomes42.com/";
   const contactPhone = "+91 9372721239";
+  const contactEmail = "dreamhomes6631@gmail.com";
   const officeAddress = "Dream homes property, shop no.F38, runwal city centre,dattar colony, Kanjurmarg east 400042";
 
   // Exact 8 Mumbai Micro-Market Listings from Website Screenshot
@@ -124,6 +125,11 @@ export default function StoriesHighlightsModal({ isOpen, onClose }) {
     window.open(url || websiteUrl, "_blank");
   };
 
+  const handleOpenWhatsApp = () => {
+    const text = encodeURIComponent("Hello Dream Homes, I am looking to buy/rent a property in Mumbai. Please share details.");
+    window.open(`https://api.whatsapp.com/send?phone=919372721239&text=${text}`, "_blank");
+  };
+
   return (
     <div 
       className="modal-overlay" 
@@ -160,285 +166,443 @@ export default function StoriesHighlightsModal({ isOpen, onClose }) {
           flexDirection: "column"
         }}
       >
-        {/* Top Floating App Bar */}
+        {/* TOP HEADER: White background with Golden DH Logo, Call, Email & Social */}
         <div style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
           background: "#ffffff",
-          borderBottom: "1px solid #e2e8f0",
-          padding: "0.75rem 1rem",
+          padding: "0.65rem 0.85rem",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
+          borderBottom: "1px solid #f1f5f9"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {/* Golden DH Logo */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
             <div style={{
-              width: "30px",
-              height: "30px",
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #0284c7 0%, #00b4d8 100%)",
+              width: "36px",
+              height: "36px",
+              border: "2px solid #ca8a04",
+              background: "#fefce8",
+              borderRadius: "4px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#ffffff",
+              color: "#ca8a04",
               fontWeight: "900",
-              fontSize: "0.75rem"
+              fontSize: "0.875rem",
+              letterSpacing: "0.05em",
+              boxShadow: "0 2px 4px rgba(202, 138, 4, 0.15)"
             }}>
               DH
             </div>
             <div>
-              <div style={{ fontSize: "0.875rem", fontWeight: "800", color: "#0f172a", lineHeight: 1.1 }}>Dream Homes</div>
-              <div style={{ fontSize: "0.6875rem", color: "#0284c7", fontWeight: "600" }}>dreamhomes42.com</div>
+              <div style={{ fontSize: "0.78125rem", fontWeight: "900", color: "#0f172a", lineHeight: 1.1 }}>DREAM HOMES</div>
+              <div style={{ fontSize: "0.625rem", color: "#64748b" }}>Real Estate Advisory</div>
             </div>
           </div>
 
-          <button 
-            onClick={onClose} 
+          {/* Contacts & Social Icons */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <a 
+              href={`tel:${contactPhone}`} 
+              style={{ background: "#eff6ff", color: "#2563eb", padding: "0.25rem 0.45rem", borderRadius: "4px", fontSize: "0.65625rem", fontWeight: "700", textDecoration: "none", display: "flex", alignItems: "center", gap: "0.2rem" }}
+            >
+              <Phone size={11} /> Call
+            </a>
+
+            <a 
+              href={`mailto:${contactEmail}`} 
+              style={{ background: "#fef2f2", color: "#dc2626", padding: "0.25rem 0.45rem", borderRadius: "4px", fontSize: "0.65625rem", fontWeight: "700", textDecoration: "none", display: "flex", alignItems: "center", gap: "0.2rem" }}
+            >
+              <Mail size={11} /> Mail
+            </a>
+
+            <button 
+              onClick={onClose} 
+              style={{
+                background: "#f1f5f9",
+                border: "none",
+                color: "#475569",
+                cursor: "pointer",
+                width: "26px",
+                height: "26px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginLeft: "0.2rem"
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* NAVIGATION BAR: Black bar with Menu links & ENQUIRY NOW button */}
+        <div style={{
+          background: "#18181b",
+          color: "#ffffff",
+          padding: "0.5rem 0.85rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          fontSize: "0.71875rem",
+          fontWeight: "700"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            {["Home", "About", "Contact", "Blogs"].map((nav) => (
+              <span
+                key={nav}
+                onClick={() => setActiveNav(nav)}
+                style={{
+                  color: activeNav === nav ? "#ef4444" : "#d4d4d8",
+                  cursor: "pointer",
+                  borderBottom: activeNav === nav ? "2px solid #ef4444" : "none",
+                  paddingBottom: "2px"
+                }}
+              >
+                {nav}
+              </span>
+            ))}
+          </div>
+
+          <button
+            onClick={() => handleOpenLink("https://dreamhomes42.com/contact/")}
             style={{
-              background: "#f1f5f9",
-              border: "none",
-              color: "#475569",
+              background: "transparent",
+              color: "#ffffff",
+              border: "1px solid #dc2626",
+              borderRadius: "4px",
+              padding: "0.25rem 0.55rem",
+              fontSize: "0.65625rem",
+              fontWeight: "800",
               cursor: "pointer",
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
+              letterSpacing: "0.03em"
             }}
           >
-            <X size={16} />
+            ENQUIRY NOW
           </button>
         </div>
 
-        {/* Scrollable Content Body (Exact Match to Screenshots) */}
-        <div style={{ padding: "1rem", overflowY: "auto", flex: "1 1 auto", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        {/* Scrollable Content Body */}
+        <div style={{ overflowY: "auto", flex: "1 1 auto", display: "flex", flexDirection: "column" }}>
           
-          {/* SECTION 1: HERO - Premium Builder in Mumbai (Exact Screenshot 2) */}
+          {/* SECTION 0: HERO BANNER (Exact Starting Section from User Screenshot) */}
           <div style={{
-            background: "#fafafa",
-            borderRadius: "1rem",
-            padding: "1rem",
-            border: "1px solid #f1f5f9",
-            textAlign: "center",
-            position: "relative"
-          }}>
-            <h2 style={{
-              fontSize: "1.35rem",
-              fontWeight: "900",
-              color: "#0f172a",
-              margin: "0 0 0.5rem 0",
-              letterSpacing: "-0.02em"
-            }}>
-              Premium Builder in<br />Mumbai
-            </h2>
-
-            <p style={{
-              fontSize: "0.75rem",
-              color: "#64748b",
-              lineHeight: "1.5",
-              margin: "0 0 1rem 0"
-            }}>
-              Dream Homes is a trusted real estate company dedicated to helping clients buy, sell, and rent properties across Mumbai. We offer verified property listings, expert market guidance, and personalized support to ensure a smooth and hassle-free real estate experience. Whether you're looking for a cozy 1BHK, a spacious family home, or a smart investment opportunity, Dream Homes is here to help you find the perfect property.
-            </p>
-
-            {/* Exact 2 Blue Stat Badges */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem", marginBottom: "1rem" }}>
-              <div style={{
-                background: "#38bdf8",
-                color: "#ffffff",
-                borderRadius: "0.875rem",
-                padding: "0.85rem 0.5rem",
-                textAlign: "center",
-                boxShadow: "0 4px 12px rgba(56, 189, 248, 0.3)"
-              }}>
-                <div style={{ fontSize: "1.5rem", fontWeight: "900", lineHeight: 1.1 }}>500+</div>
-                <div style={{ fontSize: "0.71875rem", fontWeight: "700", marginTop: "0.2rem" }}>Properties Listed</div>
-              </div>
-
-              <div style={{
-                background: "#60a5fa",
-                color: "#ffffff",
-                borderRadius: "0.875rem",
-                padding: "0.85rem 0.5rem",
-                textAlign: "center",
-                boxShadow: "0 4px 12px rgba(96, 165, 250, 0.3)"
-              }}>
-                <div style={{ fontSize: "1.5rem", fontWeight: "900", lineHeight: 1.1 }}>200+</div>
-                <div style={{ fontSize: "0.71875rem", fontWeight: "700", marginTop: "0.2rem" }}>Happy Customer</div>
-              </div>
-            </div>
-
-            {/* Exact 3 Milestones with Year Timeline Line */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", textAlign: "left" }}>
-              {milestones.map((m) => (
-                <div key={m.id} style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "0.75rem",
-                  padding: "0.65rem",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
-                }}>
-                  <img 
-                    src={m.img} 
-                    alt={m.title} 
-                    style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "0.5rem", marginBottom: "0.45rem" }} 
-                  />
-                  <div style={{ fontSize: "0.84375rem", fontWeight: "800", color: "#0f172a" }}>{m.title}</div>
-                  <div style={{ fontSize: "0.6875rem", color: "#64748b", margin: "0.2rem 0 0.35rem 0", lineHeight: 1.4 }}>{m.desc}</div>
-                  
-                  {/* Green Timeline Dot & Year */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.35rem", paddingTop: "0.35rem", borderTop: "1px dashed #e2e8f0" }}>
-                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#84cc16", display: "inline-block" }} />
-                    <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#0f172a" }}>{m.year}</span>
-                    <span style={{ fontSize: "0.65625rem", color: "#64748b" }}>• {m.subYear}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* SECTION 2: LISTINGS (Exact Screenshots 1 & 3) */}
-          <div>
-            <div style={{ textAlign: "center", marginBottom: "0.85rem" }}>
-              <h2 style={{ fontSize: "1.45rem", fontWeight: "900", color: "#0f172a", margin: "0 0 0.35rem 0" }}>
-                Listings
-              </h2>
-              <p style={{ fontSize: "0.71875rem", color: "#64748b", margin: 0, lineHeight: 1.45 }}>
-                Discover your ideal home from our latest property listings, featuring premium apartments and residences across Mumbai to match every budget.
-              </p>
-            </div>
-
-            {/* Exact 8 Listing Cards in 2-Column Mobile Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
-              {listingsData.map((item) => (
-                <div 
-                  key={item.id}
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: "0.875rem",
-                    border: "1px solid #e2e8f0",
-                    overflow: "hidden",
-                    boxShadow: "0 4px 10px rgba(0,0,0,0.04)",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between"
-                  }}
-                >
-                  <div>
-                    <img 
-                      src={item.img} 
-                      alt={item.location} 
-                      style={{ width: "100%", height: "95px", objectFit: "cover" }} 
-                    />
-                    <div style={{ padding: "0.55rem" }}>
-                      <h4 style={{ fontSize: "0.9375rem", fontWeight: "900", color: item.color, margin: 0 }}>
-                        {item.location}
-                      </h4>
-                      <div style={{ fontSize: "0.6875rem", fontWeight: "800", color: "#0f172a", margin: "0.25rem 0 0.15rem 0", lineHeight: 1.3 }}>
-                        {item.bhk}
-                      </div>
-                      <div style={{ fontSize: "0.65625rem", color: "#64748b", lineHeight: 1.3 }}>
-                        {item.price}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Exact Royal Purple "Click here ›" Button */}
-                  <div style={{ padding: "0 0.55rem 0.55rem 0.55rem" }}>
-                    <button
-                      onClick={() => handleOpenLink(item.link)}
-                      style={{
-                        width: "100%",
-                        background: "#535bf2",
-                        color: "#ffffff",
-                        border: "none",
-                        borderRadius: "0.35rem",
-                        padding: "0.35rem 0.5rem",
-                        fontSize: "0.6875rem",
-                        fontWeight: "800",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "0.2rem",
-                        boxShadow: "0 2px 6px rgba(83, 91, 242, 0.3)"
-                      }}
-                    >
-                      Click here <ChevronRight size={13} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* SECTION 3: FOOTER (Exact Screenshot 1) */}
-          <div style={{
-            background: "#0b0f19",
-            color: "#ffffff",
-            borderRadius: "1rem",
-            padding: "1.1rem 0.9rem",
+            position: "relative",
+            minHeight: "310px",
+            background: "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.85) 100%), url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            padding: "1.5rem 1.1rem",
             display: "flex",
             flexDirection: "column",
-            gap: "0.85rem"
+            justifyContent: "center",
+            color: "#ffffff"
           }}>
-            {/* Column 1: Dream Homes */}
+            {/* Main Hero Heading */}
+            <h1 style={{
+              fontSize: "1.65rem",
+              fontWeight: "900",
+              color: "#ffffff",
+              lineHeight: 1.15,
+              margin: 0,
+              letterSpacing: "-0.02em"
+            }}>
+              Find Your Perfect Home <br />
+              <span style={{
+                color: "#eab308",
+                textShadow: "0 2px 10px rgba(234, 179, 8, 0.4)"
+              }}>
+                Near You <br />
+                in Mumbai
+              </span>
+            </h1>
+
+            {/* Mission Statement */}
+            <p style={{
+              fontSize: "0.71875rem",
+              color: "#e2e8f0",
+              lineHeight: 1.45,
+              margin: "0.75rem 0 1.25rem 0",
+              maxWidth: "92%"
+            }}>
+              "Our mission is to help individuals, families, and investors find the perfect property while providing reliable listings, expert guidance, and a seamless real estate experience for buyers, sellers, and tenants."
+            </p>
+
+            {/* Contact Me Button */}
             <div>
-              <h5 style={{ fontSize: "0.78125rem", fontWeight: "800", color: "#ffffff", margin: "0 0 0.35rem 0", letterSpacing: "0.05em" }}>
-                DREAM HOMES
-              </h5>
-              <div style={{ fontSize: "0.6875rem", color: "#94a3b8", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-                <div>• Buy, Sell & Rent Properties</div>
-                <div>• Verified Property Listings</div>
-                <div>• Prime Locations Across Mumbai</div>
-                <div>• Expert Real Estate Guidance</div>
-                <div>• Transparent & Trusted Service</div>
-              </div>
+              <button
+                onClick={() => handleOpenLink("https://dreamhomes42.com/contact/")}
+                style={{
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "0.4rem",
+                  padding: "0.55rem 1.25rem",
+                  fontSize: "0.8125rem",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.5)"
+                }}
+              >
+                Contact Me
+              </button>
             </div>
 
-            {/* Column 2: Social Media */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", borderTop: "1px solid #1e293b", paddingTop: "0.6rem" }}>
-              <div>
-                <h5 style={{ fontSize: "0.75rem", fontWeight: "800", color: "#ffffff", margin: "0 0 0.25rem 0" }}>
-                  Social Media
-                </h5>
-                <div style={{ fontSize: "0.6875rem", color: "#94a3b8", display: "flex", flexDirection: "column", gap: "0.15rem" }}>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://instagram.com")}>Instagram</span>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://facebook.com")}>Facebook</span>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://youtube.com")}>Youtube</span>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://linkedin.com")}>Linkedin</span>
+            {/* Floating WhatsApp Button */}
+            <div
+              onClick={handleOpenWhatsApp}
+              style={{
+                position: "absolute",
+                bottom: "14px",
+                right: "14px",
+                width: "42px",
+                height: "42px",
+                borderRadius: "50%",
+                background: "#25D366",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                boxShadow: "0 6px 16px rgba(37, 211, 102, 0.5)",
+                zIndex: 10
+              }}
+              title="Chat on WhatsApp"
+            >
+              <MessageCircle size={22} color="#ffffff" fill="#ffffff" />
+            </div>
+          </div>
+
+          <div style={{ padding: "1.1rem 1rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            
+            {/* SECTION 1: HERO - Premium Builder in Mumbai (Exact Screenshot 2) */}
+            <div style={{
+              background: "#fafafa",
+              borderRadius: "1rem",
+              padding: "1rem",
+              border: "1px solid #f1f5f9",
+              textAlign: "center",
+              position: "relative"
+            }}>
+              <h2 style={{
+                fontSize: "1.35rem",
+                fontWeight: "900",
+                color: "#0f172a",
+                margin: "0 0 0.5rem 0",
+                letterSpacing: "-0.02em"
+              }}>
+                Premium Builder in<br />Mumbai
+              </h2>
+
+              <p style={{
+                fontSize: "0.75rem",
+                color: "#64748b",
+                lineHeight: "1.5",
+                margin: "0 0 1rem 0"
+              }}>
+                Dream Homes is a trusted real estate company dedicated to helping clients buy, sell, and rent properties across Mumbai. We offer verified property listings, expert market guidance, and personalized support to ensure a smooth and hassle-free real estate experience. Whether you're looking for a cozy 1BHK, a spacious family home, or a smart investment opportunity, Dream Homes is here to help you find the perfect property.
+              </p>
+
+              {/* Exact 2 Blue Stat Badges */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem", marginBottom: "1rem" }}>
+                <div style={{
+                  background: "#38bdf8",
+                  color: "#ffffff",
+                  borderRadius: "0.875rem",
+                  padding: "0.85rem 0.5rem",
+                  textAlign: "center",
+                  boxShadow: "0 4px 12px rgba(56, 189, 248, 0.3)"
+                }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", lineHeight: 1.1 }}>500+</div>
+                  <div style={{ fontSize: "0.71875rem", fontWeight: "700", marginTop: "0.2rem" }}>Properties Listed</div>
+                </div>
+
+                <div style={{
+                  background: "#60a5fa",
+                  color: "#ffffff",
+                  borderRadius: "0.875rem",
+                  padding: "0.85rem 0.5rem",
+                  textAlign: "center",
+                  boxShadow: "0 4px 12px rgba(96, 165, 250, 0.3)"
+                }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", lineHeight: 1.1 }}>200+</div>
+                  <div style={{ fontSize: "0.71875rem", fontWeight: "700", marginTop: "0.2rem" }}>Happy Customer</div>
                 </div>
               </div>
 
+              {/* Exact 3 Milestones with Year Timeline Line */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", textAlign: "left" }}>
+                {milestones.map((m) => (
+                  <div key={m.id} style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "0.75rem",
+                    padding: "0.65rem",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
+                  }}>
+                    <img 
+                      src={m.img} 
+                      alt={m.title} 
+                      style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "0.5rem", marginBottom: "0.45rem" }} 
+                    />
+                    <div style={{ fontSize: "0.84375rem", fontWeight: "800", color: "#0f172a" }}>{m.title}</div>
+                    <div style={{ fontSize: "0.6875rem", color: "#64748b", margin: "0.2rem 0 0.35rem 0", lineHeight: 1.4 }}>{m.desc}</div>
+                    
+                    {/* Green Timeline Dot & Year */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.35rem", paddingTop: "0.35rem", borderTop: "1px dashed #e2e8f0" }}>
+                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#84cc16", display: "inline-block" }} />
+                      <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#0f172a" }}>{m.year}</span>
+                      <span style={{ fontSize: "0.65625rem", color: "#64748b" }}>• {m.subYear}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 2: LISTINGS (Exact Screenshots 1 & 3) */}
+            <div>
+              <div style={{ textAlign: "center", marginBottom: "0.85rem" }}>
+                <h2 style={{ fontSize: "1.45rem", fontWeight: "900", color: "#0f172a", margin: "0 0 0.35rem 0" }}>
+                  Listings
+                </h2>
+                <p style={{ fontSize: "0.71875rem", color: "#64748b", margin: 0, lineHeight: 1.45 }}>
+                  Discover your ideal home from our latest property listings, featuring premium apartments and residences across Mumbai to match every budget.
+                </p>
+              </div>
+
+              {/* Exact 8 Listing Cards in 2-Column Mobile Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
+                {listingsData.map((item) => (
+                  <div 
+                    key={item.id}
+                    style={{
+                      background: "#ffffff",
+                      borderRadius: "0.875rem",
+                      border: "1px solid #e2e8f0",
+                      overflow: "hidden",
+                      boxShadow: "0 4px 10px rgba(0,0,0,0.04)",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between"
+                    }}
+                  >
+                    <div>
+                      <img 
+                        src={item.img} 
+                        alt={item.location} 
+                        style={{ width: "100%", height: "95px", objectFit: "cover" }} 
+                      />
+                      <div style={{ padding: "0.55rem" }}>
+                        <h4 style={{ fontSize: "0.9375rem", fontWeight: "900", color: item.color, margin: 0 }}>
+                          {item.location}
+                        </h4>
+                        <div style={{ fontSize: "0.6875rem", fontWeight: "800", color: "#0f172a", margin: "0.25rem 0 0.15rem 0", lineHeight: 1.3 }}>
+                          {item.bhk}
+                        </div>
+                        <div style={{ fontSize: "0.65625rem", color: "#64748b", lineHeight: 1.3 }}>
+                          {item.price}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Exact Royal Purple "Click here ›" Button */}
+                    <div style={{ padding: "0 0.55rem 0.55rem 0.55rem" }}>
+                      <button
+                        onClick={() => handleOpenLink(item.link)}
+                        style={{
+                          width: "100%",
+                          background: "#535bf2",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "0.35rem",
+                          padding: "0.35rem 0.5rem",
+                          fontSize: "0.6875rem",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.2rem",
+                          boxShadow: "0 2px 6px rgba(83, 91, 242, 0.3)"
+                        }}
+                      >
+                        Click here <ChevronRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 3: FOOTER (Exact Screenshot 1) */}
+            <div style={{
+              background: "#0b0f19",
+              color: "#ffffff",
+              borderRadius: "1rem",
+              padding: "1.1rem 0.9rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.85rem"
+            }}>
+              {/* Column 1: Dream Homes */}
               <div>
-                <h5 style={{ fontSize: "0.75rem", fontWeight: "800", color: "#ffffff", margin: "0 0 0.25rem 0" }}>
-                  Support
+                <h5 style={{ fontSize: "0.78125rem", fontWeight: "800", color: "#ffffff", margin: "0 0 0.35rem 0", letterSpacing: "0.05em" }}>
+                  DREAM HOMES
                 </h5>
-                <div style={{ fontSize: "0.6875rem", color: "#94a3b8", display: "flex", flexDirection: "column", gap: "0.15rem" }}>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://dreamhomes42.com/contact/")}>FAQ</span>
-                  <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://dreamhomes42.com/contact/")}>Contact</span>
+                <div style={{ fontSize: "0.6875rem", color: "#94a3b8", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                  <div>• Buy, Sell & Rent Properties</div>
+                  <div>• Verified Property Listings</div>
+                  <div>• Prime Locations Across Mumbai</div>
+                  <div>• Expert Real Estate Guidance</div>
+                  <div>• Transparent & Trusted Service</div>
                 </div>
               </div>
-            </div>
 
-            {/* Column 3: Contacts */}
-            <div style={{ borderTop: "1px solid #1e293b", paddingTop: "0.6rem" }}>
-              <h5 style={{ fontSize: "0.75rem", fontWeight: "800", color: "#ffffff", margin: "0 0 0.25rem 0" }}>
-                Contacts
-              </h5>
-              <div style={{ fontSize: "0.6875rem", color: "#38bdf8", fontWeight: "700" }}>
-                <a href={`tel:${contactPhone}`} style={{ color: "#38bdf8", textDecoration: "none" }}>{contactPhone}</a>
-              </div>
-              <div style={{ fontSize: "0.65625rem", color: "#94a3b8", marginTop: "0.25rem", lineHeight: 1.35 }}>
-                {officeAddress}
-              </div>
-            </div>
+              {/* Column 2: Social Media & Support */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", borderTop: "1px solid #1e293b", paddingTop: "0.6rem" }}>
+                <div>
+                  <h5 style={{ fontSize: "0.75rem", fontWeight: "800", color: "#ffffff", margin: "0 0 0.25rem 0" }}>
+                    Social Media
+                  </h5>
+                  <div style={{ fontSize: "0.6875rem", color: "#94a3b8", display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+                    <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://instagram.com")}>Instagram</span>
+                    <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://facebook.com")}>Facebook</span>
+                    <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://youtube.com")}>Youtube</span>
+                    <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://linkedin.com")}>Linkedin</span>
+                  </div>
+                </div>
 
-            {/* Copyright */}
-            <div style={{ borderTop: "1px solid #1e293b", paddingTop: "0.5rem", textAlign: "center", fontSize: "0.625rem", color: "#64748b" }}>
-              © 2023 Created with Royal Elementor Addons
+                <div>
+                  <h5 style={{ fontSize: "0.75rem", fontWeight: "800", color: "#ffffff", margin: "0 0 0.25rem 0" }}>
+                    Support
+                  </h5>
+                  <div style={{ fontSize: "0.6875rem", color: "#94a3b8", display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+                    <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://dreamhomes42.com/contact/")}>FAQ</span>
+                    <span style={{ cursor: "pointer" }} onClick={() => handleOpenLink("https://dreamhomes42.com/contact/")}>Contact</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 3: Contacts */}
+              <div style={{ borderTop: "1px solid #1e293b", paddingTop: "0.6rem" }}>
+                <h5 style={{ fontSize: "0.75rem", fontWeight: "800", color: "#ffffff", margin: "0 0 0.25rem 0" }}>
+                  Contacts
+                </h5>
+                <div style={{ fontSize: "0.6875rem", color: "#38bdf8", fontWeight: "700" }}>
+                  <a href={`tel:${contactPhone}`} style={{ color: "#38bdf8", textDecoration: "none" }}>{contactPhone}</a>
+                </div>
+                <div style={{ fontSize: "0.65625rem", color: "#94a3b8", marginTop: "0.25rem", lineHeight: 1.35 }}>
+                  {officeAddress}
+                </div>
+              </div>
+
+              {/* Copyright */}
+              <div style={{ borderTop: "1px solid #1e293b", paddingTop: "0.5rem", textAlign: "center", fontSize: "0.625rem", color: "#64748b" }}>
+                © 2023 Created with Royal Elementor Addons
+              </div>
             </div>
           </div>
         </div>
