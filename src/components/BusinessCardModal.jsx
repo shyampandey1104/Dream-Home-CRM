@@ -112,10 +112,9 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
       try {
         const file = new File([blob], `Dream_Homes_Card_${name.replace(/\s+/g, '_')}.png`, { type: "image/png" });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          // Share ONLY the image file with NO text caption underneath
           await navigator.share({
-            files: [file],
-            title: `Dream Homes Business Card - ${name}`,
-            text: `📇 Digital Business Card of ${name} (Dream Homes Real Estate & Investment)`
+            files: [file]
           });
           return;
         }
@@ -145,10 +144,9 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     }
 
-    // Direct open WhatsApp Web with text details
-    const text = `📇 *Digital Business Card - DREAM HOMES*\n\n👤 *Name*: ${name}\n📞 *Phone*: ${phone}\n✉️ *Email*: ${email}\n📍 *Office*: Office No - F-38 Runwal City Centre, Kanjurmarg East, 400042\n🌐 *Instagram*: @dream_homes42\n📜 *RERA NO*: A51800045492\n\n*Dream Homes - Real Estate & Investment*`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-    triggerToast("🖼️ CARD IMAGE COPIED & DOWNLOADED! Open WhatsApp chat & press Cmd+V / Ctrl+V to paste the Card Photo!");
+    // Direct open WhatsApp Web without text caption
+    window.open(`https://api.whatsapp.com/send`, '_blank');
+    triggerToast("🖼️ Card Image copied to Clipboard! Paste it directly in WhatsApp chat.");
   };
 
   const handlePrint = () => {
