@@ -1,25 +1,23 @@
-// Universal Cross-Browser Microphone Recorder (WAV 16-bit PCM & MediaRecorder)
-// Works on iOS Safari, Android Chrome, macOS Chrome & Desktop
+// 100% Reliable Real-Time Microphone Audio Recorder using Web Audio API PCM WAV Encoder
+// Records actual microphone voice on Chrome, Safari (macOS & iOS), Edge, and Android without fake speech synthesis
 
 export class UniversalAudioRecorder {
   constructor() {
     this.stream = null;
     this.audioContext = null;
-    this.mediaRecorder = null;
-    this.audioChunks = [];
+    this.source = null;
+    this.processor = null;
+    this.analyser = null;
+    this.leftChannel = [];
+    this.recordingLength = 0;
+    this.sampleRate = 44100;
     this.isRecording = false;
     this.audioBlob = null;
     this.audioUrl = null;
     this.base64Data = null;
-    this.inputSource = null;
-    this.processor = null;
-    this.leftChannel = [];
-    this.recordingLength = 0;
-    this.sampleRate = 44100;
   }
 
   async start() {
-    this.audioChunks = [];
     this.leftChannel = [];
     this.recordingLength = 0;
     this.audioBlob = null;
@@ -27,126 +25,91 @@ export class UniversalAudioRecorder {
     this.base64Data = null;
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new Error("Microphone access is not supported in this browser.");
+      throw new Error("Microphone is not supported in this browser.");
     }
 
-    // 1. Request microphone access
+    // 1. Request real microphone access
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
-        noiseSuppression: true,
+        noiseSuppression: false, // keep natural voice clarity
         autoGainControl: true
       }
     });
 
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    this.audioContext = new AudioCtx();
+    if (this.audioContext.state === "suspended") {
+      await this.audioContext.resume();
+    }
+
+    this.sampleRate = this.audioContext.sampleRate || 44100;
+    this.source = this.audioContext.createMediaStreamSource(this.stream);
+
+    // Analyser for real-time visualizer
+    this.analyser = this.audioContext.createAnalyser();
+    this.analyser.fftSize = 256;
+    this.source.connect(this.analyser);
+
+    // Script Processor for raw PCM audio capture (Buffer size: 4096)
+    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+    this.processor.onaudioprocess = (e) => {
+      if (!this.isRecording) return;
+      const input = e.inputBuffer.getChannelData(0);
+      this.leftChannel.push(new Float32Array(input));
+      this.recordingLength += input.length;
+    };
+
+    this.source.connect(this.processor);
+    this.processor.connect(this.audioContext.destination);
+
     this.isRecording = true;
+    console.log("[UniversalAudioRecorder] Real microphone PCM recording started at sampleRate:", this.sampleRate);
+  }
 
-    // 2. Try native MediaRecorder first with broad fallback
-    try {
-      let mimeType = "";
-      if (typeof MediaRecorder !== "undefined") {
-        const types = [
-          "audio/webm;codecs=opus",
-          "audio/webm",
-          "audio/mp4",
-          "audio/aac",
-          "audio/ogg"
-        ];
-        for (const t of types) {
-          if (MediaRecorder.isTypeSupported(t)) {
-            mimeType = t;
-            break;
-          }
-        }
-
-        const options = mimeType ? { mimeType } : undefined;
-        this.mediaRecorder = new MediaRecorder(this.stream, options);
-        this.mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) {
-            this.audioChunks.push(e.data);
-          }
-        };
-        this.mediaRecorder.start(250);
-        console.log("[UniversalAudioRecorder] Native MediaRecorder active with mime:", mimeType || "default");
-        return;
-      }
-    } catch (e) {
-      console.log("[UniversalAudioRecorder] MediaRecorder fallback to WebAudio PCM WAV:", e);
+  getVolumeLevel() {
+    if (!this.analyser || !this.isRecording) return 0;
+    const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+    this.analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+      sum += dataArray[i];
     }
-
-    // 3. Fallback to Web Audio PCM WAV recording (100% compatible on Safari & older devices)
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      this.audioContext = new AudioCtx();
-      if (this.audioContext.state === "suspended") {
-        await this.audioContext.resume();
-      }
-      this.sampleRate = this.audioContext.sampleRate;
-      this.inputSource = this.audioContext.createMediaStreamSource(this.stream);
-      this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-
-      this.processor.onaudioprocess = (e) => {
-        if (!this.isRecording) return;
-        const input = e.inputBuffer.getChannelData(0);
-        this.leftChannel.push(new Float32Array(input));
-        this.recordingLength += 4096;
-      };
-
-      this.inputSource.connect(this.processor);
-      this.processor.connect(this.audioContext.destination);
-      console.log("[UniversalAudioRecorder] WebAudio PCM WAV active");
-    } catch (err) {
-      console.error("[UniversalAudioRecorder] WebAudio start failed:", err);
-    }
+    return Math.min(100, Math.round((sum / dataArray.length) * 1.5));
   }
 
   async stop() {
     this.isRecording = false;
 
-    // Stop native MediaRecorder if running
-    if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
-      await new Promise((resolve) => {
-        this.mediaRecorder.onstop = () => {
-          const mime = this.mediaRecorder.mimeType || "audio/webm";
-          this.audioBlob = new Blob(this.audioChunks, { type: mime });
-          this.audioUrl = URL.createObjectURL(this.audioBlob);
-          resolve();
-        };
-        try {
-          this.mediaRecorder.stop();
-        } catch (e) {
-          resolve();
-        }
-      });
-    } else if (this.leftChannel.length > 0) {
-      // Encode PCM to WAV
-      this.audioBlob = this.encodeWAV(this.leftChannel, this.recordingLength, this.sampleRate);
-      this.audioUrl = URL.createObjectURL(this.audioBlob);
-    }
-
-    // Stop Web Audio Processor
+    // Disconnect Web Audio Nodes
     if (this.processor) {
       try { this.processor.disconnect(); } catch (e) {}
     }
-    if (this.inputSource) {
-      try { this.inputSource.disconnect(); } catch (e) {}
+    if (this.source) {
+      try { this.source.disconnect(); } catch (e) {}
     }
     if (this.audioContext) {
       try { this.audioContext.close(); } catch (e) {}
     }
 
-    // Stop all microphone stream tracks
+    // Stop real microphone hardware stream
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
     }
 
-    // Convert blob to base64 for backend persistence
-    if (this.audioBlob) {
+    // If samples were captured, encode to 16-bit PCM WAV
+    if (this.leftChannel.length > 0 && this.recordingLength > 0) {
+      this.audioBlob = this.encodeWAV(this.leftChannel, this.recordingLength, this.sampleRate);
+      this.audioUrl = URL.createObjectURL(this.audioBlob);
+
+      // Convert to Base64 string
       this.base64Data = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result);
         reader.readAsDataURL(this.audioBlob);
       });
+
+      console.log("[UniversalAudioRecorder] Real voice WAV created successfully, size:", this.audioBlob.size, "bytes");
     }
 
     return {
@@ -171,20 +134,22 @@ export class UniversalAudioRecorder {
     this.writeString(view, 0, "RIFF");
     view.setUint32(4, 36 + flattened.length * 2, true);
     this.writeString(view, 8, "WAVE");
+
     // FMT sub-chunk
     this.writeString(view, 12, "fmt ");
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); // PCM
-    view.setUint16(22, 1, true); // Mono
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true); // byte rate
-    view.setUint16(32, 2, true); // block align
-    view.setUint16(34, 16, true); // bits per sample
-    // data sub-chunk
+    view.setUint32(16, 16, true); // SubChunk1Size (16 for PCM)
+    view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
+    view.setUint16(22, 1, true); // NumChannels (1 for Mono)
+    view.setUint32(24, sampleRate, true); // SampleRate
+    view.setUint32(28, sampleRate * 2, true); // ByteRate (SampleRate * NumChannels * BitsPerSample/8)
+    view.setUint16(32, 2, true); // BlockAlign (NumChannels * BitsPerSample/8)
+    view.setUint16(34, 16, true); // BitsPerSample (16 bits)
+
+    // DATA sub-chunk
     this.writeString(view, 36, "data");
     view.setUint32(40, flattened.length * 2, true);
 
-    // Write PCM 16-bit samples
+    // Write PCM 16-bit amplitude values
     let index = 44;
     for (let i = 0; i < flattened.length; i++) {
       let s = Math.max(-1, Math.min(1, flattened[i]));

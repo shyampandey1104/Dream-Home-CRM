@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneOff, Send, Clock, CheckCircle2, Mic, MicOff, Sparkles, Volume2, VolumeX, User, MapPin, Check, Play, Pause, Disc, FileText, RotateCcw } from "lucide-react";
+import { PhoneOff, Send, Clock, CheckCircle2, Mic, MicOff, Sparkles, Volume2, VolumeX, User, MapPin, Check, Play, Pause, Disc, FileText, RotateCcw, Download } from "lucide-react";
 import confetti from "canvas-confetti";
 import { UniversalAudioRecorder } from "../utils/audioRecorder";
 import CustomAlertDialog from "./CustomAlertDialog";
@@ -19,13 +19,14 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
   const [recordedAudioBase64, setRecordedAudioBase64] = useState(null);
   const [isRecordingMic, setIsRecordingMic] = useState(false);
+  const [liveVolume, setLiveVolume] = useState(0);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [playbackTime, setPlaybackTime] = useState(0);
-  const [audioDurationSec, setAudioDurationSec] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
 
   const recorderRef = useRef(null);
   const audioElementRef = useRef(null);
-  const playTimerRef = useRef(null);
+  const volumeIntervalRef = useRef(null);
 
   const getCurrentLocalDateTime = () => {
     const now = new Date();
@@ -39,7 +40,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
   const [followupDate, setFollowupDate] = useState(getCurrentLocalDateTime());
   const [isListening, setIsListening] = useState(false);
 
-  // Initialize Microphone Recording when Call Screen Mounts
+  // Initialize Real Microphone Recording when Call Screen Mounts
   useEffect(() => {
     const rec = new UniversalAudioRecorder();
     recorderRef.current = rec;
@@ -47,9 +48,18 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     rec.start()
       .then(() => {
         setIsRecordingMic(true);
+        console.log("[DialerModal] Microphone capturing live audio...");
+
+        // Monitor volume level for visual sound waves
+        volumeIntervalRef.current = setInterval(() => {
+          if (recorderRef.current && recorderRef.current.isRecording) {
+            const vol = recorderRef.current.getVolumeLevel();
+            setLiveVolume(vol);
+          }
+        }, 100);
       })
       .catch((err) => {
-        console.log("[DialerModal] Initial mic notice:", err.message);
+        console.log("[DialerModal] Microphone notice:", err.message);
         setIsRecordingMic(false);
       });
 
@@ -57,7 +67,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
       if (recorderRef.current && recorderRef.current.isRecording) {
         recorderRef.current.stop().catch(() => {});
       }
-      if (playTimerRef.current) clearInterval(playTimerRef.current);
+      if (volumeIntervalRef.current) clearInterval(volumeIntervalRef.current);
     };
   }, []);
 
@@ -88,6 +98,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
           setRecordedAudioBase64(result.base64);
         }
       }
+      if (volumeIntervalRef.current) clearInterval(volumeIntervalRef.current);
       setIsRecordingMic(false);
     } else {
       const rec = new UniversalAudioRecorder();
@@ -95,9 +106,14 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
       try {
         await rec.start();
         setIsRecordingMic(true);
+        volumeIntervalRef.current = setInterval(() => {
+          if (recorderRef.current && recorderRef.current.isRecording) {
+            setLiveVolume(recorderRef.current.getVolumeLevel());
+          }
+        }, 100);
       } catch (err) {
         setAlertConfig({
-          title: "Microphone Required",
+          title: "Microphone Access Required",
           message: "Please allow microphone permission to record audio.",
           type: "warning"
         });
@@ -113,7 +129,8 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     }
     const durationStr = formatTimer(seconds);
     setCallDuration(durationStr);
-    setAudioDurationSec(seconds);
+
+    if (volumeIntervalRef.current) clearInterval(volumeIntervalRef.current);
 
     if (recorderRef.current && recorderRef.current.isRecording) {
       try {
@@ -135,78 +152,45 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     if (isListening) setIsListening(false);
   };
 
-  // Toggle Audio Playback with Guaranteed Sound
+  // Toggle Real Audio Playback (NO FAKE ROBOT VOICE)
   const toggleAudioPlayback = (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    if (isPlayingAudio) {
-      setIsPlayingAudio(false);
-      setPlaybackTime(0);
-      if (audioElementRef.current) audioElementRef.current.pause();
-      if (playTimerRef.current) clearInterval(playTimerRef.current);
-      if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+    const audio = audioElementRef.current;
+    if (!audio || !recordedAudioUrl) {
+      setAlertConfig({
+        title: "No Audio Recorded",
+        message: "No voice was captured during this call. You can tap 'Re-record' to record a voice note now!",
+        type: "info"
+      });
       return;
     }
 
-    setIsPlayingAudio(true);
-    setPlaybackTime(0);
-
-    const audio = audioElementRef.current;
-    if (audio && recordedAudioUrl) {
+    if (isPlayingAudio) {
+      audio.pause();
+      setIsPlayingAudio(false);
+    } else {
       audio.currentTime = 0;
       audio.play()
-        .then(() => {
-          // Play timer
-          playTimerRef.current = setInterval(() => {
-            setPlaybackTime(prev => {
-              if (prev >= (audioDurationSec || 5)) {
-                clearInterval(playTimerRef.current);
-                setIsPlayingAudio(false);
-                return 0;
-              }
-              return prev + 1;
-            });
-          }, 1000);
-        })
+        .then(() => setIsPlayingAudio(true))
         .catch((err) => {
-          console.log("Direct audio element fallback to speech synthesis:", err);
-          playVoiceFallback();
+          console.error("Audio playback error:", err);
+          setIsPlayingAudio(false);
         });
-    } else {
-      playVoiceFallback();
     }
   };
 
-  const playVoiceFallback = () => {
-    let count = 0;
-    playTimerRef.current = setInterval(() => {
-      count += 1;
-      setPlaybackTime(count);
-      if (count >= 5) {
-        clearInterval(playTimerRef.current);
-        setIsPlayingAudio(false);
-        setPlaybackTime(0);
-      }
-    }, 1000);
-
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      const textToSpeak = `Playing recorded conversation with ${lead?.name || "Client"}. Property: ${bhkType} in ${lead?.location}. Disposition: ${outcome}. Notes: ${notes || "Customer discussed site visit."}`;
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.onend = () => {
-        setIsPlayingAudio(false);
-        setPlaybackTime(0);
-        if (playTimerRef.current) clearInterval(playTimerRef.current);
-      };
-      utterance.onerror = () => {
-        setIsPlayingAudio(false);
-        setPlaybackTime(0);
-        if (playTimerRef.current) clearInterval(playTimerRef.current);
-      };
-      window.speechSynthesis.speak(utterance);
-    }
+  const handleDownloadRecording = () => {
+    if (!recordedAudioUrl) return;
+    const a = document.createElement("a");
+    a.href = recordedAudioUrl;
+    a.download = `Call_Recording_${lead.id}_${Date.now()}.wav`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   // Voice-to-Text Speech Recognition (Web Speech API)
@@ -335,15 +319,16 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
         overflowY: "auto"
       }}
     >
-      {/* Invisible HTML5 Audio Element */}
+      {/* Real HTML5 Audio Player Element for Real Voice Playback */}
       {recordedAudioUrl && (
         <audio
           ref={audioElementRef}
           src={recordedAudioUrl}
+          onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+          onLoadedMetadata={(e) => setAudioDuration(e.target.duration)}
           onEnded={() => {
             setIsPlayingAudio(false);
-            setPlaybackTime(0);
-            if (playTimerRef.current) clearInterval(playTimerRef.current);
+            setCurrentTime(0);
           }}
           style={{ display: "none" }}
         />
@@ -386,8 +371,8 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
             🏢 {lead.bhkType || "2 BHK"} • {lead.location}
           </div>
 
-          {/* Real Audio Recording Status Indicator & Manual Record Button */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginBottom: "1.25rem" }}>
+          {/* Real Audio Recording Status Indicator with Live Microphone Meter */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.4rem", marginBottom: "1.25rem" }}>
             <button
               type="button"
               onClick={toggleMicRecording}
@@ -395,19 +380,37 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                 background: isRecordingMic ? "rgba(239, 68, 68, 0.2)" : "rgba(34, 197, 94, 0.2)",
                 border: isRecordingMic ? "1px solid #ef4444" : "1px solid #22c55e",
                 color: isRecordingMic ? "#fca5a5" : "#86efac",
-                padding: "0.3rem 0.75rem",
+                padding: "0.35rem 0.85rem",
                 borderRadius: "9999px",
-                fontSize: "0.75rem",
+                fontSize: "0.78125rem",
                 fontWeight: 700,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: "0.35rem"
+                gap: "0.4rem"
               }}
             >
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: isRecordingMic ? "#ef4444" : "#22c55e", display: "inline-block", animation: "pulse 1.2s infinite" }} />
-              <span>{isRecordingMic ? "🎙️ Recording Audio Active" : "Tap to Start Mic"}</span>
+              <span>{isRecordingMic ? "🔴 Live Voice Recording Active" : "Tap to Start Microphone"}</span>
             </button>
+
+            {/* Live Audio Visualizer Bars responding to voice volume */}
+            {isRecordingMic && (
+              <div style={{ display: "flex", alignItems: "center", gap: "3px", height: "20px", marginTop: "4px" }}>
+                {[10, 18, 14, 22, 16, 24, 20, 15, 26, 18, 22, 14, 19].map((h, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: "3px",
+                      height: `${Math.max(4, Math.min(24, h * (1 + liveVolume / 50)))}px`,
+                      background: liveVolume > 15 ? "#22c55e" : "#38bdf8",
+                      borderRadius: "9999px",
+                      transition: "height 0.1s ease"
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Call Duration Timer */}
@@ -523,10 +526,33 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
             <div style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)", border: "1px solid #cbd5e1", borderRadius: "0.875rem", padding: "0.75rem 0.875rem", marginBottom: "1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
                 <span style={{ fontSize: "0.8125rem", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                  🎙️ Live Call Audio Recording
+                  🎙️ Live Call Voice Recording
                 </span>
                 
                 <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  {recordedAudioUrl && (
+                    <button
+                      type="button"
+                      onClick={handleDownloadRecording}
+                      style={{
+                        background: "#f1f5f9",
+                        color: "#334155",
+                        border: "1px solid #cbd5e1",
+                        padding: "0.15rem 0.4rem",
+                        borderRadius: "0.375rem",
+                        fontSize: "0.6875rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.2rem"
+                      }}
+                      title="Download .wav audio file"
+                    >
+                      <Download size={11} /> .wav
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={toggleMicRecording}
@@ -584,7 +610,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                       key={idx}
                       style={{
                         flex: 1,
-                        height: isPlayingAudio ? `${Math.min(26, Math.max(8, (h * (idx + playbackTime * 3) % 24) + 6))}px` : `${h}px`,
+                        height: isPlayingAudio ? `${Math.min(26, Math.max(8, (h * (idx + Math.floor(currentTime * 5)) % 24) + 6))}px` : `${h}px`,
                         background: isPlayingAudio ? "linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)" : "#cbd5e1",
                         borderRadius: "9999px",
                         transition: "all 0.15s ease"
@@ -594,7 +620,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                 </div>
 
                 <span style={{ fontSize: "0.78125rem", fontWeight: 800, color: isPlayingAudio ? "#2563eb" : "#64748b", fontFamily: "monospace" }}>
-                  {isPlayingAudio ? formatTimer(playbackTime) : callDuration}
+                  {isPlayingAudio ? formatTimer(currentTime) : (audioDuration ? formatTimer(audioDuration) : callDuration)}
                 </span>
               </div>
             </div>
