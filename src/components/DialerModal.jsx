@@ -295,11 +295,15 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
 
   const dispositionOptions = [
     { label: "Interested", icon: "🔥", desc: "Customer interested & engaged" },
+    { label: "Scheduled Site Visit", icon: "📅", desc: "Site visit confirmed" },
+    { label: "Deal Closed (Won)", icon: "🎉", desc: "Booking / Token received" },
+    { label: "Callback", icon: "📞", desc: "Customer requested callback" },
+    { label: "Follow Ups", icon: "⏰", desc: "Scheduled follow-up" },
     { label: "Switch Off", icon: "📵", desc: "Mobile unreachable / switched off" },
     { label: "Hung Up", icon: "📴", desc: "Call disconnected / hung up" },
-    { label: "Callback", icon: "📞", desc: "Customer requested callback" },
-    { label: "Not Interested", icon: "❌", desc: "Budget or location mismatch" },
-    { label: "Follow Ups", icon: "⏰", desc: "Scheduled follow-up" }
+    { label: "Busy / Line Busy", icon: "⏳", desc: "Call waiting or line busy" },
+    { label: "Left Voicemail / WA", icon: "✉️", desc: "Message left on WhatsApp" },
+    { label: "Not Interested", icon: "❌", desc: "Budget or location mismatch" }
   ];
 
   return (
