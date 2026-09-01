@@ -67,15 +67,44 @@ export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
     }
   };
 
+  const renderFormattedText = (rawText) => {
+    if (!rawText) return "";
+    const lines = rawText.split("\n");
+    return lines.map((line, idx) => {
+      // Bold rendering
+      let formattedLine = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      formattedLine = formattedLine.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      return (
+        <span key={idx} style={{ display: "block", marginBottom: line.trim() === "" ? "0.4rem" : "0.15rem" }} dangerouslySetInnerHTML={{ __html: formattedLine || "&nbsp;" }} />
+      );
+    });
+  };
+
   const generateFallbackResponse = (userQuestion) => {
     const q = userQuestion.toLowerCase();
-    if (q.includes("whatsapp") || q.includes("follow") || q.includes("draft")) {
-      return `📱 *ChatGPT Generated WhatsApp Template:*\n\n"Hi *[Client Name]*, Good afternoon! 🌟\n\nFollowing up on our conversation regarding *Kalpataru Vian, Andheri West*. We have released 2 high-floor 2BHK units with panoramic views & inaugural discount valid till Sunday!\n\nWould you be available for a quick site visit this Saturday at 11 AM or 4 PM?\n\nBest Regards,\n*${currentUser?.name || "Shyam Pandey"}*\n*Dream Homes Real Estate*"`;
+    
+    // WhatsApp Follow-ups
+    if (q.includes("whatsapp") || q.includes("follow") || q.includes("draft") || q.includes("template")) {
+      return `📱 **ChatGPT Generated WhatsApp Follow-Up Pitch:**\n\n"Hi **[Client Name]**, Hope you're doing well! 🌟\n\nFollowing up on our discussion regarding **Kalpataru Vian, Andheri West**. We have just unlocked 2 exclusive higher-floor 2 & 3 BHK inventory units with zero floor rise & modular kitchen inclusions!\n\nWould tomorrow at **11:30 AM** or **4:30 PM** work for a private VIP show flat visit?\n\nBest Regards,\n**${currentUser?.name || "Shyam Pandey"}**\n*Dream Homes Real Estate & Investment*\n📞 +91 9372721239"`;
     }
-    if (q.includes("price") || q.includes("high") || q.includes("expensive")) {
-      return `💡 *ChatGPT Sales Masterclass: Price Objection*\n\nWhen a buyer says the price is too high:\n1. Empathize: "I completely understand premium real estate is a major decision."\n2. Carpet Pivot: "Unbranded builders quote on super-built area (35% loading). Kalpataru quotes on net RERA carpet. You get 260 sq.ft. MORE actual living space!"\n3. Close: "Let's review the floor plan on-site tomorrow!"`;
+
+    // Price Objection
+    if (q.includes("price") || q.includes("cost") || q.includes("high") || q.includes("expensive") || q.includes("budget") || q.includes("rate")) {
+      return `💡 **ChatGPT Sales Masterclass: Handling Price Objections**\n\nWhen a buyer says *"Price is too high"*:\n\n1. **Acknowledge & Validate**: *"I completely agree price is a critical decision factor for your family."*\n2. **RERA Carpet Usability**: *"Local standalone builders quote ₹28,000/sq.ft on super-built up with 38% dead area. Kalpataru gives you 100% usable RERA carpet (820 sq.ft) with zero wastage."*\n3. **Appreciation & Rental Yield**: *"With the new Metro 2A & JVLR connector, properties here are clocking 12.8% annual capital growth."*\n4. **Urgency Close**: *"Let me arrange a private consultation with the developer director on Saturday. 11 AM or 3 PM?"*`;
     }
-    return `🤖 *ChatGPT Real Estate Copilot:* Regarding *"${userQuestion}"*: In current Mumbai suburban markets (Andheri West & Lokhandwala), buyers prioritize RERA timeline credibility and carpet usability. Always use **Alternative Choice Closing** ("Saturday 11 AM or 4 PM?") to double site visit conversions!`;
+
+    // Kalpataru Vian Pitch
+    if (q.includes("kalpataru") || q.includes("vian") || q.includes("andheri") || q.includes("pitch")) {
+      return `🏢 **Kalpataru Vian (Andheri West) — 60-Second Winning Pitch:**\n\n• **Location**: Prime D.N. Nagar / Link Road, 2 mins from Metro Line 2A.\n• **Configuration**: 2, 3 & 4 BHK Luxury Residences (780 - 1,450 sq.ft carpet).\n• **Price Range**: Starting ₹2.15 Cr to ₹3.80 Cr (Special Pre-Launch Payment Plans: 20:80 Available).\n• **Highlights**: 50+ Lifestyle Club Amenities, Olympic size pool, sky lounge, and possession scheduled for Dec 2026.\n\n🎯 **Closing Hook**: *"Sir, only 4 units remain in the East-facing tower. Shall I book your priority site token for this weekend?"*`;
+    }
+
+    // Cold Calling Script
+    if (q.includes("cold") || q.includes("script") || q.includes("opening") || q.includes("call")) {
+      return `📝 **ChatGPT 3-Step Cold Calling Script (High Conversion):**\n\n1. **Pattern Interrupt (0-10s)**: *"Hi [Name], this is Shyam from Dream Homes Mumbai. I know I am catching you in the middle of your day, do you have 30 seconds?"*\n2. **Value Hook (10-30s)**: *"The reason for my call is we've launched pre-booking for premium RERA-approved 2 & 3 BHKs near Link Road with zero stamp duty."*\n3. **Soft Qualifying Question**: *"Are you looking for an investment or your personal residence in Western Suburbs?"*`;
+    }
+
+    // Default Smart Real Estate Copilot Intelligence
+    return `🤖 **ChatGPT Real Estate Sales Copilot:**\n\nRegarding **"${userQuestion}"**:\n\nIn current Mumbai real estate markets, successful closures rely on **Alternative Choice Closing** (giving clients two timeslots instead of asking open-ended questions) and **Proof of ROI/Appreciation**.\n\n💡 **Recommended Action**: Send a high-res brochure on WhatsApp immediately after your call, followed by a voice note confirming the site visit date!`;
   };
 
   const handleSend = async (textToSend = null) => {
@@ -256,12 +285,11 @@ export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
                     borderRadius: msg.sender === "user" ? "1.25rem 1.25rem 0.2rem 1.25rem" : "1.25rem 1.25rem 1.25rem 0.2rem",
                     fontSize: "0.85rem",
                     lineHeight: "1.5",
-                    whiteSpace: "pre-wrap",
                     boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                     border: msg.sender === "ai" ? "1px solid #334155" : "none"
                   }}
                 >
-                  {msg.text}
+                  {msg.sender === "ai" ? renderFormattedText(msg.text) : msg.text}
                 </div>
 
                 {msg.sender === "user" && (
