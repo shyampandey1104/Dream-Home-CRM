@@ -48,7 +48,19 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
   ];
 
   const activeCategoryObj = metricCategories.find(c => c.id === activeMetricFilter) || metricCategories[1];
-  const activeDisplayLeads = activeCategoryObj.leads || [];
+  let activeDisplayLeads = (activeCategoryObj.leads || []).filter(l => {
+    if (priorityFilter && l.priority !== priorityFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const matchName = (l.name || l.lead_name || "").toLowerCase().includes(q);
+      const matchPhone = (l.phone || "").includes(q);
+      const matchLoc = (l.location || "").toLowerCase().includes(q);
+      const matchBhk = (l.bhkType || l.bhk_type || "").toLowerCase().includes(q);
+      const matchNotes = (l.notes || "").toLowerCase().includes(q);
+      return matchName || matchPhone || matchLoc || matchBhk || matchNotes;
+    }
+    return true;
+  });
 
   return (
     <div className="view-container">
@@ -310,16 +322,16 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
         <div className="chart-card">
           <div className="chart-title-row">
             <span className="chart-title">🌀 Monthly Call Target</span>
-            <span className="chart-target-value">{metrics.mtdCallsMade} / {metrics.mtdCallsTarget}</span>
+            <span className="chart-target-value">{displayCallsCount} / {metrics?.mtdCallsTarget || 80}</span>
           </div>
           <div className="progress-bar-track">
             <div
               className="progress-bar-fill"
-              style={{ width: `${Math.min(100, (metrics.mtdCallsMade / metrics.mtdCallsTarget) * 100)}%` }}
+              style={{ width: `${Math.min(100, Math.round((displayCallsCount / (metrics?.mtdCallsTarget || 80)) * 100))}%` }}
             ></div>
           </div>
           <div className="progress-labels">
-            <span>100% Achieved</span>
+            <span>{Math.round((displayCallsCount / (metrics?.mtdCallsTarget || 80)) * 100)}% Achieved</span>
             <span>Projected: 100%</span>
           </div>
         </div>
@@ -336,7 +348,7 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
           <div className="mom-bar-chart">
             <div className="bar-group">
               <div className="bars-pair">
-                <div className="bar this-month" style={{ height: "110px" }} title="Calls: 156"></div>
+                <div className="bar this-month" style={{ height: `${Math.min(120, Math.max(30, displayCallsCount * 0.6))}px` }} title={`Calls: ${displayCallsCount}`}></div>
                 <div className="bar last-month" style={{ height: "90px" }} title="Last Month: 120"></div>
               </div>
               <span className="bar-label">Calls</span>
@@ -344,24 +356,24 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
 
             <div className="bar-group">
               <div className="bars-pair">
-                <div className="bar this-month" style={{ height: "45px" }}></div>
-                <div className="bar last-month" style={{ height: "30px" }}></div>
+                <div className="bar this-month" style={{ height: `${Math.min(120, Math.max(20, displayHotLeads * 3))}px` }} title={`Hot Leads: ${displayHotLeads}`}></div>
+                <div className="bar last-month" style={{ height: "30px" }} title="Last Month: 14"></div>
               </div>
               <span className="bar-label">Hot Leads</span>
             </div>
 
             <div className="bar-group">
               <div className="bars-pair">
-                <div className="bar this-month" style={{ height: "35px" }}></div>
-                <div className="bar last-month" style={{ height: "25px" }}></div>
+                <div className="bar this-month" style={{ height: `${Math.min(120, Math.max(20, displayVisits * 4))}px` }} title={`Visits: ${displayVisits}`}></div>
+                <div className="bar last-month" style={{ height: "25px" }} title="Last Month: 9"></div>
               </div>
               <span className="bar-label">Visits</span>
             </div>
 
             <div className="bar-group">
               <div className="bars-pair">
-                <div className="bar this-month" style={{ height: "25px" }}></div>
-                <div className="bar last-month" style={{ height: "15px" }}></div>
+                <div className="bar this-month" style={{ height: `${Math.min(120, Math.max(20, closedCount * 6))}px` }} title={`Conversions: ${closedCount}`}></div>
+                <div className="bar last-month" style={{ height: "15px" }} title="Last Month: 5"></div>
               </div>
               <span className="bar-label">Conversions</span>
             </div>
