@@ -310,10 +310,15 @@ export default function App() {
     setLeads(updatedLeads);
     saveStoredLeads(updatedLeads);
 
+    const isWon = outcome === "Deal Closed (Won)";
     const newMetrics = {
       ...metrics,
-      mtdCallsMade: metrics.mtdCallsMade + 1,
-      followupsDone: followupDate ? metrics.followupsDone + 1 : metrics.followupsDone
+      mtdCallsMade: (metrics.mtdCallsMade || 186) + 1,
+      followupsDone: followupDate ? (metrics.followupsDone || 46) + 1 : (metrics.followupsDone || 46),
+      visitsBooked: outcome.includes("Visit") ? (metrics.visitsBooked || 12) + 1 : (metrics.visitsBooked || 12),
+      hotLeadsPassed: (outcome.includes("Interested") || outcome.includes("Hot")) ? (metrics.hotLeadsPassed || 18) + 1 : (metrics.hotLeadsPassed || 18),
+      conversionsCount: isWon ? (metrics.conversionsCount || 8) + 1 : (metrics.conversionsCount || 8),
+      conversionsAmount: isWon ? `₹${((metrics.conversionsCount || 8) + 1) * 30 + 35}K` : (metrics.conversionsAmount || "₹245K")
     };
     setMetrics(newMetrics);
     saveStoredMetrics(newMetrics);
