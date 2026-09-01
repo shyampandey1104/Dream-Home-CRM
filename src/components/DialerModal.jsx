@@ -34,7 +34,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     return now.toISOString().slice(0, 16);
   };
 
-  const [outcome, setOutcome] = useState("Connected");
+  const [outcome, setOutcome] = useState("Interested");
   const [bhkType, setBhkType] = useState(lead?.bhkType || "2 BHK");
   const [notes, setNotes] = useState(lead?.notes || "");
   const [followupDate, setFollowupDate] = useState(getCurrentLocalDateTime());
@@ -294,12 +294,12 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
   if (!lead) return null;
 
   const dispositionOptions = [
-    { label: "Connected", icon: "📞", desc: "Customer spoke & discussed" },
-    { label: "Scheduled Site Visit", icon: "📅", desc: "Site visit confirmed" },
-    { label: "Deal Closed (Won)", icon: "🎉", desc: "Booking / Token received" },
-    { label: "Busy / Line Busy", icon: "⏳", desc: "Call waiting or disconnected" },
-    { label: "Left Voicemail", icon: "✉️", desc: "Message left on WhatsApp" },
-    { label: "Not Interested", icon: "❌", desc: "Budget or location mismatch" }
+    { label: "Interested", icon: "🔥", desc: "Customer interested & engaged" },
+    { label: "Switch Off", icon: "📵", desc: "Mobile unreachable / switched off" },
+    { label: "Hung Up", icon: "📴", desc: "Call disconnected / hung up" },
+    { label: "Callback", icon: "📞", desc: "Customer requested callback" },
+    { label: "Not Interested", icon: "❌", desc: "Budget or location mismatch" },
+    { label: "Follow Ups", icon: "⏰", desc: "Scheduled follow-up" }
   ];
 
   return (
