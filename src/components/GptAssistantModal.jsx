@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { X, Send, Sparkles, Copy, Check, Bot, User, RefreshCw, MessageSquare, Volume2, Mic, Zap } from "lucide-react";
+import { X, Send, Sparkles, Copy, Check, Bot, User, RefreshCw, MessageSquare, Volume2, Mic, Zap, Key, Settings, ExternalLink } from "lucide-react";
 import { askChatGptCopilot } from "../services/apiService";
 
 export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
@@ -7,7 +7,7 @@ export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
     {
       id: 1,
       sender: "ai",
-      text: `Hello ${currentUser?.name || "Shyam"}! 👋 I am your **ChatGPT AI Sales Copilot**. \n\nHow can I assist you today? Select a persona or quick prompt below or ask me any question!`,
+      text: `Hello ${currentUser?.name || "Shyam"}! 👋 I am your **ChatGPT AI Sales Copilot** (GPT-4o Real Estate Integration).\n\nAsk me anything: customized pitch scripts, handling objections, property brochures, WhatsApp templates, or market trends!`,
       time: "Just now"
     }
   ]);
@@ -17,6 +17,9 @@ export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
   const [selectedPersona, setSelectedPersona] = useState("Sales Advisor");
   const [isListening, setIsListening] = useState(false);
   const [alertConfig, setAlertConfig] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem("openai_api_key") || "");
+  const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem("openai_model") || "gpt-4o-mini");
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -71,13 +74,52 @@ export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
     if (!rawText) return "";
     const lines = rawText.split("\n");
     return lines.map((line, idx) => {
-      // Bold rendering
       let formattedLine = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       formattedLine = formattedLine.replace(/\*(.*?)\*/g, '<em>$1</em>');
       return (
         <span key={idx} style={{ display: "block", marginBottom: line.trim() === "" ? "0.4rem" : "0.15rem" }} dangerouslySetInnerHTML={{ __html: formattedLine || "&nbsp;" }} />
       );
     });
+  };
+
+  // Direct Live OpenAI API Call
+  const callOpenAiDirect = async (query) => {
+    if (!apiKey.trim()) return null;
+
+    const systemPrompt = `You are Dream Homes AI Sales Copilot, an expert Indian Real Estate Telecalling & Sales Advisor assistant for ${currentUser?.name || "Shyam Pandey"} at Dream Homes Real Estate (Mumbai).
+You help telecallers pitch luxury properties (like Kalpataru Vian Andheri, Godrej Horizon Wadala, Oberoi Sky City, etc.), handle client objections, calculate ROI, and draft conversion-optimized WhatsApp messages.
+Keep answers sharp, professional, persuasive, and structured with bold highlights and bullet points.`;
+
+    const conversationHistory = messages.slice(-4).map(m => ({
+      role: m.sender === "user" ? "user" : "assistant",
+      content: m.text
+    }));
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey.trim()}`
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...conversationHistory,
+          { role: "user", content: query }
+        ],
+        temperature: 0.7,
+        max_tokens: 600
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || "OpenAI API Error");
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content;
   };
 
   const generateFallbackResponse = (userQuestion) => {
@@ -123,8 +165,26 @@ export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
     setIsTyping(true);
 
     try {
-      const apiReply = await askChatGptCopilot(query, selectedPersona, currentUser?.name || "Shyam");
-      const replyText = apiReply || generateFallbackResponse(query);
+      let replyText = null;
+
+      // 1. Try Direct OpenAI API if API Key is set
+      if (apiKey.trim()) {
+        try {
+          replyText = await callOpenAiDirect(query);
+        } catch (apiErr) {
+          console.log("[OpenAI API Error]", apiErr);
+        }
+      }
+
+      // 2. Try Frappe/Backend Copilot API
+      if (!replyText) {
+        replyText = await askChatGptCopilot(query, selectedPersona, currentUser?.name || "Shyam");
+      }
+
+      // 3. Built-in Sales Expert Fallback
+      if (!replyText) {
+        replyText = generateFallbackResponse(query);
+      }
       
       const aiMsg = {
         id: Date.now() + 1,
@@ -220,7 +280,28 @@ export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              style={{
+                background: apiKey.trim() ? "#065f46" : "#334155",
+                border: "1px solid " + (apiKey.trim() ? "#10b981" : "#475569"),
+                color: apiKey.trim() ? "#34d399" : "#cbd5e1",
+                borderRadius: "0.4rem",
+                padding: "0.35rem 0.5rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                fontSize: "0.6875rem",
+                fontWeight: 700
+              }}
+              title="OpenAI API Integration Settings"
+            >
+              <Key size={13} />
+              <span>{apiKey.trim() ? "Connected" : "API Key"}</span>
+            </button>
+
             <button
               onClick={() => setMessages([{ id: 1, sender: "ai", text: `Chat cleared. Ask me anything!`, time: "Just now" }])}
               style={{ background: "#334155", border: "none", color: "#cbd5e1", borderRadius: "0.4rem", padding: "0.35rem", cursor: "pointer" }}
@@ -233,6 +314,80 @@ export default function GptAssistantModal({ isOpen, onClose, currentUser }) {
             </button>
           </div>
         </div>
+
+        {/* OpenAI API Key Settings Drawer */}
+        {showSettings && (
+          <div style={{ background: "#1e293b", padding: "0.85rem 1rem", borderBottom: "1px solid #334155" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+              <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#f8fafc", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                <Key size={14} color="#10b981" /> Direct OpenAI API Integration
+              </span>
+              <span style={{ fontSize: "0.6875rem", color: "#10b981" }}>Live Official GPT-4o</span>
+            </div>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <input
+                type="password"
+                placeholder="sk-proj-... (Paste OpenAI API Key)"
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  localStorage.setItem("openai_api_key", e.target.value);
+                }}
+                style={{
+                  width: "100%",
+                  background: "#0f172a",
+                  border: "1px solid #475569",
+                  borderRadius: "0.5rem",
+                  padding: "0.45rem 0.65rem",
+                  color: "#ffffff",
+                  fontSize: "0.75rem",
+                  fontFamily: "monospace"
+                }}
+              />
+              
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => {
+                    setSelectedModel(e.target.value);
+                    localStorage.setItem("openai_model", e.target.value);
+                  }}
+                  style={{
+                    flex: 1,
+                    background: "#0f172a",
+                    border: "1px solid #475569",
+                    borderRadius: "0.5rem",
+                    padding: "0.4rem 0.6rem",
+                    color: "#ffffff",
+                    fontSize: "0.75rem"
+                  }}
+                >
+                  <option value="gpt-4o-mini">GPT-4o Mini (Fast & Cost Efficient)</option>
+                  <option value="gpt-4o">GPT-4o (Most Intelligent & Creative)</option>
+                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                </select>
+
+                <button
+                  onClick={() => setShowSettings(false)}
+                  style={{
+                    background: "#10b981",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "0.5rem",
+                    padding: "0.4rem 0.85rem",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Action Prompt Chips */}
         <div style={{ padding: "0.65rem 1rem", background: "#1e293b", borderBottom: "1px solid #334155", display: "flex", gap: "0.5rem", overflowX: "auto", scrollbarWidth: "none" }}>
