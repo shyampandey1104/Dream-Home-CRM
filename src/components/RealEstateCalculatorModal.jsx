@@ -1,9 +1,18 @@
 import React, { useState } from "react";
-import { X, Calculator, Percent, Building2, Home, Share2, Copy, CheckCircle2, HelpCircle } from "lucide-react";
+import { X, Calculator, Percent, Building2, Home, Share2, Copy, CheckCircle2, HelpCircle, DollarSign, Briefcase, Store } from "lucide-react";
 
 export default function RealEstateCalculatorModal({ isOpen, onClose }) {
-  const [activeTab, setActiveTab] = useState("emi"); // 'emi' | 'stamp' | 'area' | 'yield'
+  const [activeTab, setActiveTab] = useState("sqft_rate"); // 'sqft_rate' | 'emi' | 'stamp' | 'area' | 'yield'
   const [copiedText, setCopiedText] = useState(false);
+
+  // 0. Rate per Sq.Ft Valuation States (Residential Room / Office / Commercial Shop)
+  const [propertyCategory, setPropertyCategory] = useState("Residential Room / Flat"); // 'Residential Room / Flat' | 'Commercial Office' | 'Retail Shop / Showroom'
+  const [ratePerSqft, setRatePerSqft] = useState(20000); // ₹ 20,000 / sq.ft.
+  const [areaSizeSqft, setAreaSizeSqft] = useState(350); // 350 sq.ft.
+  const [extraCarParking, setExtraCarParking] = useState(500000); // ₹ 5 Lakhs
+  const [floorRisePerSqft, setFloorRisePerSqft] = useState(100); // ₹ 100 / sq.ft.
+  const [floorNumber, setFloorNumber] = useState(5); // 5th floor
+  const [includeGstTaxes, setIncludeGstTaxes] = useState(true); // GST (5% / 12%) + Stamp (6%)
 
   // 1. Home Loan EMI Calculator States
   const [propertyPrice, setPropertyPrice] = useState(10000000); // ₹ 1 Cr
@@ -26,6 +35,17 @@ export default function RealEstateCalculatorModal({ isOpen, onClose }) {
   const [annualMaintenance, setAnnualMaintenance] = useState(48000); // ₹ 48,000 / yr
 
   if (!isOpen) return null;
+
+  // --- RATE PER SQ.FT VALUATION CALCULATIONS ---
+  const basePropertyCost = ratePerSqft * areaSizeSqft; // e.g. 20,000 * 350 = ₹70,00,000 (70 Lakhs)
+  const floorRiseCost = (floorNumber * floorRisePerSqft) * areaSizeSqft;
+  const agreementValue = basePropertyCost + floorRiseCost + extraCarParking;
+  
+  // Tax estimations (GST: Residential 5%, Commercial 12%, Stamp & Reg ~6%)
+  const gstRate = propertyCategory.includes("Residential") ? 0.05 : 0.12;
+  const estimatedGst = includeGstTaxes ? Math.round(agreementValue * gstRate) : 0;
+  const estimatedStampReg = includeGstTaxes ? Math.round(agreementValue * 0.06 + 30000) : 0;
+  const allInclusiveTotalVal = agreementValue + estimatedGst + estimatedStampReg;
 
   // --- EMI CALCULATIONS ---
   const loanAmount = Math.max(0, propertyPrice * (1 - downPaymentPct / 100));
@@ -70,7 +90,9 @@ export default function RealEstateCalculatorModal({ isOpen, onClose }) {
 
   const handleShareResult = () => {
     let summaryText = "";
-    if (activeTab === "emi") {
+    if (activeTab === "sqft_rate") {
+      summaryText = `💰 *Property Rate per Sq.Ft Valuation (${propertyCategory})*\n• Rate: ₹${ratePerSqft.toLocaleString("en-IN")}/sq.ft\n• Area: ${areaSizeSqft} sq.ft\n• Base Cost (${ratePerSqft} × ${areaSizeSqft}): ${formatINR(basePropertyCost)}\n• Agreement Value (incl Parking & Floor Rise): ${formatINR(agreementValue)}\n• All-Inclusive Total (incl GST & Stamp Duty): ${formatINR(allInclusiveTotalVal)}`;
+    } else if (activeTab === "emi") {
       summaryText = `🏠 *Real Estate EMI Calculation summary*\n• Property Price: ${formatINR(propertyPrice)}\n• Loan Amount: ${formatINR(loanAmount)}\n• Monthly EMI: ${formatINR(emi)}\n• Total Interest: ${formatINR(totalInterest)}\n• Tenure: ${tenureYears} Years @ ${interestRate}% p.a.`;
     } else if (activeTab === "stamp") {
       summaryText = `🏛️ *Stamp Duty & Registration (Mumbai/MH)*\n• Property Cost: ${formatINR(stampPropertyCost)}\n• Stamp Duty (${stampDutyPct}%): ${formatINR(stampDutyAmount)}\n• Registration Fee: ${formatINR(registrationFee)}\n• Total Cost: ${formatINR(totalAcquisitionCost)}`;
@@ -172,6 +194,7 @@ export default function RealEstateCalculatorModal({ isOpen, onClose }) {
         {/* Sub-Tabs Pill Navigation */}
         <div style={{ display: "flex", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", padding: "0.6rem 0.75rem", gap: "0.35rem", overflowX: "auto", scrollbarWidth: "none" }}>
           {[
+            { id: "sqft_rate", label: "₹/Sq.Ft Rate", icon: <DollarSign size={14} color="#059669" /> },
             { id: "emi", label: "Home Loan EMI", icon: <Home size={14} color="#2563eb" /> },
             { id: "stamp", label: "Stamp Duty", icon: <Building2 size={14} color="#d97706" /> },
             { id: "area", label: "Carpet Area", icon: <Percent size={14} color="#16a34a" /> },
@@ -205,6 +228,176 @@ export default function RealEstateCalculatorModal({ isOpen, onClose }) {
         {/* Calculator Body */}
         <div style={{ padding: "1.1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
           
+          {/* TAB 0: RATE PER SQ.FT VALUATION CALCULATOR (Residential Room / Office / Commercial) */}
+          {activeTab === "sqft_rate" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {/* Valuation Result Summary Card */}
+              <div style={{ background: "linear-gradient(135deg, #064e3b 0%, #0f172a 100%)", borderRadius: "1rem", padding: "1rem", color: "#ffffff", textAlign: "center", boxShadow: "0 8px 20px rgba(6,78,59,0.3)" }}>
+                <div style={{ fontSize: "0.75rem", color: "#6ee7b7", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  {propertyCategory} Valuation
+                </div>
+                <div style={{ fontSize: "1.65rem", fontWeight: 900, color: "#34d399", margin: "0.25rem 0" }}>
+                  {formatINR(basePropertyCost)}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "#a7f3d0" }}>
+                  ₹{ratePerSqft.toLocaleString("en-IN")}/sq.ft × {areaSizeSqft} sq.ft
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.15)", fontSize: "0.75rem" }}>
+                  <div>
+                    <span style={{ color: "#94a3b8", display: "block" }}>Agreement Value</span>
+                    <strong style={{ color: "#ffffff" }}>{formatINR(agreementValue)}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#94a3b8", display: "block" }}>All-Inclusive Total</span>
+                    <strong style={{ color: "#fde047" }}>{formatINR(allInclusiveTotalVal)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Selector */}
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.35rem" }}>
+                  Property Type
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.35rem" }}>
+                  {[
+                    { label: "Residential Room", icon: <Home size={12} /> },
+                    { label: "Commercial Office", icon: <Briefcase size={12} /> },
+                    { label: "Retail Shop", icon: <Store size={12} /> }
+                  ].map(cat => (
+                    <button
+                      key={cat.label}
+                      type="button"
+                      onClick={() => setPropertyCategory(cat.label)}
+                      style={{
+                        padding: "0.45rem 0.25rem",
+                        borderRadius: "0.5rem",
+                        border: propertyCategory === cat.label ? "2px solid #059669" : "1px solid #cbd5e1",
+                        background: propertyCategory === cat.label ? "#ecfdf5" : "#ffffff",
+                        color: propertyCategory === cat.label ? "#059669" : "#475569",
+                        fontWeight: 700,
+                        fontSize: "0.6875rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.2rem"
+                      }}
+                    >
+                      {cat.icon} {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rate & Area Size Inputs */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    Rate per Sq.Ft (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="500"
+                    className="modern-search-input"
+                    value={ratePerSqft}
+                    onChange={e => setRatePerSqft(Number(e.target.value))}
+                    style={{ fontSize: "0.875rem", fontWeight: 800, color: "#059669", width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+                  />
+                  <span style={{ fontSize: "0.6875rem", color: "#64748b", marginTop: "0.15rem", display: "block" }}>e.g. 20,000/sq.ft</span>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    Room / Area (Sq.Ft)
+                  </label>
+                  <input
+                    type="number"
+                    step="25"
+                    className="modern-search-input"
+                    value={areaSizeSqft}
+                    onChange={e => setAreaSizeSqft(Number(e.target.value))}
+                    style={{ fontSize: "0.875rem", fontWeight: 800, color: "#2563eb", width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+                  />
+                  <span style={{ fontSize: "0.6875rem", color: "#64748b", marginTop: "0.15rem", display: "block" }}>e.g. 350 sq.ft</span>
+                </div>
+              </div>
+
+              {/* Quick Area Size Presets */}
+              <div>
+                <label style={{ fontSize: "0.71875rem", fontWeight: 700, color: "#64748b", display: "block", marginBottom: "0.25rem" }}>
+                  Quick Room / Office Sizes
+                </label>
+                <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+                  {[250, 350, 450, 650, 850, 1200].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setAreaSizeSqft(s)}
+                      style={{
+                        padding: "0.25rem 0.5rem",
+                        borderRadius: "0.375rem",
+                        border: areaSizeSqft === s ? "1px solid #059669" : "1px solid #e2e8f0",
+                        background: areaSizeSqft === s ? "#059669" : "#f1f5f9",
+                        color: areaSizeSqft === s ? "#ffffff" : "#334155",
+                        fontSize: "0.6875rem",
+                        fontWeight: 700,
+                        cursor: "pointer"
+                      }}
+                    >
+                      {s} sq.ft
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Car Parking & Floor Rise */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    Car Parking Cost (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="50000"
+                    className="modern-search-input"
+                    value={extraCarParking}
+                    onChange={e => setExtraCarParking(Number(e.target.value))}
+                    style={{ width: "100%", padding: "0.45rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1", fontSize: "0.8125rem" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    Floor Level
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    className="modern-search-input"
+                    value={floorNumber}
+                    onChange={e => setFloorNumber(Number(e.target.value))}
+                    style={{ width: "100%", padding: "0.45rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1", fontSize: "0.8125rem" }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#f8fafc", padding: "0.5rem 0.75rem", borderRadius: "0.5rem", border: "1px solid #e2e8f0" }}>
+                <input
+                  type="checkbox"
+                  id="includeTaxes"
+                  checked={includeGstTaxes}
+                  onChange={e => setIncludeGstTaxes(e.target.checked)}
+                  style={{ accentColor: "#059669", width: "16px", height: "16px" }}
+                />
+                <label htmlFor="includeTaxes" style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", cursor: "pointer" }}>
+                  Estimate GST ({propertyCategory.includes("Residential") ? "5%" : "12%"}) + Stamp Duty & Registration (~6%)
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: HOME LOAN EMI CALCULATOR */}
           {activeTab === "emi" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
