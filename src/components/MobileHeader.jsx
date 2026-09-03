@@ -1,7 +1,7 @@
 import React from "react";
 import { Phone, Bell, Zap, Menu } from "lucide-react";
 
-export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifications, userProfile, onOpenProfile, onOpenSidebar, onOpenIntegrations, orgProfile }) {
+export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifications, userProfile, onOpenProfile, onOpenSidebar, onOpenIntegrations, orgProfile, onSimulateInbound }) {
   const companyName = orgProfile?.company_name || "Dream Homes";
   const userInitials = (userProfile?.name || "Shyam Pandey").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -94,6 +94,30 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
           <Phone size={13} fill="#ffffff" />
           <span>Call</span>
         </button>
+
+        {/* Test Inbound Call Button */}
+        {onSimulateInbound && (
+          <button
+            onClick={onSimulateInbound}
+            title="Simulate Inbound Call from Direct Client"
+            style={{
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#2563eb",
+              padding: "0.35rem 0.45rem",
+              borderRadius: "0.5rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.2rem",
+              fontSize: "0.6875rem",
+              fontWeight: 800,
+              cursor: "pointer"
+            }}
+          >
+            <Zap size={13} fill="#2563eb" />
+            <span>Incoming</span>
+          </button>
+        )}
 
         {/* Notifications Bell */}
         <button

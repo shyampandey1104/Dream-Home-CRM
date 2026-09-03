@@ -802,6 +802,7 @@ export default function App() {
           onOpenSidebar={() => setShowSidebar(true)}
           onOpenIntegrations={() => setShowIntegrationsModal(true)}
           onOpenInstallApp={() => setShowInstallModal(true)}
+          onSimulateInbound={simulateSocialInboundLead}
           orgProfile={orgProfile}
         />
 
