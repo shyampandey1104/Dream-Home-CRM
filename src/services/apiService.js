@@ -62,23 +62,23 @@ export const fetchCrmLeads = async (userEmail = null) => {
   try {
     const customHeaders = { "Bypass-Tunnel-Reminder": "true", "ngrok-skip-browser-warning": "69420" };
     const url = userEmail ? `${FRAPPE_API_URL}.get_leads?user_email=${encodeURIComponent(userEmail)}` : `${FRAPPE_API_URL}.get_leads`;
-    let res = await fetch(url, { headers: customHeaders });
-    if (!res.ok) {
-      const directUrl = userEmail ? `${FRAPPE_DIRECT_URL}.get_leads?user_email=${encodeURIComponent(userEmail)}` : `${FRAPPE_DIRECT_URL}.get_leads`;
-      res = await fetch(directUrl, { headers: customHeaders });
-    }
-    if (res.ok) {
-      const text = await res.text();
-      try {
-        const json = JSON.parse(text);
-        if (json.message && json.message.data && json.message.data.length > 0) {
-          saveStoredLeads(json.message.data);
-          return json.message.data;
-        }
-      } catch (err) {}
+    
+    // 3-second fast controller timeout to prevent any network hang
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    let res = await fetch(url, { headers: customHeaders, signal: controller.signal }).catch(() => null);
+    clearTimeout(timeoutId);
+
+    if (res && res.ok) {
+      const json = await res.json().catch(() => null);
+      if (json && json.message && json.message.data && json.message.data.length > 0) {
+        saveStoredLeads(json.message.data);
+        return json.message.data;
+      }
     }
   } catch (e) {
-    console.log("[Frappe Leads Notice] Offline mode active.");
+    console.log("[Frappe Leads Notice] Fast cache mode active.");
   }
   return getStoredLeads();
 };

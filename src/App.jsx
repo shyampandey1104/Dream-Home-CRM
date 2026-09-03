@@ -86,9 +86,9 @@ export default function App() {
     localStorage.setItem("crm_active_tab", tab);
   };
 
-  const [leads, setLeads] = useState([]);
+  const [leads, setLeads] = useState(() => getStoredLeads());
   const [searchQuery, setSearchQuery] = useState("");
-  const [metrics, setMetrics] = useState({});
+  const [metrics, setMetrics] = useState(() => getStoredMetrics());
   const [isMobileView, setIsMobileView] = useState(false);
   const [isRealMobile, setIsRealMobile] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -167,7 +167,7 @@ export default function App() {
     };
 
     syncLiveData();
-    const pollInterval = setInterval(syncLiveData, 15000);
+    const pollInterval = setInterval(syncLiveData, 5000);
 
     fetchCrmMetrics().then((data) => {
       if (data) setMetrics(data);
