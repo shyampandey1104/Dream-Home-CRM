@@ -150,7 +150,7 @@ export const calculateCmaApi = async (locality, carpetArea) => {
 
 export const uploadPropertyApi = async (propertyData) => {
   try {
-    const res = await fetch(`${FRAPPE_API_URL}.save_property_inventory`, {
+    const res = await fetch(`${FRAPPE_API_URL}.save_property`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -161,7 +161,10 @@ export const uploadPropertyApi = async (propertyData) => {
         tag: propertyData.tag || "New Launch",
         bhk: propertyData.bhk,
         carpet: propertyData.carpet,
-        hero_img: propertyData.img || propertyData.image
+        img: propertyData.img || propertyData.image || propertyData.hero_img,
+        video_url: propertyData.videoUrl || propertyData.video_url,
+        brochure_file: propertyData.brochureFile || propertyData.brochure_file,
+        highlights: Array.isArray(propertyData.highlights) ? propertyData.highlights.join(", ") : propertyData.highlights
       })
     });
     if (res.ok) {
