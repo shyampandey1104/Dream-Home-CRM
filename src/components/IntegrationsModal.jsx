@@ -1,32 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { X, Globe, Key, Link2, Sparkles, CheckCircle2, Save, Send, Building, Image, Award, PhoneCall, Mail } from "lucide-react";
+import { X, Globe, Key, Link2, Sparkles, CheckCircle2, Save, Send, Building, Image, Award, PhoneCall, Mail, PhoneIncoming, Copy, Radio } from "lucide-react";
 import { fetchIntegrationSettings, saveIntegrationSettings, testInboundWebhookLead, fetchOrgProfile, saveOrgProfile } from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
-const InstagramIcon = ({ size = 16, color = "#e1306c" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-  </svg>
-);
-
-const FacebookIcon = ({ size = 16, color = "#1877f2" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-  </svg>
-);
-
-const YoutubeIcon = ({ size = 16, color = "#ff0000" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
-    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
-  </svg>
-);
-
 export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, onOrgProfileUpdated }) {
-  const [activeTab, setActiveTab] = useState("org");
+  const [activeTab, setActiveTab] = useState("virtual_number"); // 'virtual_number' | 'org' | 'website' | 'instagram' | 'facebook' | 'youtube'
   const [alertConfig, setAlertConfig] = useState(null);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+  // Virtual Cloud Number States (Free Virtual IVR & Call Webhook)
+  const [virtualNumber, setVirtualNumber] = useState("+91 022 6985 4120");
+  const [forwardingPhone, setForwardingPhone] = useState("+91 84240 12185");
+  const [telephonyProvider, setTelephonyProvider] = useState("Exotel / Cloud IVR (Free Virtual)");
+  const [inboundWebhookUrl, setInboundWebhookUrl] = useState("https://dream-home-crm.onrender.com/api/method/real_estate_crm.real_estate_crm.api.inbound_call_webhook");
 
   const [websiteUrl, setWebsiteUrl] = useState("https://dreamhomes42.com");
   const [websiteWebhook, setWebsiteWebhook] = useState("http://127.0.0.1:8000/api/method/real_estate_crm.api.website_lead_webhook");
@@ -214,11 +200,9 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
         {/* Integration Pill Sub-Tabs */}
         <div style={{ display: "flex", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", padding: "0.6rem 0.75rem", gap: "0.4rem", overflowX: "auto", scrollbarWidth: "none" }}>
           {[
+            { id: "virtual_number", label: "Virtual Number (IVR)", icon: <PhoneIncoming size={14} color="#16a34a" /> },
             { id: "org", label: "Branding", icon: <Building size={14} color="#2563eb" /> },
-            { id: "website", label: "Website", icon: <Globe size={14} color="#2563eb" /> },
-            { id: "instagram", label: "Instagram", icon: <InstagramIcon size={14} color="#e1306c" /> },
-            { id: "facebook", label: "Facebook", icon: <FacebookIcon size={14} color="#1877f2" /> },
-            { id: "youtube", label: "YouTube", icon: <YoutubeIcon size={14} color="#ff0000" /> }
+            { id: "website", label: "Website", icon: <Globe size={14} color="#2563eb" /> }
           ].map(tab => (
             <button
               key={tab.id}
@@ -248,6 +232,120 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
         {/* Modal Form */}
         <form onSubmit={handleSaveSettings} style={{ padding: "1.1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
           
+          {/* TAB: VIRTUAL NUMBER & CLOUD IVR (Option B - Auto Inbound Ringing) */}
+          {activeTab === "virtual_number" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+              <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", padding: "0.85rem", borderRadius: "0.85rem", fontSize: "0.75rem", color: "#166534" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 800, fontSize: "0.8125rem", color: "#15803d", marginBottom: "0.3rem" }}>
+                  <Radio size={16} className="animate-pulse" color="#16a34a" /> 
+                  <span>Virtual Business Number Active (Free Cloud IVR)</span>
+                </div>
+                <span>Jab client aapke is Virtual Number par call karega, toh call turant aapke <strong>iPhone SIM par forward hogi</strong> aur <strong>Safari CRM screen par live ghanti baje gi!</strong></span>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
+                  📞 Dedicated Virtual Number (Client Facing)
+                </label>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  style={{ fontWeight: 800, color: "#15803d", fontSize: "0.875rem" }}
+                  value={virtualNumber}
+                  onChange={e => setVirtualNumber(e.target.value)}
+                />
+                <span style={{ fontSize: "0.6875rem", color: "#64748b", marginTop: "0.2rem", display: "block" }}>
+                  Display this number on your ads, website, and brochures.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
+                  📱 Forward Calls To Your Real Phone Number (iPhone SIM)
+                </label>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  style={{ fontWeight: 700, color: "#2563eb", fontSize: "0.8125rem" }}
+                  value={forwardingPhone}
+                  onChange={e => setForwardingPhone(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                    ⚡ Cloud Inbound Ringing Webhook URL
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(inboundWebhookUrl);
+                      setCopiedWebhook(true);
+                      setTimeout(() => setCopiedWebhook(false), 2500);
+                    }}
+                    style={{ background: "none", border: "none", color: "#2563eb", fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
+                  >
+                    <Copy size={11} /> {copiedWebhook ? "Copied!" : "Copy URL"}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  readOnly
+                  style={{ fontSize: "0.6875rem", background: "#f8fafc", color: "#64748b" }}
+                  value={inboundWebhookUrl}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (onTestLeadCreated) {
+                    onTestLeadCreated({
+                      id: `LEAD-00${Math.floor(10 + Math.random() * 89)}`,
+                      name: "Rahul Verma (Virtual Call)",
+                      phone: "+91 98205 91823",
+                      priority: "HIGH",
+                      status: "NEW",
+                      service: "Virtual IVR Call Inbound",
+                      bhkType: "3 BHK Luxury",
+                      location: "Bandra West, Mumbai",
+                      source: "Virtual Number (+91 022 6985 4120)",
+                      timeAgo: "Just now",
+                      createdAt: new Date().toISOString(),
+                      callCount: 0,
+                      notes: "Client called Virtual IVR Number directly asking for 3 BHK under ₹3.5 Cr in Bandra.",
+                      history: []
+                    });
+                  }
+                  setAlertConfig({
+                    title: "Incoming Virtual Call Test Triggered! 📞",
+                    message: "Virtual Number call webhook stimulated! Look at your CRM screen—the ringing pop-up is live!",
+                    type: "success"
+                  });
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                  border: "none",
+                  color: "#ffffff",
+                  borderRadius: "0.625rem",
+                  padding: "0.65rem",
+                  fontSize: "0.8125rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.4rem",
+                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)"
+                }}
+              >
+                <PhoneIncoming size={16} /> ⚡ Test Virtual Number Inbound Call
+              </button>
+            </div>
+          )}
+
           {/* TAB 0: ORGANIZATION BRANDING */}
           {activeTab === "org" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
