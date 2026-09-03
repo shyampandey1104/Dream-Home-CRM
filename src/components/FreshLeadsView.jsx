@@ -7,7 +7,7 @@ import ImportLeadsModal from "./ImportLeadsModal";
 import { deleteLeadApi } from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
-export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLeadCreated, onLeadUpdated, onLeadDeleted, onLeadsImported }) {
+export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLeadCreated, onLeadUpdated, onLeadDeleted, onLeadsImported, showToast }) {
   const [dateFilter, setDateFilter] = useState("Today");
   const [sourceFilter, setSourceFilter] = useState("All Sources");
   const [serviceFilter, setServiceFilter] = useState("All Services");

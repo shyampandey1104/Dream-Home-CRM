@@ -5,7 +5,7 @@ import { exportLeadsToExcel } from "../utils/excelExport";
 import AddLeadModal from "./AddLeadModal";
 import { deleteLeadApi } from "../services/apiService";
 
-export default function FollowUpsView({ leads, onCallLead, onLeadUpdated, onLeadDeleted }) {
+export default function FollowUpsView({ leads, onCallLead, onLeadUpdated, onLeadDeleted, showToast }) {
   const [dateFilter, setDateFilter] = useState("Today");
   const [serviceFilter, setServiceFilter] = useState("All Services");
   const [bhkFilter, setBhkFilter] = useState("All BHK Types");
@@ -34,17 +34,20 @@ export default function FollowUpsView({ leads, onCallLead, onLeadUpdated, onLead
 
   const handleSaveLead = (savedLead) => {
     if (onLeadUpdated) onLeadUpdated(savedLead);
+    if (showToast) showToast(`✅ Follow-up lead '${savedLead.name}' updated successfully!`);
     setEditingLead(null);
   };
 
   const executeDelete = async () => {
     if (!leadToDelete) return;
     const targetId = leadToDelete.id;
+    const targetName = leadToDelete.name;
     setLeadToDelete(null);
     await deleteLeadApi(targetId);
     if (onLeadDeleted) {
       onLeadDeleted(targetId);
     }
+    if (showToast) showToast(`🗑️ Lead '${targetName}' deleted successfully!`);
   };
 
   return (
