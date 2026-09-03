@@ -561,7 +561,9 @@ export default function App() {
           <PropertiesView
             showToast={showToast}
             onShareProperty={(prop) => {
-              window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${prop.title} in ${prop.location}. Price: ${prop.priceRange}`)}`, '_blank');
+              const highlightsText = prop.highlights && Array.isArray(prop.highlights) ? prop.highlights.map(h => `✔️ ${h}`).join("\n") : "";
+              const fullPitch = `✨ *${prop.title}* – ${prop.location}\nBy *${prop.builder}*\n\n🏡 *Configurations:* ${prop.bhk}\n📐 *Carpet Area:* ${prop.carpet}\n💰 *Price:* ${prop.priceRange || prop.price}\n\n⭐ *Highlights:*\n${highlightsText}\n\n📞 Book your exclusive site visit today!\n*Dream Homes Real Estate*`;
+              window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(fullPitch)}`, '_blank');
               showToast(`📲 WhatsApp sharing link opened for '${prop.title}'!`);
             }}
           />

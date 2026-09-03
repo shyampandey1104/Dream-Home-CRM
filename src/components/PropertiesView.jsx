@@ -41,6 +41,24 @@ export default function PropertiesView({ onShareProperty, showToast }) {
       const saved = localStorage.getItem("crm_focus_projects");
       return saved ? JSON.parse(saved) : [
         {
+          id: "PROP-004",
+          title: "Srishti Oasis",
+          builder: "Srishti Group",
+          location: "Bhandup West, Mumbai (Direct GMLR Access)",
+          priceRange: "₹ 1.08 Cr - ₹ 2.26 Cr (All Inclusive)",
+          price: "₹ 1.08 Cr - ₹ 2.26 Cr",
+          tag: "Direct GMLR Access",
+          bhk: "1, 2 & 3 BHK Sun-Deck Homes",
+          carpet: "425 - 910 sq.ft",
+          highlights: [
+            "Mumbai's 1st Residential Project with Direct Access to GMLR",
+            "36-Storey Premium Residential Tower with Fully Modular Kitchen",
+            "50+ Lifestyle Amenities (40,000+ sq.ft Podium & 11,000+ sq.ft Sky Lounge)",
+            "12 Months Holiday EMI & Flexi Pay Plan (MahaRERA: P51800051004)"
+          ],
+          img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"
+        },
+        {
           id: "PROP-001",
           title: "Kalpataru Vian",
           builder: "Kalpataru Limited",

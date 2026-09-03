@@ -2,16 +2,17 @@ import React, { useState } from "react";
 import { Send, X, CheckCircle, MessageSquare } from "lucide-react";
 
 export default function WhatsAppReportModal({ lead, onClose }) {
-  const [reportType, setReportType] = useState("Kalpataru Vian Brochure & Pricing");
+  const [reportType, setReportType] = useState("Srishti Oasis – Bhandup (West)");
 
   const templates = {
-    "Kalpataru Vian Brochure & Pricing": `Hello ${lead?.name || 'Customer'},\nHere is the brochure & pricing detail for Kalpataru Vian (Andheri West).\n\n🏢 2 & 3 BHK Luxury Residences\n📐 780 - 1150 sq.ft. Carpet Area\n💰 Price: INR 2.15 Cr Onwards\n📍 Infinity Mall Connectivity\n\nPlease let us know if you would like to book a site visit cab!`,
-    "Purva Estrella Lokhandwala Brochure": `Hello ${lead?.name || 'Customer'},\nHere is the brochure & layout plan for Purva Estrella (Lokhandwala).\n\n🌟 3 & 4 BHK Ultra-Luxury Homes\n📐 1250 - 2200 sq.ft. Carpet Area\n💰 Price: INR 2.75 Cr - 7.75 Cr\n🏊 45,000 sq.ft. Landscaped Club House\n\nReply to this message for site visit booking!`,
-    "PDI Pre-Delivery Inspection Checklist": `Hello ${lead?.name || 'Customer'},\nHere is your inspection report sample & service plan for ${lead?.service || 'Real Estate Services'} in ${lead?.location || 'Mumbai'}.\n\n✅ Pre-Delivery Inspection (120+ checkpoints)\n✅ Thermal Seepage Check\n✅ Layout & Carpet Area Verification\n\nPlease let us know when our senior inspector can visit.`,
-    "Site Visit Confirmation & Location": `Hello ${lead?.name || 'Customer'},\nYour Site Visit is confirmed!\n\n📍 Venue: Sales Experience Center, ${lead?.location || 'Andheri West'}\n⏰ Time: Scheduled Today\n🚗 Pick & Drop Cab: Driver Details Shared\n\nSee you soon!`
+    "Srishti Oasis – Bhandup (West)": `Hello ${lead?.name || 'Customer'},\n\n✨ *Srishti Oasis – Bhandup (West)*\n*THE GMLR – Get More Life. Less Rush.*\n\nExperience premium living with 1, 2 & 3 BHK Sun-Deck Residences at Mumbai's 1st Residential Project with Direct Access to GMLR!\n\n🏡 *Configuration & Pricing (All Inclusive):*\n• *1 BHK*: 425 - 460 sq.ft – ₹1.08 Cr to ₹1.19 Cr\n• *2 BHK*: 620 - 660 sq.ft – ₹1.59 Cr to ₹1.73 Cr\n• *3 BHK*: 855 - 910 sq.ft – ₹2.04 Cr to ₹2.26 Cr\n\n⭐ *Project Highlights:*\n✔️ 36-Storey Premium Residential Tower\n✔️ Fully Modular Kitchen with every apartment\n✔️ 50+ Lifestyle Amenities (40,000+ sq.ft Podium & 11,000+ sq.ft Sky Lounge)\n✔️ 12 Months Holiday EMI & Flexi Pay Plan\n\n📍 *MahaRERA No.*: P51800051004\n\n📞 Book your exclusive site visit today!\n\n*Dream Homes Real Estate*\nSujit Rajak (Sourcing Manager): 8424908963`,
+    "Kalpataru Vian Brochure & Pricing": `Hello ${lead?.name || 'Customer'},\n\n🏢 *Kalpataru Vian (Andheri West)*\n\nHere is the brochure & pricing detail for Kalpataru Vian.\n\n• *Configuration*: 2 & 3 BHK Luxury Residences\n• *Carpet Area*: 780 - 1150 sq.ft.\n• *Price*: ₹2.15 Cr Onwards\n• *Location*: Prime Link Road / Metro Line 2A Connectivity\n\nPlease let us know if you would like to book a VIP site visit!`,
+    "Godrej Horizon Wadala Brochure": `Hello ${lead?.name || 'Customer'},\n\n🌟 *Godrej Horizon (Wadala Mumbai)*\n\n• *Configuration*: 2 & 3 BHK Sea View Homes\n• *Carpet Area*: 680 - 1050 sq.ft.\n• *Price*: ₹1.85 Cr - ₹3.20 Cr\n• *Highlights*: Private 5-Acre Parkland, 5 Mins from Eastern Freeway\n\nReply to this message to book your site visit!`,
+    "Oberoi Sky City Borivali East": `Hello ${lead?.name || 'Customer'},\n\n🌆 *Oberoi Sky City (Borivali East)*\n\n• *Configuration*: 3 & 4 BHK Ultra Luxury Residences\n• *Carpet Area*: 1050 - 1980 sq.ft.\n• *Price*: ₹3.40 Cr - ₹6.20 Cr\n• *Highlights*: Integrated 25-Acre Township on Western Express Highway\n\nReply to this message for site visit booking!`,
+    "Site Visit Confirmation & Location": `Hello ${lead?.name || 'Customer'},\n\nYour Site Visit is confirmed!\n\n📍 Venue: Sales Experience Center, ${lead?.location || 'Mumbai'}\n⏰ Time: Scheduled Today\n🚗 Pick & Drop Cab: Driver Details Shared\n\nSee you soon!`
   };
 
-  const [customMsg, setCustomMsg] = useState(templates["Kalpataru Vian Brochure & Pricing"]);
+  const [customMsg, setCustomMsg] = useState(templates["Srishti Oasis – Bhandup (West)"]);
 
   if (!lead) return null;
 
@@ -60,10 +61,9 @@ export default function WhatsAppReportModal({ lead, onClose }) {
               value={reportType}
               onChange={handleTemplateChange}
             >
-              <option>Kalpataru Vian Brochure & Pricing</option>
-              <option>Purva Estrella Lokhandwala Brochure</option>
-              <option>PDI Pre-Delivery Inspection Checklist</option>
-              <option>Site Visit Confirmation & Location</option>
+              {Object.keys(templates).map((key) => (
+                <option key={key} value={key}>{key}</option>
+              ))}
             </select>
           </div>
 
