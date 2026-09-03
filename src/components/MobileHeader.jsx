@@ -95,30 +95,6 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
           <span>Call</span>
         </button>
 
-        {/* Test Inbound Call Button */}
-        {onSimulateInbound && (
-          <button
-            onClick={onSimulateInbound}
-            title="Simulate Inbound Call from Direct Client"
-            style={{
-              background: "#eff6ff",
-              border: "1px solid #bfdbfe",
-              color: "#2563eb",
-              padding: "0.35rem 0.45rem",
-              borderRadius: "0.5rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.2rem",
-              fontSize: "0.6875rem",
-              fontWeight: 800,
-              cursor: "pointer"
-            }}
-          >
-            <Zap size={13} fill="#2563eb" />
-            <span>Incoming</span>
-          </button>
-        )}
-
         {/* Notifications Bell */}
         <button
           onClick={onOpenNotifications}
@@ -166,7 +142,8 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
             color: "#ffffff",
             border: "none",
             borderRadius: "9999px",
-            padding: "0.3rem 0.6rem",
+            width: "30px",
+            height: "30px",
             fontSize: "0.75rem",
             fontWeight: 800,
             cursor: "pointer",
