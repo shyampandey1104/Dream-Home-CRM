@@ -71,7 +71,7 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
       </div>
 
       {/* Right Action Group */}
-      <div className="mobile-header-right" style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexShrink: 0 }}>
+      <div className="mobile-header-right" style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
         {/* Quick Direct Call Button */}
         <button
           onClick={onDirectCall}
@@ -80,13 +80,13 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
             background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
             color: "#ffffff",
             border: "none",
-            padding: "0.35rem 0.65rem",
+            padding: "0.35rem 0.55rem",
             borderRadius: "0.5rem",
             fontSize: "0.75rem",
             fontWeight: 800,
             display: "flex",
             alignItems: "center",
-            gap: "0.3rem",
+            gap: "0.25rem",
             cursor: "pointer",
             boxShadow: "0 2px 6px rgba(22, 163, 74, 0.3)"
           }}
@@ -94,6 +94,30 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
           <Phone size={13} fill="#ffffff" />
           <span>Call</span>
         </button>
+
+        {/* Compact Inbound Test Icon Button */}
+        {onSimulateInbound && (
+          <button
+            onClick={onSimulateInbound}
+            title="Simulate Inbound Call from Direct Client"
+            style={{
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#2563eb",
+              width: "30px",
+              height: "30px",
+              borderRadius: "0.5rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 1px 3px rgba(37, 99, 235, 0.15)",
+              flexShrink: 0
+            }}
+          >
+            <Zap size={15} fill="#2563eb" color="#2563eb" />
+          </button>
+        )}
 
         {/* Notifications Bell */}
         <button
