@@ -1,7 +1,7 @@
 import React from "react";
 import { 
   X, User, Share2, Clock, MapPin, Sparkles, FileText, List, 
-  PlusCircle, Megaphone, Settings, ChevronRight, ShieldCheck, HelpCircle, Bot, Calculator, Smartphone
+  PlusCircle, Megaphone, Settings, ChevronRight, ShieldCheck, HelpCircle, Bot, Calculator, Smartphone, PhoneIncoming, Zap
 } from "lucide-react";
 
 export default function SidebarDrawer({ 
@@ -18,7 +18,8 @@ export default function SidebarDrawer({
   onOpenLocation,
   onOpenStories,
   onOpenCalculator,
-  onOpenInstallApp
+  onOpenInstallApp,
+  onSimulateInbound
 }) {
   if (!isOpen) return null;
 
@@ -125,6 +126,18 @@ export default function SidebarDrawer({
             Work Attendance
             <span style={{ marginLeft: "auto", fontSize: "0.7rem", color: "#16a34a", fontWeight: "700" }}>● Present</span>
           </button>
+
+          {onSimulateInbound && (
+            <button 
+              className="sidebar-menu-item" 
+              onClick={() => { onClose(); onSimulateInbound(); }}
+              style={{ background: "#eff6ff", color: "#1d4ed8", fontWeight: 700 }}
+            >
+              <PhoneIncoming className="sidebar-menu-icon" style={{ color: "#2563eb" }} />
+              Test Incoming Direct Call
+              <span className="sidebar-badge" style={{ background: "#2563eb" }}>LIVE</span>
+            </button>
+          )}
 
           <button className="sidebar-menu-item" onClick={() => { onClose(); if (onOpenLocation) onOpenLocation(); else onNavigate("meeting-location"); }}>
             <MapPin className="sidebar-menu-icon" />

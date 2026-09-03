@@ -834,6 +834,7 @@ export default function App() {
           onOpenStories={() => setShowStoriesModal(true)}
           onOpenCalculator={() => setShowCalculatorModal(true)}
           onOpenInstallApp={() => setShowInstallModal(true)}
+          onSimulateInbound={simulateSocialInboundLead}
         />
 
         {renderModals()}
@@ -871,6 +872,7 @@ export default function App() {
           onOpenSidebar={() => setShowSidebar(true)}
           onOpenIntegrations={() => setShowIntegrationsModal(true)}
           onOpenInstallApp={() => setShowInstallModal(true)}
+          onSimulateInbound={simulateSocialInboundLead}
           orgProfile={orgProfile}
         />
 
@@ -902,6 +904,7 @@ export default function App() {
           onOpenStories={() => setShowStoriesModal(true)}
           onOpenCalculator={() => setShowCalculatorModal(true)}
           onOpenInstallApp={() => setShowInstallModal(true)}
+          onSimulateInbound={simulateSocialInboundLead}
         />
 
         {renderModals()}
