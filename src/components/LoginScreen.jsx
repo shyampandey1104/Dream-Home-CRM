@@ -166,9 +166,9 @@ export default function LoginScreen({ onLoginSuccess }) {
   };
 
   return (
-    <div className="login-screen-container">
+    <div className="login-screen-container" style={{ width: "100%", maxWidth: "420px", margin: "0 auto", padding: "1rem", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <ToastNotification toast={toast} onClose={() => setToast(null)} />
-      <div className="login-card">
+      <div className="login-card" style={{ width: "100%", background: "#ffffff", borderRadius: "1.5rem", padding: "1.75rem 1.5rem", boxShadow: "0 25px 60px rgba(0, 0, 0, 0.4)", border: "1px solid rgba(255, 255, 255, 0.15)", boxSizing: "border-box" }}>
         {/* Brand Header */}
         <div className="login-brand-header" style={{ textAlign: "center", marginBottom: "1.25rem" }}>
           <div style={{ 
@@ -179,18 +179,22 @@ export default function LoginScreen({ onLoginSuccess }) {
             marginBottom: "0.5rem" 
           }}>
             <img 
-              src="/dreamhomes_gold_logo.jpg" 
+              src="/assets/real_state_crm/frontend/dreamhomes_gold_logo.jpg" 
               alt="Dream Homes Logo" 
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "/dreamhomes_gold_logo.jpg";
+              }}
               style={{ 
-                width: "96px", 
-                height: "96px", 
+                width: "84px", 
+                height: "84px", 
                 objectFit: "contain", 
                 filter: "drop-shadow(0 6px 16px rgba(217, 119, 6, 0.35))",
                 display: "block" 
               }} 
             />
           </div>
-          <h1 className="login-title" style={{ fontSize: "1.75rem", fontWeight: 800, color: "#0f172a", margin: "0.25rem 0 0", letterSpacing: "0.02em" }}>
+          <h1 className="login-title" style={{ fontSize: "1.5rem", fontWeight: 900, color: "#0f172a", margin: "0.25rem 0 0", letterSpacing: "0.02em" }}>
             Dream Homes
           </h1>
           <p className="login-subtitle" style={{ fontSize: "0.8125rem", color: "#64748b" }}>
