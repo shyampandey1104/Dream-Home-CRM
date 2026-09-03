@@ -49,7 +49,7 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
 
   const currentUser = propUser || agentProfile;
   const name = currentUser?.name || "Shyam Pandey";
-  const phone = currentUser?.mobile_no || currentUser?.phone || "+91 84240 12185";
+  const phone = currentUser?.mobile_no || currentUser?.phone || "+91 98677 78229";
   const email = currentUser?.email || "shyampandey1104@gmail.com";
 
   const triggerToast = (msg) => {

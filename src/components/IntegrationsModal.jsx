@@ -10,7 +10,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
 
   // Virtual Cloud Number States (Free Virtual IVR & Call Webhook)
   const [virtualNumber, setVirtualNumber] = useState("+91 022 6985 4120");
-  const [forwardingPhone, setForwardingPhone] = useState("+91 84240 12185");
+  const [forwardingPhone, setForwardingPhone] = useState("+91 98677 78229");
   const [telephonyProvider, setTelephonyProvider] = useState("Exotel / Cloud IVR (Free Virtual)");
   const [inboundWebhookUrl, setInboundWebhookUrl] = useState("https://dream-home-crm.onrender.com/api/method/real_estate_crm.real_estate_crm.api.inbound_call_webhook");
 
@@ -29,7 +29,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
   const [logoUrl, setLogoUrl] = useState("/dreamhomes_gold_logo.jpg");
   const [mahareraNo, setMahareraNo] = useState("A51800045492");
   const [contactEmail, setContactEmail] = useState("sales@dreamhomes42.com");
-  const [contactPhone, setContactPhone] = useState("+91 84240 12185");
+  const [contactPhone, setContactPhone] = useState("+91 98677 78229");
 
   const [isSaving, setIsSaving] = useState(false);
   const [testingChannel, setTestingChannel] = useState(null);

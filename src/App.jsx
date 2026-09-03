@@ -55,7 +55,7 @@ export default function App() {
       try { 
         const parsed = JSON.parse(saved);
         if (parsed && parsed.name) {
-          parsed.phone = parsed.mobile_no || parsed.phone || "+91 84240 12185";
+          parsed.phone = parsed.mobile_no || parsed.phone || "+91 98677 78229";
           if (!parsed.email) parsed.email = "shyampandey1104@gmail.com";
           return parsed;
         }
@@ -64,7 +64,8 @@ export default function App() {
     return {
       name: "Shyam Pandey",
       email: "shyampandey1104@gmail.com",
-      phone: "+91 84240 12185",
+      phone: "+91 98677 78229",
+      mobile_no: "+91 98677 78229",
       role: "Senior Sales Consultant",
       initials: "SP",
       areas: ["Andheri", "Bandra", "Goregaon"]

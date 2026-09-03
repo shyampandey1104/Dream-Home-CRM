@@ -118,7 +118,7 @@ export default function UserProfileModal({ userProfile, onClose, onLogout }) {
                 <Phone size={15} color="#2563eb" /> Mobile:
               </span>
               <strong style={{ color: "#0f172a", marginLeft: "auto", fontSize: "0.78125rem", fontWeight: 800 }}>
-                {userProfile.mobile_no || userProfile.phone || "+91 84240 12185"}
+                {userProfile.mobile_no || userProfile.phone || "+91 98677 78229"}
               </strong>
             </div>
 
