@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Upload, FileText, CheckCircle2, Sparkles, Building, MapPin, Tag, DollarSign, AlertCircle } from "lucide-react";
+import { X, Upload, FileText, CheckCircle2, Sparkles, Building, MapPin, Tag, DollarSign, AlertCircle, Image, Video, Share2 } from "lucide-react";
 import { uploadPropertyApi } from "../services/apiService";
 import { validateRequiredText } from "../utils/validators";
 import CustomAlertDialog from "./CustomAlertDialog";
@@ -10,10 +10,11 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
   const [location, setLocation] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [tag, setTag] = useState("New Launch");
-  const [bhk, setBhk] = useState("2 & 3 BHK Apartments");
-  const [carpet, setCarpet] = useState("800 - 1200 sq.ft.");
-  const [heroImg, setHeroImg] = useState("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80");
-  const [highlights, setHighlights] = useState("Gated luxury community, 5-tier security, Clubhouse & Infinity Pool");
+  const [bhk, setBhk] = useState("1, 2 & 3 BHK Apartments");
+  const [carpet, setCarpet] = useState("450 - 1100 sq.ft.");
+  const [heroImg, setHeroImg] = useState("https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [highlights, setHighlights] = useState("Gated luxury community, 5-tier security, 50+ Lifestyle Amenities, Holiday EMI");
   
   const [fileName, setFileName] = useState("");
   const [isAiParsing, setIsAiParsing] = useState(false);
@@ -33,9 +34,19 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
     }
 
     setFileName(file.name);
+
+    // If user uploaded an image file, convert to local preview URL
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (uploadEv) => {
+        if (uploadEv.target.result) setHeroImg(uploadEv.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
     setIsAiParsing(true);
 
-    // Simulate AI parsing PDF brochure details
+    // AI parsing PDF brochure details
     setTimeout(() => {
       setIsAiParsing(false);
       setAiSuccess(true);
@@ -47,19 +58,19 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
         .replace(/brochure|rera|certificate|plan|layout|pdf/gi, "")
         .trim();
 
-      const extractedTitle = cleanName ? cleanName.charAt(0).toUpperCase() + cleanName.slice(1) : "Oberoi Sky City";
+      const extractedTitle = cleanName ? cleanName.charAt(0).toUpperCase() + cleanName.slice(1) : "Srishti Oasis";
       
       if (!title) setTitle(extractedTitle);
-      if (!builder) setBuilder(file.name.toLowerCase().includes("oberoi") ? "Oberoi Realty" : "Godrej Properties");
-      if (!location) setLocation("Borivali East, Mumbai");
-      if (!priceRange) setPriceRange("₹ 2.45 Cr - ₹ 5.80 Cr");
-      if (!bhk) setBhk("2, 3 & 4 BHK Luxury Residences");
-      if (!carpet) setCarpet("850 - 1750 sq.ft.");
+      if (!builder) setBuilder(file.name.toLowerCase().includes("srishti") ? "Srishti Group" : "Kalpataru Limited");
+      if (!location) setLocation("Bhandup West, Mumbai (Direct GMLR Access)");
+      if (!priceRange) setPriceRange("₹ 1.08 Cr - ₹ 2.26 Cr (All Inclusive)");
+      if (!bhk) setBhk("1, 2 & 3 BHK Sun-Deck Residences");
+      if (!carpet) setCarpet("425 - 910 sq.ft.");
     }, 1000);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, shouldShareWhatsApp = false) => {
+    if (e && e.preventDefault) e.preventDefault();
 
     const titleRes = validateRequiredText(title, "Project Title", 2);
     if (!titleRes.isValid) {
@@ -83,12 +94,13 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
       price: priceRange.trim() || "Price on Request",
       priceRange: priceRange.trim() || "Price on Request",
       tag: tag || "New Launch",
-      bhk: bhk.trim() || "2 & 3 BHK",
-      carpet: carpet.trim() || "800 - 1200 sq.ft.",
+      bhk: bhk.trim() || "1, 2 & 3 BHK",
+      carpet: carpet.trim() || "450 - 1100 sq.ft.",
       highlights: highlightsArr.length > 0 ? highlightsArr : ["Prime Locality", "Modern Amenities", "Vastu Compliant"],
       img: heroImg,
       image: heroImg,
       hero_img: heroImg,
+      videoUrl: videoUrl.trim(),
       brochureFile: fileName || `${title.replace(/\s+/g, '_')}_Brochure.pdf`
     };
 
@@ -96,6 +108,15 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
     
     if (onPropertyUploaded) {
       onPropertyUploaded(newPropertyObj);
+    }
+
+    // Direct WhatsApp share trigger if requested
+    if (shouldShareWhatsApp) {
+      const hText = highlightsArr.map(h => `✔️ ${h}`).join("\n");
+      const pitchMsg = `✨ *${newPropertyObj.title}* – ${newPropertyObj.location}\nBy *${newPropertyObj.builder}*\n\n🏡 *Configurations:* ${newPropertyObj.bhk}\n📐 *Carpet Area:* ${newPropertyObj.carpet}\n💰 *Price:* ${newPropertyObj.priceRange}\n\n⭐ *Project Highlights:*\n${hText}${newPropertyObj.videoUrl ? `\n\n🎥 *Video Tour:* ${newPropertyObj.videoUrl}` : ""}\n\n📞 Book your exclusive site visit today!\n*Dream Homes Real Estate*`;
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(pitchMsg)}`, '_blank');
+      onClose();
+      return;
     }
 
     const successText = typeof res?.message === "string" ? res.message : `🎉 Property '${title}' uploaded & saved to Database!`;
@@ -340,6 +361,55 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
             </select>
           </div>
 
+          {/* Project Image & 3D Video Tour Link */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            <div>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
+                Property Photo / Hero Image URL
+              </label>
+              <input
+                type="text"
+                className="modern-search-input"
+                placeholder="https://images.unsplash.com/..."
+                style={{ fontSize: "0.8125rem", padding: "0.5rem 0.6rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+                value={heroImg}
+                onChange={e => setHeroImg(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
+                Video Tour / YouTube Link
+              </label>
+              <input
+                type="text"
+                className="modern-search-input"
+                placeholder="https://youtube.com/watch?v=..."
+                style={{ fontSize: "0.8125rem", padding: "0.5rem 0.6rem", width: "100%", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+                value={videoUrl}
+                onChange={e => setVideoUrl(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Live Image Preview */}
+          {heroImg && (
+            <div style={{ position: "relative", width: "100%", height: "100px", borderRadius: "0.5rem", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+              <img 
+                src={heroImg} 
+                alt="Property Preview" 
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80";
+                }}
+              />
+              <span style={{ position: "absolute", bottom: "6px", left: "6px", background: "rgba(0,0,0,0.7)", color: "#ffffff", padding: "0.15rem 0.4rem", borderRadius: "4px", fontSize: "0.6875rem", fontWeight: 700 }}>
+                Live Photo Preview
+              </span>
+            </div>
+          )}
+
           <div>
             <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
               Key Highlights (Comma Separated)
@@ -347,35 +417,61 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
             <textarea
               className="modern-search-input"
               rows={2}
-              placeholder="e.g. Sky Lounge, Infinity Pool, 5 mins from Metro"
+              placeholder="e.g. Sky Lounge, Infinity Pool, 5 mins from Metro, 12 Months Holiday EMI"
               value={highlights}
               onChange={e => setHighlights(e.target.value)}
               style={{ width: "100%", fontSize: "0.8125rem", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1", resize: "vertical" }}
             />
           </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            style={{
-              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-              color: "#ffffff",
-              border: "none",
-              padding: "0.75rem",
-              borderRadius: "0.625rem",
-              fontSize: "0.875rem",
-              fontWeight: 800,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.4rem",
-              boxShadow: "0 6px 16px rgba(37,99,235,0.3)",
-              marginTop: "0.25rem"
-            }}
-          >
-            <Upload size={16} /> Save Property to CRM
-          </button>
+          {/* Action Buttons: Save or Save & Share to WhatsApp */}
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
+            <button
+              type="submit"
+              onClick={(e) => handleSubmit(e, false)}
+              style={{
+                flex: 1,
+                background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                color: "#ffffff",
+                border: "none",
+                padding: "0.75rem 0.5rem",
+                borderRadius: "0.625rem",
+                fontSize: "0.8125rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.35rem",
+                boxShadow: "0 4px 12px rgba(37,99,235,0.25)"
+              }}
+            >
+              <Upload size={15} /> Save to CRM
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, true)}
+              style={{
+                flex: 1,
+                background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                color: "#ffffff",
+                border: "none",
+                padding: "0.75rem 0.5rem",
+                borderRadius: "0.625rem",
+                fontSize: "0.8125rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.35rem",
+                boxShadow: "0 4px 12px rgba(22,163,74,0.25)"
+              }}
+            >
+              <Share2 size={15} /> Save & Share WA
+            </button>
+          </div>
         </form>
 
         {alertConfig && (
