@@ -20,7 +20,8 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
   const [alertConfig, setAlertConfig] = useState(null);
   const [leadToDelete, setLeadToDelete] = useState(null);
 
-  const allFreshLeads = leads.filter(l => l.status === "NEW" || l.callCount === 0);
+  // Only leads that have NEVER been called (callCount === 0 and status is NEW)
+  const allFreshLeads = leads.filter(l => (l.callCount === 0 || !l.callCount) && (l.status === "NEW" || !l.status));
 
   const filtered = allFreshLeads.filter(lead => {
     if (sourceFilter !== "All Sources" && lead.source !== sourceFilter) return false;
