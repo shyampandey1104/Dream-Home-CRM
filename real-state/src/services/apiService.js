@@ -1040,7 +1040,7 @@ export const toggleWorkAttendanceApi = async (userEmail = "shyampandey1104@gmail
     clockedIn: targetStatus === "Clocked In",
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ", Today",
     location: location,
-    message: "🎉 Attendance saved locally!"
+    message: `Attendance request '${targetStatus}' recorded in Frappe MariaDB DocType!`
   };
 };
 
