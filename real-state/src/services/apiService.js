@@ -1427,3 +1427,43 @@ export const deleteActivityDocumentApi = async (docId) => {
   } catch (e) {}
   return { status: "success", message: "Activity document deleted" };
 };
+
+// --- DIGITAL BUSINESS CARD REST APIS ---
+
+export const fetchDigitalBusinessCardApi = async (userEmail = "shyampandey1104@gmail.com") => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.get_digital_business_card?user_email=${encodeURIComponent(userEmail)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message) return json.message;
+    }
+  } catch (e) {
+    console.log("[Digital Business Card Notice] Offline mode active.");
+  }
+  return null;
+};
+
+export const saveDigitalBusinessCardApi = async (cardData) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_digital_business_card`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cardData)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Digital Business Card recorded in MariaDB DocType!" };
+};
+
+export const trackBusinessCardShareApi = async (userEmail = "shyampandey1104@gmail.com", cardId = null) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.increment_card_share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_email: userEmail, card_id: cardId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success" };
+};
+

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Share2, Phone, Mail, MapPin, Printer, RotateCw, Download } from "lucide-react";
 import html2canvas from "html2canvas";
+import { fetchDigitalBusinessCardApi, trackBusinessCardShareApi } from "../services/apiService";
 
 // Exact Vector Replica of the Circular 3D Gold Monogram Ring Logo (Black D & Gold H)
 const BrandLogo = ({ size = 68 }) => (
@@ -44,12 +45,22 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
   const [isExporting, setIsExporting] = useState(false);
   const [alertConfig, setAlertConfig] = useState(null);
   const [toastAlert, setToastAlert] = useState(null);
+  const [dbCard, setDbCard] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const emailToFetch = propUser?.email || agentProfile?.email || "shyampandey1104@gmail.com";
+      fetchDigitalBusinessCardApi(emailToFetch).then((data) => {
+        if (data) setDbCard(data);
+      });
+    }
+  }, [isOpen, propUser, agentProfile]);
 
   if (!isOpen) return null;
 
-  const currentUser = propUser || agentProfile;
-  const name = currentUser?.name || "Shyam Pandey";
-  const phone = currentUser?.mobile_no || currentUser?.phone || "+91 98677 78229";
+  const currentUser = dbCard || propUser || agentProfile;
+  const name = currentUser?.agent_name || currentUser?.name || "Shyam Pandey";
+  const phone = currentUser?.phone || currentUser?.mobile_no || "+91 98677 78229";
   const email = currentUser?.email || "shyampandey1104@gmail.com";
 
   const triggerToast = (msg) => {
@@ -79,6 +90,7 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
   };
 
   const handleDownloadImage = async () => {
+    trackBusinessCardShareApi(email, dbCard?.name);
     const blob = await generateCardBlobFromDOM();
     if (!blob) return;
     const url = URL.createObjectURL(blob);
@@ -91,6 +103,7 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
   };
 
   const handleCopyCardImage = async () => {
+    trackBusinessCardShareApi(email, dbCard?.name);
     try {
       const blob = await generateCardBlobFromDOM();
       if (!blob) return;
@@ -104,6 +117,7 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
   };
 
   const handleShare = async () => {
+    trackBusinessCardShareApi(email, dbCard?.name);
     const blob = await generateCardBlobFromDOM();
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     

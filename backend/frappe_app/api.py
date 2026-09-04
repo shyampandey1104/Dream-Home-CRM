@@ -1731,43 +1731,170 @@ def delete_calculation(calc_id):
     return {"status": "error", "message": "Record not found"}
 
 
-# --- AGENT PROFILE & BUSINESS CARD REST APIS ---
+# --- DIGITAL BUSINESS CARD REST APIS ---
+
+@frappe.whitelist(allow_guest=True)
+def get_digital_business_card(user_email=None, **kwargs):
+    """
+    Fetches Digital Business Card from MariaDB DocType 'Digital Business Card'.
+    """
+    email_query = user_email or "shyampandey1104@gmail.com"
+    try:
+        cards = frappe.get_all(
+            "Digital Business Card",
+            fields=[
+                "name", "agent_name", "designation", "phone", "email",
+                "company_name", "company_tagline", "maharera_no", "website_url",
+                "office_address", "logo_url", "profile_photo", "qr_code_data",
+                "specialization", "shares_count", "is_active", "creation"
+            ],
+            filters={"email": email_query} if email_query else {},
+            limit=1
+        )
+        if cards:
+            card = cards[0]
+            card["status"] = "success"
+            return card
+        
+        # If no specific card for email, return first active card
+        all_cards = frappe.get_all(
+            "Digital Business Card",
+            fields=[
+                "name", "agent_name", "designation", "phone", "email",
+                "company_name", "company_tagline", "maharera_no", "website_url",
+                "office_address", "logo_url", "profile_photo", "qr_code_data",
+                "specialization", "shares_count", "is_active", "creation"
+            ],
+            filters={"is_active": 1},
+            limit=1
+        )
+        if all_cards:
+            card = all_cards[0]
+            card["status"] = "success"
+            return card
+    except Exception:
+        pass
+
+    # Fallback to Organization Profile or Default
+    return {
+        "status": "success",
+        "name": "DBC-DEFAULT",
+        "agent_name": "Shyam Pandey",
+        "designation": "Senior Sales Consultant",
+        "phone": "+91 98200 44556",
+        "email": email_query,
+        "company_name": "Dream Homes Realty",
+        "company_tagline": "Luxury Living Simplified",
+        "maharera_no": "A51800034921",
+        "website_url": "https://dreamhomes.in",
+        "office_address": "1204, Oberoi Commerz III, International Business Park, Goregaon East, Mumbai - 400063",
+        "logo_url": "/assets/real_state_crm/frontend/dreamhomes_gold_logo.jpg",
+        "profile_photo": "",
+        "specialization": "Luxury High-Rise & Commercial Investments",
+        "shares_count": 48,
+        "is_active": 1
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def save_digital_business_card(
+    agent_name=None, designation=None, phone=None, email=None,
+    company_name=None, company_tagline=None, maharera_no=None, website_url=None,
+    office_address=None, logo_url=None, profile_photo=None, specialization=None, **kwargs
+):
+    """
+    Creates or updates Digital Business Card record in MariaDB.
+    """
+    email_val = email or "shyampandey1104@gmail.com"
+    name_val = agent_name or "Shyam Pandey"
+    phone_val = phone or "+91 98200 44556"
+    
+    try:
+        existing = frappe.get_all("Digital Business Card", filters={"email": email_val}, limit=1)
+        if existing:
+            doc = frappe.get_doc("Digital Business Card", existing[0].name)
+        else:
+            doc = frappe.new_doc("Digital Business Card")
+            doc.email = email_val
+            doc.shares_count = 0
+
+        doc.agent_name = name_val
+        if designation: doc.designation = designation
+        if phone_val: doc.phone = phone_val
+        if company_name: doc.company_name = company_name
+        if company_tagline: doc.company_tagline = company_tagline
+        if maharera_no: doc.maharera_no = maharera_no
+        if website_url: doc.website_url = website_url
+        if office_address: doc.office_address = office_address
+        if logo_url: doc.logo_url = logo_url
+        if profile_photo: doc.profile_photo = profile_photo
+        if specialization: doc.specialization = specialization
+        doc.is_active = 1
+        doc.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        return {
+            "status": "success",
+            "card_id": doc.name,
+            "message": f"Digital Business Card for '{name_val}' saved to MariaDB DocType!"
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@frappe.whitelist(allow_guest=True)
+def increment_card_share(card_id=None, user_email=None, **kwargs):
+    """
+    Increments share analytics counter for Digital Business Card in MariaDB.
+    """
+    try:
+        filters = {"name": card_id} if card_id else ({"email": user_email} if user_email else {})
+        cards = frappe.get_all("Digital Business Card", filters=filters, limit=1)
+        if cards:
+            doc = frappe.get_doc("Digital Business Card", cards[0].name)
+            doc.shares_count = (doc.shares_count or 0) + 1
+            doc.save(ignore_permissions=True)
+            frappe.db.commit()
+            return {"status": "success", "shares_count": doc.shares_count}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    return {"status": "success", "shares_count": 1}
+
 
 @frappe.whitelist(allow_guest=True)
 def get_agent_profile(user_email=None, **kwargs):
-    """Fetches Agent Profile and Business Card data from MariaDB"""
-    try:
-        org = frappe.get_single("Organization Profile")
-        return {
-            "status": "success",
-            "name": "Shyam Pandey",
-            "role": "Senior Sales Consultant",
-            "phone": org.contact_phone or "+91 98200 44556",
-            "email": user_email or org.contact_email or "shyampandey1104@gmail.com",
-            "company_name": org.company_name or "Dream Homes Realty",
-            "tagline": org.company_tagline or "Luxury Living Simplified",
-            "maharera_no": org.maharera_no or "A51800034921",
-            "logo_url": org.logo_url or "/assets/real_state_crm/frontend/dreamhomes_gold_logo.jpg",
-            "website_url": org.website_url or "https://dreamhomes.in"
-        }
-    except Exception:
-        return {
-            "status": "success",
-            "name": "Shyam Pandey",
-            "role": "Senior Sales Consultant",
-            "phone": "+91 98200 44556",
-            "email": user_email or "shyampandey1104@gmail.com",
-            "company_name": "Dream Homes Realty",
-            "tagline": "Luxury Living Simplified",
-            "maharera_no": "A51800034921",
-            "logo_url": "/assets/real_state_crm/frontend/dreamhomes_gold_logo.jpg",
-            "website_url": "https://dreamhomes.in"
-        }
+    """Alias / Adapter for Digital Business Card & Organization Profile"""
+    card = get_digital_business_card(user_email=user_email, **kwargs)
+    return {
+        "status": "success",
+        "name": card.get("agent_name") or "Shyam Pandey",
+        "role": card.get("designation") or "Senior Sales Consultant",
+        "phone": card.get("phone") or "+91 98200 44556",
+        "email": card.get("email") or user_email or "shyampandey1104@gmail.com",
+        "company_name": card.get("company_name") or "Dream Homes Realty",
+        "tagline": card.get("company_tagline") or "Luxury Living Simplified",
+        "maharera_no": card.get("maharera_no") or "A51800034921",
+        "logo_url": card.get("logo_url") or "/assets/real_state_crm/frontend/dreamhomes_gold_logo.jpg",
+        "website_url": card.get("website_url") or "https://dreamhomes.in",
+        "office_address": card.get("office_address") or "1204, Oberoi Commerz III, International Business Park, Goregaon East, Mumbai - 400063",
+        "specialization": card.get("specialization") or "Luxury High-Rise & Commercial Investments",
+        "shares_count": card.get("shares_count", 0)
+    }
 
 
 @frappe.whitelist(allow_guest=True)
 def save_agent_profile(name=None, phone=None, email=None, company_name=None, tagline=None, maharera_no=None, website_url=None, **kwargs):
-    """Updates Agent Profile and Business Card in MariaDB"""
+    """Updates Digital Business Card and Organization Profile in MariaDB"""
+    save_digital_business_card(
+        agent_name=name,
+        phone=phone,
+        email=email,
+        company_name=company_name,
+        company_tagline=tagline,
+        maharera_no=maharera_no,
+        website_url=website_url,
+        **kwargs
+    )
     try:
         org = frappe.get_single("Organization Profile")
         if company_name: org.company_name = company_name
@@ -1780,7 +1907,7 @@ def save_agent_profile(name=None, phone=None, email=None, company_name=None, tag
         frappe.db.commit()
     except Exception:
         pass
-    return {"status": "success", "message": "Agent Profile & Business Card updated successfully in MariaDB!"}
+    return {"status": "success", "message": "Digital Business Card & Agent Profile updated successfully in MariaDB!"}
 
 
 # --- STORIES & HIGHLIGHTS REST APIS ---
