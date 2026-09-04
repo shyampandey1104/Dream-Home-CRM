@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { Sparkles, CheckCircle2, ShieldAlert, Award, X, ChevronRight, UserCheck } from "lucide-react";
-import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function ClaimLeadsModal({ isOpen, onClose, onConfirmClaim, availablePoints = 2400 }) {
   const [selectedLeads, setSelectedLeads] = useState([1, 2, 3, 4, 5]);
-  const [alertConfig, setAlertConfig] = useState(null);
 
   if (!isOpen) return null;
 
@@ -28,7 +26,7 @@ export default function ClaimLeadsModal({ isOpen, onClose, onConfirmClaim, avail
 
   const handleClaim = () => {
     if (selectedLeads.length === 0) {
-      setAlertConfig({ title: "Selection Required", message: "Please select at least 1 lead to claim!", type: "warning" });
+      alert("Please select at least 1 lead to claim!");
       return;
     }
     const selectedObjs = poolLeads.filter(l => selectedLeads.includes(l.id));
@@ -38,12 +36,6 @@ export default function ClaimLeadsModal({ isOpen, onClose, onConfirmClaim, avail
 
   return (
     <div className="modal-overlay">
-      {alertConfig && (
-        <CustomAlertDialog
-          {...alertConfig}
-          onClose={() => setAlertConfig(null)}
-        />
-      )}
       <div className="modal-card" style={{ maxWidth: "380px", width: "92%", padding: "1.25rem", borderRadius: "1rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.875rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>

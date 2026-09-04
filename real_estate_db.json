@@ -67,6 +67,20 @@
       ],
       "leadCap": 200,
       "initials": "IB"
+    },
+    {
+      "id": 1786542777584,
+      "name": "shyam",
+      "email": "shyampandey1104@gmail.com",
+      "phone": "986777",
+      "role": "Telecaller",
+      "status": "Active",
+      "areas": [
+        "Andheri",
+        "Bandra"
+      ],
+      "leadCap": 50,
+      "initials": "S"
     }
   ],
   "leads": [

@@ -40,16 +40,21 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
           <Menu size={18} />
         </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", cursor: "pointer" }} onClick={onOpenProfile}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }} onClick={onOpenProfile}>
           <img
-            src="/dreamhomes_gold_logo.jpg"
+            src={orgProfile?.logo_url || "/assets/real_state_crm/frontend/dreamhomes_gold_logo.jpg"}
             alt="Dream Homes Logo"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "/dreamhomes_gold_logo.jpg";
+            }}
             style={{
-              width: "30px",
-              height: "30px",
+              width: "32px",
+              height: "32px",
               objectFit: "contain",
               filter: "drop-shadow(0 2px 4px rgba(217, 119, 6, 0.25))",
-              flexShrink: 0
+              flexShrink: 0,
+              borderRadius: "6px"
             }}
           />
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -58,13 +63,13 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
               fontSize: "0.95rem",
               color: "#0f172a",
               whiteSpace: "nowrap",
-              lineHeight: 1.1,
+              lineHeight: 1.15,
               letterSpacing: "-0.01em"
             }}>
-              Dream Homes
+              {companyName}
             </span>
             <span style={{ fontSize: "0.625rem", color: "#16a34a", fontWeight: 800, lineHeight: 1.1, whiteSpace: "nowrap" }}>
-              CRM Sales Portal
+              {orgProfile?.company_tagline || "CRM Sales Portal"}
             </span>
           </div>
         </div>
