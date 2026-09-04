@@ -14,7 +14,9 @@ export default function InboundCallModal({ lead, incomingLead, onAccept, onRejec
     // Trigger haptic vibration if supported (Mobile devices)
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       try {
-        navigator.vibrate([500, 250, 500, 250, 1000]);
+        if (!navigator.userActivation || navigator.userActivation.hasBeenActive) {
+          navigator.vibrate([500, 250, 500, 250, 1000]);
+        }
       } catch (e) {}
     }
 
