@@ -577,16 +577,27 @@ def save_notification(title, message=None, source="Scheduled Disposition", notif
 
 
 @frappe.whitelist(allow_guest=True)
-def mark_notification_read(notif_id=None):
+def mark_notification_read(notif_id=None, **kwargs):
     """
     Marks a notification as read in MariaDB.
     """
-    if notif_id and frappe.db.exists("Lead Notification", notif_id):
-        doc = frappe.get_doc("Lead Notification", notif_id)
+    final_id = notif_id or kwargs.get("notif_id")
+    if not final_id and frappe.request and frappe.request.data:
+        try:
+            body = frappe.parse_json(frappe.request.data)
+            if isinstance(body, dict):
+                final_id = body.get("notif_id") or body.get("id")
+        except Exception:
+            pass
+    if not final_id and frappe.form_dict:
+        final_id = frappe.form_dict.get("notif_id") or frappe.form_dict.get("id")
+
+    if final_id and frappe.db.exists("Lead Notification", final_id):
+        doc = frappe.get_doc("Lead Notification", final_id)
         doc.is_read = 1
         doc.save(ignore_permissions=True)
         frappe.db.commit()
-        return {"status": "success", "message": f"Notification {notif_id} marked as read"}
+        return {"status": "success", "message": f"Notification {final_id} marked as read"}
     
     return {"status": "success", "message": "Marked read"}
 

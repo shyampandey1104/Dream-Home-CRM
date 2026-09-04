@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "./components/Header";
 import MobileHeader from "./components/MobileHeader";
 import MobileBottomNav from "./components/MobileBottomNav";
@@ -124,6 +124,8 @@ export default function App() {
 
   const [activeCallLead, setActiveCallLead] = useState(null);
   const [incomingCallLead, setIncomingCallLead] = useState(null);
+  const [incomingCallNotifId, setIncomingCallNotifId] = useState(null);
+  const handledInboundCallsRef = useRef(new Set());
   const [reportLead, setReportLead] = useState(null);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -172,9 +174,17 @@ export default function App() {
       fetchCrmNotifications().then((notifs) => {
         if (notifs && notifs.length > 0) {
           setNotifications(notifs);
-          // Check for fresh inbound call to ring the screen
-          const latestInbound = notifs.find(n => (n.type === "inbound" || n.type === "inbound_call" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound")) && !n.read && n.lead);
+          // Check for fresh unhandled inbound call to ring the screen
+          const latestInbound = notifs.find(n => 
+            (n.type === "inbound" || n.type === "inbound_call" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound")) && 
+            !n.read && 
+            n.lead && 
+            !handledInboundCallsRef.current.has(String(n.id)) &&
+            !handledInboundCallsRef.current.has(String(n.lead?.id)) &&
+            !handledInboundCallsRef.current.has(String(n.lead?.phone))
+          );
           if (latestInbound && !activeCallLead && !incomingCallLead) {
+            setIncomingCallNotifId(latestInbound.id);
             setIncomingCallLead(latestInbound.lead);
           }
         }
@@ -432,11 +442,39 @@ export default function App() {
   };
 
   const handleAcceptIncomingCall = (lead) => {
+    if (incomingCallNotifId) {
+      handledInboundCallsRef.current.add(String(incomingCallNotifId));
+      markNotificationReadApi(incomingCallNotifId);
+    }
+    if (lead?.id) {
+      handledInboundCallsRef.current.add(String(lead.id));
+    }
+    if (lead?.phone) {
+      handledInboundCallsRef.current.add(String(lead.phone));
+    }
+    setNotifications(prev => prev.map(n => n.id === incomingCallNotifId ? { ...n, read: true } : n));
     const updated = [lead, ...leads.filter(l => l.id !== lead.id)];
     setLeads(updated);
     saveStoredLeads(updated);
     setIncomingCallLead(null);
+    setIncomingCallNotifId(null);
     setActiveCallLead(lead);
+  };
+
+  const handleRejectIncomingCall = () => {
+    if (incomingCallNotifId) {
+      handledInboundCallsRef.current.add(String(incomingCallNotifId));
+      markNotificationReadApi(incomingCallNotifId);
+    }
+    if (incomingCallLead?.id) {
+      handledInboundCallsRef.current.add(String(incomingCallLead.id));
+    }
+    if (incomingCallLead?.phone) {
+      handledInboundCallsRef.current.add(String(incomingCallLead.phone));
+    }
+    setNotifications(prev => prev.map(n => n.id === incomingCallNotifId ? { ...n, read: true } : n));
+    setIncomingCallLead(null);
+    setIncomingCallNotifId(null);
   };
 
   const handleClaimLeads = () => {
@@ -629,7 +667,8 @@ export default function App() {
         <InboundCallModal
           lead={incomingCallLead}
           onAccept={handleAcceptIncomingCall}
-          onReject={() => setIncomingCallLead(null)}
+          onReject={handleRejectIncomingCall}
+          onDecline={handleRejectIncomingCall}
         />
       )}
 
