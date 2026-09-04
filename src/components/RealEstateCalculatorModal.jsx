@@ -107,6 +107,55 @@ export default function RealEstateCalculatorModal({ isOpen, onClose }) {
     setTimeout(() => setCopiedText(false), 3000);
   };
 
+  const [savedToDb, setSavedToDb] = useState(false);
+
+  const handleSaveToDatabase = async () => {
+    let title = "Real Estate Calculation";
+    let amount = "";
+    let details = "";
+
+    if (activeTab === "sqft_rate") {
+      title = `${propertyCategory} Rate Valuation`;
+      amount = formatINR(allInclusiveTotalVal);
+      details = `Rate: ₹${ratePerSqft}/sq.ft, Area: ${areaSizeSqft} sqft, Agreement: ${formatINR(agreementValue)}, Total: ${formatINR(allInclusiveTotalVal)}`;
+    } else if (activeTab === "emi") {
+      title = `Home Loan EMI (${formatINR(propertyPrice)})`;
+      amount = `${formatINR(emi)}/month`;
+      details = `Loan: ${formatINR(loanAmount)}, Interest: ${interestRate}%, Tenure: ${tenureYears} Yrs, Total Payment: ${formatINR(totalPayment)}`;
+    } else if (activeTab === "stamp") {
+      title = `Stamp Duty & Registration (${formatINR(stampPropertyCost)})`;
+      amount = formatINR(totalAcquisitionCost);
+      details = `Stamp Duty (${stampDutyPct}%): ${formatINR(stampDutyAmount)}, Reg: ${formatINR(registrationFee)}`;
+    } else if (activeTab === "area") {
+      title = `Carpet vs Super Built-up (${carpetSqft} sq.ft)`;
+      amount = `${builtUpSqft} sq.ft Super Built-up`;
+      details = `Carpet: ${carpetSqft} sq.ft, Loading: ${loadingPct}%, Super Built-up: ${builtUpSqft} sq.ft`;
+    } else {
+      title = `Rental Yield ROI (${formatINR(buyPrice)})`;
+      amount = `${netYield}% Net Yield`;
+      details = `Buy Price: ${formatINR(buyPrice)}, Monthly Rent: ${formatINR(monthlyRent)}, Gross Yield: ${grossYield}%, Net Yield: ${netYield}%`;
+    }
+
+    try {
+      await fetch("/api/method/real_state_crm.api.save_calculation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          calc_type: activeTab,
+          amount,
+          property_category: propertyCategory,
+          agent_name: "Shyam",
+          details
+        })
+      });
+      setSavedToDb(true);
+      setTimeout(() => setSavedToDb(false), 3000);
+    } catch (e) {
+      console.log("[Save Calculation Error]", e);
+    }
+  };
+
   return (
     <div
       className="modal-overlay"
@@ -669,6 +718,31 @@ export default function RealEstateCalculatorModal({ isOpen, onClose }) {
               </div>
             </div>
           )}
+
+          {/* Save to CRM Database Button */}
+          <button
+            type="button"
+            onClick={handleSaveToDatabase}
+            style={{
+              background: savedToDb ? "#16a34a" : "#2563eb",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "0.75rem",
+              padding: "0.7rem",
+              fontSize: "0.8125rem",
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.45rem",
+              boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
+              marginTop: "0.35rem"
+            }}
+          >
+            <CheckCircle2 size={16} />
+            {savedToDb ? "Saved to MariaDB CRM Database!" : "💾 Save Calculation to CRM Database"}
+          </button>
 
           {/* Copy / Share Button */}
           <button
