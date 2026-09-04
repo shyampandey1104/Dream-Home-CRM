@@ -173,7 +173,7 @@ export default function App() {
         if (notifs && notifs.length > 0) {
           setNotifications(notifs);
           // Check for fresh inbound call to ring the screen
-          const latestInbound = notifs.find(n => n.type === "inbound_call" && !n.read && n.lead);
+          const latestInbound = notifs.find(n => (n.type === "inbound" || n.type === "inbound_call" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound")) && !n.read && n.lead);
           if (latestInbound && !activeCallLead && !incomingCallLead) {
             setIncomingCallLead(latestInbound.lead);
           }

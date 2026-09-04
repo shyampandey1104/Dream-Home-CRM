@@ -856,7 +856,7 @@ def inbound_call_webhook(caller_number=None, caller_name=None, source="Direct In
             notif.title = f"📞 Inbound Call: {name}"
             notif.message = f"{src} • {bhk_type} ({loc})"
             notif.source = src
-            notif.notif_type = "inbound_call"
+            notif.notif_type = "inbound"
             notif.lead_id = lead_id
             notif.lead_name = name
             notif.lead_phone = phone
@@ -867,7 +867,7 @@ def inbound_call_webhook(caller_number=None, caller_name=None, source="Direct In
             notif.save(ignore_permissions=True)
             frappe.db.commit()
     except Exception as e:
-        frappe.log_error(f"Inbound call notification error: {str(e)}")
+        frappe.log_error(f"Inbound call notif error: {str(e)[:100]}")
 
     return {
         "status": "success",
