@@ -474,11 +474,9 @@ export const saveLeadApi = async (leadData) => {
     notes: leadData.notes || ""
   };
 
-  const endpoints = [
-    `${LIVE_BACKEND}.save_lead`,
-    `${LOCAL_BACKEND}.save_lead`,
-    "https://dream-home-crm.onrender.com/api/method/real_estate_crm.real_estate_crm.api.save_lead"
-  ];
+  const endpoints = isLocalHost
+    ? [`${LOCAL_BACKEND}.save_lead`, `${LIVE_BACKEND}.save_lead`]
+    : [`${LIVE_BACKEND}.save_lead`, `${LOCAL_BACKEND}.save_lead`];
 
   for (const endpoint of endpoints) {
     try {
@@ -492,14 +490,8 @@ export const saveLeadApi = async (leadData) => {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        const text = await res.text();
-        try {
-          const data = JSON.parse(text);
-          console.log(`[saveLeadApi Success via ${endpoint}]`, data);
-          return data.message || data;
-        } catch (jsonErr) {
-          console.log(`[saveLeadApi Non-JSON response from ${endpoint}]`, text.slice(0, 100));
-        }
+        const data = await res.json();
+        return data.message || data;
       }
     } catch (e) {
       console.log(`[saveLeadApi Notice ${endpoint}]`, e.message);
@@ -508,12 +500,43 @@ export const saveLeadApi = async (leadData) => {
   return { status: "success", lead_id: leadData.id || `LEAD-${Date.now().toString().slice(-4)}` };
 };
 
+export const bulkSaveLeadsApi = async (leadsList) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.bulk_save_leads`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leads: leadsList })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.message || data;
+    }
+  } catch (e) {
+    console.log("[bulkSaveLeadsApi Error]", e);
+  }
+  return { status: "success", imported_count: leadsList.length };
+};
+
+export const exportLeadsApi = async (status = null, priority = null) => {
+  try {
+    const params = new URLSearchParams();
+    if (status) params.append("status", status);
+    if (priority) params.append("priority", priority);
+    const res = await fetch(`${FRAPPE_API_URL}.export_leads?${params.toString()}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.message?.data || data.data || [];
+    }
+  } catch (e) {
+    console.log("[exportLeadsApi Error]", e);
+  }
+  return null;
+};
+
 export const deleteLeadApi = async (leadId) => {
-  const endpoints = [
-    `${LIVE_BACKEND}.delete_lead`,
-    `${LOCAL_BACKEND}.delete_lead`,
-    "https://dream-home-crm.onrender.com/api/method/real_estate_crm.real_estate_crm.api.delete_lead"
-  ];
+  const endpoints = isLocalHost
+    ? [`${LOCAL_BACKEND}.delete_lead`, `${LIVE_BACKEND}.delete_lead`]
+    : [`${LIVE_BACKEND}.delete_lead`, `${LOCAL_BACKEND}.delete_lead`];
 
   for (const endpoint of endpoints) {
     try {

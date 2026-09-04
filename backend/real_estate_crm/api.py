@@ -30,32 +30,107 @@ def get_leads(status=None, priority=None, user_email=None):
 
 
 @frappe.whitelist(allow_guest=True)
-def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", status="NEW", service="Home Buying", bhk_type="2 BHK", location="Mumbai", source="Manual", notes=None):
+def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", status="NEW", service="Home Buying", bhk_type="2 BHK", location="Mumbai", source="Manual", notes=None, lead_name=None, bhkType=None, **kwargs):
     """
     Creates or updates a Real Estate Lead in Frappe DB.
     """
+    final_name = name or lead_name or kwargs.get("client_name") or "New Inbound Lead"
+    final_bhk = bhk_type or bhkType or "2 BHK"
+    
     if lead_id and frappe.db.exists("Real Estate Lead", lead_id):
         doc = frappe.get_doc("Real Estate Lead", lead_id)
     else:
         doc = frappe.new_doc("Real Estate Lead")
-        if lead_id:
+        if lead_id and not frappe.db.exists("Real Estate Lead", lead_id):
             doc.name = lead_id
 
-    doc.lead_name = name
+    doc.lead_name = final_name
     doc.phone = phone
     doc.email = email
-    doc.priority = priority
-    doc.status = status
-    doc.service = service
-    doc.bhk_type = bhk_type
-    doc.location = location
-    doc.source = source
-    doc.notes = notes
+    doc.priority = priority or "HOT"
+    doc.status = status or "NEW"
+    doc.service = service or "Home Buying"
+    doc.bhk_type = final_bhk
+    doc.location = location or "Mumbai"
+    doc.source = source or "Manual Entry"
+    doc.notes = notes or ""
 
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
-    return {"status": "success", "lead_id": doc.name}
+    return {"status": "success", "lead_id": doc.name, "message": f"Lead '{final_name}' saved to MariaDB!"}
+
+
+@frappe.whitelist(allow_guest=True)
+def bulk_save_leads(leads=None, **kwargs):
+    """
+    Bulk saves an array of leads imported from Excel/CSV file to MariaDB.
+    """
+    if isinstance(leads, str):
+        try:
+            leads = json.loads(leads)
+        except Exception:
+            leads = []
+    
+    if not leads or not isinstance(leads, list):
+        return {"status": "error", "message": "No leads provided for bulk import"}
+    
+    saved_count = 0
+    created_ids = []
+    for l in leads:
+        if not isinstance(l, dict):
+            continue
+        try:
+            name_val = l.get("name") or l.get("lead_name") or "Imported Lead"
+            doc = frappe.new_doc("Real Estate Lead")
+            doc.lead_name = name_val
+            doc.phone = l.get("phone") or "+91 98000 00000"
+            doc.email = l.get("email") or ""
+            doc.priority = l.get("priority") or "HOT"
+            doc.status = l.get("status") or "NEW"
+            doc.service = l.get("service") or "Home Buying"
+            doc.bhk_type = l.get("bhk_type") or l.get("bhkType") or "2 BHK"
+            doc.location = l.get("location") or "Mumbai"
+            doc.source = l.get("source") or "Excel Import"
+            doc.notes = l.get("notes") or "Bulk imported from Excel file"
+            doc.save(ignore_permissions=True)
+            created_ids.append(doc.name)
+            saved_count += 1
+        except Exception as err:
+            frappe.log_error(f"Bulk lead import row error: {str(err)}")
+            continue
+
+    frappe.db.commit()
+    return {
+        "status": "success",
+        "imported_count": saved_count,
+        "lead_ids": created_ids,
+        "message": f"Successfully imported {saved_count} leads to MariaDB!"
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def export_leads(status=None, priority=None, **kwargs):
+    """
+    Returns full lead dataset prepared for Excel / CSV export.
+    """
+    filters = {}
+    if status and status != "ALL":
+        filters["status"] = status
+    if priority and priority != "ALL":
+        filters["priority"] = priority
+        
+    try:
+        leads = frappe.get_all(
+            "Real Estate Lead",
+            fields=["name", "lead_name", "phone", "email", "priority", "status", "service", "bhk_type", "location", "source", "notes", "creation"],
+            filters=filters,
+            order_by="creation desc"
+        )
+    except Exception:
+        leads = []
+    return {"status": "success", "count": len(leads), "data": leads}
+
 
 
 @frappe.whitelist(allow_guest=True)

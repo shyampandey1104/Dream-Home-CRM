@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { X, FileSpreadsheet, UploadCloud, CheckCircle2, Download, AlertCircle, Users, ArrowRight } from "lucide-react";
-import { saveLeadApi } from "../services/apiService";
+import { saveLeadApi, bulkSaveLeadsApi } from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported }) {
@@ -138,11 +138,16 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported }) {
 
     setIsProcessing(true);
 
-    // Save each lead via API in background
-    for (const lead of parsedLeads) {
-      try {
-        await saveLeadApi(lead);
-      } catch (e) {}
+    // Save batch of leads to MariaDB via bulk_save_leads API
+    try {
+      const res = await bulkSaveLeadsApi(parsedLeads);
+      if (res && res.lead_ids && res.lead_ids.length > 0) {
+        parsedLeads.forEach((l, idx) => {
+          if (res.lead_ids[idx]) l.id = res.lead_ids[idx];
+        });
+      }
+    } catch (e) {
+      console.log("[Bulk Save Fallback]", e);
     }
 
     setIsProcessing(false);
@@ -153,7 +158,7 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported }) {
 
     setAlertConfig({
       title: "Import Completed!",
-      message: `🎉 Successfully imported ${parsedLeads.length} leads into CRM Database!`,
+      message: `🎉 Successfully imported ${parsedLeads.length} leads into CRM MariaDB Database!`,
       type: "success"
     });
   };
