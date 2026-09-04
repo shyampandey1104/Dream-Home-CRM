@@ -29,7 +29,7 @@ export default function Header({
     }
   };
 
-  const companyName = orgProfile?.company_name || "Dream Homes";
+  const companyName = orgProfile?.company_name || "DreamHome";
   const logoUrl = orgProfile?.logo_url || "/dreamhomes_gold_logo.jpg";
 
   return (
