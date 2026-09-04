@@ -22,7 +22,10 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW reg error', err));
+          const swPath = window.location.pathname.startsWith('/assets/') ? '/assets/real_state_crm/frontend/sw.js' : '/sw.js';
+          navigator.serviceWorker.register(swPath).catch(() => {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+          });
         });
       }
     </script>
