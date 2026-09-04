@@ -41,8 +41,6 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
         doc = frappe.get_doc("Real Estate Lead", lead_id)
     else:
         doc = frappe.new_doc("Real Estate Lead")
-        if lead_id and not frappe.db.exists("Real Estate Lead", lead_id):
-            doc.name = lead_id
 
     doc.lead_name = final_name
     doc.phone = phone

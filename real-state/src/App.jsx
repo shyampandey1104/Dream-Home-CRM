@@ -541,6 +541,9 @@ export default function App() {
               setLeads(updated);
               saveStoredLeads(updated);
               showToast(`🎉 Fresh Lead '${newLead.name}' created successfully!`);
+              fetchCrmLeads().then((data) => {
+                if (data && data.length > 0) setLeads(data);
+              });
             }}
             onLeadUpdated={handleLeadUpdated}
             onLeadDeleted={handleLeadDeleted}
