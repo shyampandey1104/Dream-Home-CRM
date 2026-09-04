@@ -23,17 +23,17 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
 
   // Dynamic Metric Totals
   const totalCallsCount = leads.reduce((sum, l) => sum + (l.callCount || (l.history?.length || 0)), 0);
-  const displayCallsCount = metrics?.mtdCallsMade || (totalCallsCount > 0 ? totalCallsCount + 180 : 186);
+  const displayCallsCount = metrics?.mtdCallsMade !== undefined ? metrics.mtdCallsMade : totalCallsCount;
 
   const followupsDoneCount = leads.filter(l => l.status === "FOLLOWUP_TODAY" || l.status === "FOLLOWUP" || l.callbackTime || (l.history && l.history.some(h => (h.outcome || '').includes("Follow") || (h.outcome || '').includes("Call Back")))).length;
-  const displayFollowups = metrics?.followupsDone || (followupsDoneCount > 0 ? followupsDoneCount + 40 : 46);
+  const displayFollowups = metrics?.followupsDone !== undefined ? metrics.followupsDone : followupsDoneCount;
 
-  const displayHotLeads = qualifiedLeads.length > 0 ? qualifiedLeads.length + 15 : (metrics?.hotLeadsPassed || 18);
-  const displayVisits = siteVisitLeads.length > 0 ? siteVisitLeads.length + 10 : (metrics?.visitsBooked || 12);
+  const displayHotLeads = metrics?.hotLeadsPassed !== undefined ? metrics.hotLeadsPassed : qualifiedLeads.length;
+  const displayVisits = metrics?.visitsBooked !== undefined ? metrics.visitsBooked : siteVisitLeads.length;
 
   const closedDeals = leads.filter(l => l.status === "CLOSED" || (l.history && l.history.some(h => (h.outcome || '').includes("Closed") || (h.outcome || '').includes("Won"))));
-  const closedCount = closedDeals.length > 0 ? closedDeals.length + 6 : (metrics?.conversionsCount || 8);
-  const conversionAmountStr = metrics?.conversionsAmount || `₹${closedCount * 30 + 5}K`;
+  const closedCount = metrics?.conversionsCount !== undefined ? metrics.conversionsCount : closedDeals.length;
+  const conversionAmountStr = metrics?.conversionsAmount || `₹${closedCount * 30}K`;
 
   const metricCategories = [
     { id: "My Visits", title: "My Visits", count: metrics?.myVisitsCount ?? myVisitsLeads.length, icon: "🚗", color: "#2563eb", bg: "#eff6ff", leads: myVisitsLeads },
