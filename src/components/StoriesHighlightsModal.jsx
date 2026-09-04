@@ -283,6 +283,15 @@ export default function StoriesHighlightsModal({ isOpen, onClose, onInboundLeadC
             <img 
               src="/dreamhomes_gold_logo.jpg" 
               alt="Dream Homes Logo" 
+              onError={(e) => {
+                if (!e.target.dataset.fallback) {
+                  e.target.dataset.fallback = "1";
+                  e.target.src = "/assets/real_state_crm/frontend/dreamhomes_gold_logo.jpg";
+                } else if (e.target.dataset.fallback === "1") {
+                  e.target.dataset.fallback = "2";
+                  e.target.src = "/dreamhomes_logo.png";
+                }
+              }}
               style={{
                 width: "42px",
                 height: "42px",
