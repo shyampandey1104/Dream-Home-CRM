@@ -822,6 +822,72 @@ def save_integration_settings(**kwargs):
     return {"status": "success", "message": "Integration settings updated successfully in CRM Backend!"}
 
 
+@frappe.whitelist(allow_guest=True)
+def inbound_call_webhook(caller_number=None, caller_name=None, source="Direct Inbound Call", location="Mumbai", bhk="2 BHK", notes=None, **kwargs):
+    """
+    Receives incoming direct calls from Cloud Telephony / Exotel / IVR / Webhooks.
+    Creates Real Estate Lead and saves a live Lead Notification in MariaDB to trigger CRM ringing.
+    """
+    phone = caller_number or kwargs.get("From") or kwargs.get("phone") or kwargs.get("contact_phone") or "+91 98205 91823"
+    name = caller_name or kwargs.get("name") or kwargs.get("CallerName") or f"Direct Caller {phone[-4:]}"
+    src = source or kwargs.get("channel") or "Direct Inbound Call"
+    loc = location or kwargs.get("locality") or kwargs.get("preferred_location") or "Mumbai"
+    bhk_type = bhk or kwargs.get("bhk_type") or kwargs.get("bhkType") or "2 BHK"
+    discussion = notes or kwargs.get("notes") or f"Incoming call captured via Cloud IVR on {src}"
+
+    # 1. Save or update lead in MariaDB
+    lead_res = save_lead(
+        name=name,
+        phone=phone,
+        priority="HOT",
+        status="NEW",
+        service="Home Buying",
+        bhk_type=bhk_type,
+        location=loc,
+        source=src,
+        notes=discussion
+    )
+    lead_id = lead_res.get("lead_id")
+
+    # 2. Create Lead Notification in MariaDB to broadcast to active CRM frontend sessions
+    try:
+        if frappe.db.exists("DocType", "Lead Notification"):
+            notif = frappe.new_doc("Lead Notification")
+            notif.title = f"📞 Inbound Call: {name}"
+            notif.message = f"{src} • {bhk_type} ({loc})"
+            notif.source = src
+            notif.notif_type = "inbound_call"
+            notif.lead_id = lead_id
+            notif.lead_name = name
+            notif.lead_phone = phone
+            notif.lead_location = loc
+            notif.lead_bhk = bhk_type
+            notif.is_read = 0
+            notif.time_ago = "Just Now"
+            notif.save(ignore_permissions=True)
+            frappe.db.commit()
+    except Exception as e:
+        frappe.log_error(f"Inbound call notification error: {str(e)}")
+
+    return {
+        "status": "success",
+        "message": f"Inbound call from '{name}' ({phone}) received and broadcasted to CRM!",
+        "lead_id": lead_id,
+        "caller": {
+            "id": lead_id,
+            "name": name,
+            "phone": phone,
+            "source": src,
+            "location": loc,
+            "bhkType": bhk_type,
+            "notes": discussion,
+            "service": "Home Buying",
+            "priority": "HOT",
+            "status": "NEW"
+        }
+    }
+
+
 # --- FOCUS PROJECTS & INVENTORY APIS ---
 
 @frappe.whitelist(allow_guest=True)

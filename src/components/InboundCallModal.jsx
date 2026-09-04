@@ -1,41 +1,231 @@
-import React from "react";
-import { PhoneCall, PhoneOff, User, MapPin } from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import { PhoneCall, PhoneOff, PhoneIncoming, User, MapPin, Building, Sparkles } from "lucide-react";
 
-export default function InboundCallModal({ incomingLead, onAccept, onDecline }) {
-  if (!incomingLead) return null;
+export default function InboundCallModal({ lead, incomingLead, onAccept, onReject, onDecline }) {
+  const currentLead = lead || incomingLead;
+  const handleDecline = onReject || onDecline;
+  const audioCtxRef = useRef(null);
+  const ringIntervalRef = useRef(null);
+
+  // Synthesize realistic phone ringtone via browser Web Audio API
+  useEffect(() => {
+    if (!currentLead) return;
+
+    // Trigger haptic vibration if supported (Mobile devices)
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate([500, 250, 500, 250, 1000]);
+      } catch (e) {}
+    }
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        audioCtxRef.current = ctx;
+
+        const playRingTone = () => {
+          if (ctx.state === "suspended") {
+            ctx.resume().catch(() => {});
+          }
+          const now = ctx.currentTime;
+          
+          // Dual frequency phone ring (440Hz + 480Hz US/India standard cadence)
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc1.frequency.setValueAtTime(440, now);
+          osc2.frequency.setValueAtTime(480, now);
+
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 1.8);
+          osc2.stop(now + 1.8);
+        };
+
+        // Ring initially and every 3.5 seconds
+        playRingTone();
+        ringIntervalRef.current = setInterval(playRingTone, 3500);
+      }
+    } catch (err) {
+      console.log("[Inbound Ringtone notice]", err);
+    }
+
+    return () => {
+      if (ringIntervalRef.current) clearInterval(ringIntervalRef.current);
+      if (audioCtxRef.current) {
+        try {
+          audioCtxRef.current.close().catch(() => {});
+        } catch (e) {}
+      }
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate(0);
+        } catch (e) {}
+      }
+    };
+  }, [currentLead]);
+
+  if (!currentLead) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="inbound-ring-card">
-        <div className="ring-avatar">
-          <PhoneCall size={32} className="animate-pulse" />
+    <div 
+      className="modal-overlay"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15, 23, 42, 0.88)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
+        zIndex: 999999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem"
+      }}
+    >
+      <div 
+        className="inbound-ring-card"
+        style={{
+          background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)",
+          border: "1px solid rgba(255, 255, 255, 0.15)",
+          borderRadius: "1.5rem",
+          padding: "2rem 1.5rem",
+          maxWidth: "380px",
+          width: "100%",
+          textAlign: "center",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(37, 99, 235, 0.3)",
+          color: "#ffffff",
+          animation: "scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+        }}
+      >
+        {/* Animated Radar Ripples & Icon */}
+        <div style={{ position: "relative", width: "90px", height: "90px", margin: "0 auto 1.25rem auto" }}>
+          <div 
+            style={{
+              position: "absolute",
+              inset: "-12px",
+              borderRadius: "50%",
+              background: "rgba(37, 99, 235, 0.3)",
+              animation: "ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite"
+            }}
+          />
+          <div 
+            style={{
+              position: "absolute",
+              inset: "-4px",
+              borderRadius: "50%",
+              background: "rgba(37, 99, 235, 0.5)",
+              animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+            }}
+          />
+          <div 
+            style={{
+              position: "relative",
+              width: "90px",
+              height: "90px",
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 8px 24px rgba(37, 99, 235, 0.5)"
+            }}
+          >
+            <PhoneIncoming size={40} color="#ffffff" style={{ animation: "bounce 1s infinite" }} />
+          </div>
         </div>
 
-        <h2 className="ring-caller-name">{incomingLead.name}</h2>
-        <p style={{ color: "#64748b", fontSize: "0.9rem", marginTop: "0.25rem" }}>
-          {incomingLead.phone}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: "rgba(37, 99, 235, 0.2)", border: "1px solid rgba(37, 99, 235, 0.4)", padding: "0.25rem 0.75rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700, color: "#93c5fd", marginBottom: "0.75rem" }}>
+          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#60a5fa", display: "inline-block", animation: "pulse 1s infinite" }} />
+          INCOMING DIRECT CALL
+        </div>
+
+        <h2 style={{ fontSize: "1.35rem", fontWeight: 800, margin: "0 0 0.3rem 0", color: "#f8fafc" }}>
+          {currentLead.name || currentLead.lead_name || "Direct Inbound Caller"}
+        </h2>
+        <p style={{ color: "#94a3b8", fontSize: "0.95rem", fontWeight: 600, margin: "0 0 1rem 0" }}>
+          {currentLead.phone || "+91 98205 91823"}
         </p>
 
-        <span className="ring-source-tag">
-          ⚡ Incoming Lead from {incomingLead.source}
-        </span>
-
-        <div style={{ fontSize: "0.85rem", color: "#475569", marginBottom: "1rem" }}>
-          <p><strong>Service:</strong> {incomingLead.service}</p>
-          <p><strong>Location:</strong> {incomingLead.location}</p>
-          <p style={{ marginTop: "0.5rem", fontStyle: "italic", color: "#64748b" }}>
-            "{incomingLead.notes}"
-          </p>
+        {/* Lead Details Card */}
+        <div style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "0.875rem", padding: "0.875rem 1rem", textAlign: "left", marginBottom: "1.75rem", fontSize: "0.8125rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+            <span style={{ color: "#94a3b8" }}>Source:</span>
+            <span style={{ fontWeight: 700, color: "#60a5fa" }}>{currentLead.source || "Cloud IVR / Webhook"}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+            <span style={{ color: "#94a3b8" }}>Looking For:</span>
+            <span style={{ fontWeight: 700, color: "#f1f5f9" }}>{currentLead.bhkType || currentLead.bhk_type || "2 BHK"} • {currentLead.service || "Home Buying"}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ color: "#94a3b8" }}>Location:</span>
+            <span style={{ fontWeight: 700, color: "#f1f5f9" }}>{currentLead.location || "Mumbai"}</span>
+          </div>
         </div>
 
-        <div className="ring-actions">
-          <button className="ring-btn decline" onClick={onDecline} title="Decline Call">
-            <PhoneOff size={24} />
-          </button>
+        {/* Action Buttons: Decline (Red) & Accept (Green) */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "2.5rem" }}>
+          <div style={{ textAlign: "center" }}>
+            <button 
+              onClick={() => handleDecline && handleDecline()} 
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                border: "none",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                boxShadow: "0 10px 25px -5px rgba(239, 68, 68, 0.5)",
+                transition: "transform 0.15s ease"
+              }}
+              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
+              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+              title="Decline Call"
+            >
+              <PhoneOff size={28} />
+            </button>
+            <span style={{ display: "block", fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.5rem", fontWeight: 600 }}>Decline</span>
+          </div>
 
-          <button className="ring-btn accept" onClick={() => onAccept(incomingLead)} title="Accept Call & Open Dialer">
-            <PhoneCall size={24} />
-          </button>
+          <div style={{ textAlign: "center" }}>
+            <button 
+              onClick={() => onAccept && onAccept(currentLead)} 
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                border: "none",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                boxShadow: "0 10px 25px -5px rgba(16, 185, 129, 0.6)",
+                animation: "pulse 1.5s infinite",
+                transition: "transform 0.15s ease"
+              }}
+              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
+              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+              title="Accept Call"
+            >
+              <PhoneCall size={28} />
+            </button>
+            <span style={{ display: "block", fontSize: "0.75rem", color: "#34d399", marginTop: "0.5rem", fontWeight: 700 }}>Accept</span>
+          </div>
         </div>
       </div>
     </div>

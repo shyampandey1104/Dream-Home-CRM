@@ -168,6 +168,17 @@ export default function App() {
       fetchCrmLeads(userEmail).then((data) => {
         if (data && data.length > 0) setLeads(data);
       });
+
+      fetchCrmNotifications().then((notifs) => {
+        if (notifs && notifs.length > 0) {
+          setNotifications(notifs);
+          // Check for fresh inbound call to ring the screen
+          const latestInbound = notifs.find(n => n.type === "inbound_call" && !n.read && n.lead);
+          if (latestInbound && !activeCallLead && !incomingCallLead) {
+            setIncomingCallLead(latestInbound.lead);
+          }
+        }
+      });
     };
 
     syncLiveData();
@@ -176,12 +187,6 @@ export default function App() {
     fetchCrmMetrics().then((data) => {
       if (data) setMetrics(data);
       else setMetrics(getStoredMetrics());
-    });
-
-    fetchCrmNotifications().then((notifs) => {
-      if (notifs && notifs.length > 0) {
-        setNotifications(notifs);
-      }
     });
 
     fetchOrgProfile().then((data) => {
