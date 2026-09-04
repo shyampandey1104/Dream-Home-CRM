@@ -61,35 +61,37 @@ export const fetchCrmUsers = async () => {
 export const fetchCrmLeads = async (userEmail = null) => {
   try {
     const customHeaders = { "Bypass-Tunnel-Reminder": "true", "ngrok-skip-browser-warning": "69420" };
-    const url = userEmail ? `${FRAPPE_API_URL}.get_leads?user_email=${encodeURIComponent(userEmail)}` : `${FRAPPE_API_URL}.get_leads`;
+    const url = `${FRAPPE_API_URL}.get_leads`;
     
-    // 3-second fast controller timeout to prevent any network hang
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-    let res = await fetch(url, { headers: customHeaders, signal: controller.signal }).catch(() => null);
-    clearTimeout(timeoutId);
-
+    let res = await fetch(url, { headers: customHeaders });
     if (res && res.ok) {
-      const json = await res.json().catch(() => null);
+      const json = await res.json();
       const rawLeads = json?.message?.data || json?.data || [];
       if (Array.isArray(rawLeads) && rawLeads.length > 0) {
         const normalized = rawLeads.map(l => ({
           ...l,
-          id: l.name, // Unique hash ID
-          name: l.lead_name || l.name, // Display Client Name (e.g. Sneha Kapoor)
+          id: l.name,
+          name: l.lead_name || l.name,
           lead_name: l.lead_name || l.name,
+          phone: l.phone || "",
+          email: l.email || "",
+          priority: l.priority || "HOT",
+          status: l.status || "NEW",
+          service: l.service || "Home Buying",
           bhkType: l.bhk_type || l.bhkType || "2 BHK",
           bhk_type: l.bhk_type || l.bhkType || "2 BHK",
+          location: l.location || "Mumbai",
+          source: l.source || "Direct Walk-in",
           timeAgo: l.creation ? new Date(l.creation).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "Today",
-          callCount: l.call_count || 0
+          callCount: l.call_count || 0,
+          notes: l.notes || ""
         }));
         saveStoredLeads(normalized);
         return normalized;
       }
     }
   } catch (e) {
-    console.log("[Frappe Leads Notice] Fast cache mode active.");
+    console.log("[Frappe Leads Notice] Fetch fallback active.", e);
   }
   return getStoredLeads();
 };
@@ -474,30 +476,49 @@ export const saveLeadApi = async (leadData) => {
     notes: leadData.notes || ""
   };
 
-  const endpoints = isLocalHost
-    ? [`${LOCAL_BACKEND}.save_lead`, `${LIVE_BACKEND}.save_lead`]
-    : [`${LIVE_BACKEND}.save_lead`, `${LOCAL_BACKEND}.save_lead`];
+  let savedId = leadData.id || `LEAD-${Date.now().toString().slice(-4)}`;
+  let result = { status: "success", lead_id: savedId };
 
-  for (const endpoint of endpoints) {
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Bypass-Tunnel-Reminder": "true",
-          "ngrok-skip-browser-warning": "69420"
-        },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.message || data;
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_lead`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Bypass-Tunnel-Reminder": "true",
+        "ngrok-skip-browser-warning": "69420"
+      },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      result = data.message || data;
+      if (result && (result.lead_id || result.id)) {
+        savedId = result.lead_id || result.id;
       }
-    } catch (e) {
-      console.log(`[saveLeadApi Notice ${endpoint}]`, e.message);
     }
+  } catch (e) {
+    console.log(`[saveLeadApi Notice]`, e.message);
   }
-  return { status: "success", lead_id: leadData.id || `LEAD-${Date.now().toString().slice(-4)}` };
+
+  // Update local storage so that even if offline or before poll, lead is present
+  try {
+    const stored = getStoredLeads();
+    const normalizedNew = {
+      ...leadData,
+      id: savedId,
+      name: leadData.name || leadData.lead_name,
+      lead_name: leadData.name || leadData.lead_name,
+      bhkType: leadData.bhkType || leadData.bhk_type || "2 BHK",
+      bhk_type: leadData.bhkType || leadData.bhk_type || "2 BHK",
+      status: leadData.status || "NEW",
+      callCount: leadData.callCount || 0,
+      timeAgo: "Just Now"
+    };
+    const updated = [normalizedNew, ...stored.filter(l => l.id !== savedId && l.id !== leadData.id)];
+    saveStoredLeads(updated);
+  } catch (err) {}
+
+  return result;
 };
 
 export const bulkSaveLeadsApi = async (leadsList) => {
@@ -509,7 +530,9 @@ export const bulkSaveLeadsApi = async (leadsList) => {
     });
     if (res.ok) {
       const data = await res.json();
-      return data.message || data;
+      const result = data.message || data;
+      await fetchCrmLeads();
+      return result;
     }
   } catch (e) {
     console.log("[bulkSaveLeadsApi Error]", e);
