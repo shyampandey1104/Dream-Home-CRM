@@ -881,6 +881,64 @@ export const fetchCrmNotifications = async () => {
   return null;
 };
 
+export const saveNotificationApi = async (notifData) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_notification`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: notifData.title,
+        message: notifData.message,
+        source: notifData.source || "Scheduled Disposition",
+        notif_type: notifData.type || "followup",
+        lead_id: notifData.lead?.id || notifData.lead_id,
+        lead_name: notifData.lead?.name || notifData.lead_name,
+        lead_phone: notifData.lead?.phone || notifData.lead_phone,
+        lead_location: notifData.lead?.location || notifData.lead_location,
+        lead_bhk: notifData.lead?.bhkType || notifData.lead_bhk,
+        is_read: notifData.read ? 1 : 0,
+        time_ago: notifData.timeAgo
+      })
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.log("[Save Notification Error]", e);
+  }
+  return { status: "success" };
+};
+
+export const markNotificationReadApi = async (notifId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.mark_notification_read`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notif_id: notifId })
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.log("[Mark Read Error]", e);
+  }
+  return { status: "success" };
+};
+
+export const clearAllNotificationsApi = async () => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.clear_all_notifications`, {
+      method: "POST"
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.log("[Clear Notifications Error]", e);
+  }
+  return { status: "success" };
+};
+
 export const fetchOrgProfile = async () => {
   try {
     let res = await fetch(`${FRAPPE_API_URL}.get_org_profile`);

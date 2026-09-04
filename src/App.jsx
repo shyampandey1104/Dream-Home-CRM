@@ -39,6 +39,9 @@ import {
   fetchCrmLeads,
   fetchCrmMetrics,
   fetchCrmNotifications,
+  saveNotificationApi,
+  markNotificationReadApi,
+  clearAllNotificationsApi,
   fetchOrgProfile,
   claimLeadsApi
 } from "./services/apiService";
@@ -346,6 +349,7 @@ export default function App() {
       };
 
       setNotifications(prev => [newDispositionNotif, ...prev.filter(n => n.lead?.id !== leadId)]);
+      saveNotificationApi(newDispositionNotif);
     }
 
     await syncWithFrappeBackend("log_call", {
@@ -404,6 +408,7 @@ export default function App() {
       lead: newLeadObj
     };
     setNotifications(prev => [newNotification, ...prev]);
+    saveNotificationApi(newNotification);
 
     syncWithFrappeBackend("create_lead", newLeadObj);
   };
@@ -628,9 +633,13 @@ export default function App() {
             setShowNotificationsModal(false);
             if (lead) setReportLead(lead);
           }}
-          onClearAll={() => setNotifications([])}
+          onClearAll={() => {
+            setNotifications([]);
+            clearAllNotificationsApi();
+          }}
           onMarkRead={(id) => {
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+            markNotificationReadApi(id);
           }}
         />
       )}
