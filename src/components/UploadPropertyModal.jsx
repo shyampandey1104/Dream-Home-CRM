@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, Upload, FileText, CheckCircle2, Sparkles, Building, MapPin, Tag, DollarSign, AlertCircle, Image, Video, Share2 } from "lucide-react";
-import { uploadPropertyApi } from "../services/apiService";
+import { uploadPropertyApi, uploadFileToFrappeApi } from "../services/apiService";
 import { validateRequiredText } from "../utils/validators";
 import CustomAlertDialog from "./CustomAlertDialog";
 
@@ -35,14 +35,21 @@ export default function UploadPropertyModal({ isOpen, onClose, onPropertyUploade
 
     setFileName(file.name);
 
-    // If user uploaded an image file, convert to local preview URL
-    if (file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (uploadEv) => {
-        if (uploadEv.target.result) setHeroImg(uploadEv.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
+    // Convert file to base64 & upload to Frappe Storage
+    const reader = new FileReader();
+    reader.onload = async (uploadEv) => {
+      const base64Data = uploadEv.target?.result;
+      if (file.type.startsWith("image/") && base64Data) {
+        setHeroImg(base64Data);
+      }
+      try {
+        const fileRes = await uploadFileToFrappeApi(file.name, base64Data);
+        if (fileRes && fileRes.file_url && file.type.startsWith("image/")) {
+          setHeroImg(fileRes.file_url);
+        }
+      } catch (e) {}
+    };
+    reader.readAsDataURL(file);
 
     setIsAiParsing(true);
 

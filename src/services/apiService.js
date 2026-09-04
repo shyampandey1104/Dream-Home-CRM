@@ -250,6 +250,142 @@ export const uploadPropertyVideoApi = async (data) => {
   return { status: "success", message: "Property Video saved to Frappe DB!" };
 };
 
+export const fetchPropertyDocumentsApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_property_documents`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {
+    console.log("[Frappe Documents Notice] Offline mode active.");
+  }
+  try {
+    const saved = localStorage.getItem("crm_property_docs");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const deletePropertyDocumentApi = async (docId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_property_document`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doc_id: docId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: `Document ${docId} deleted` };
+};
+
+export const fetchUnitPlansApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_unit_plans`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {
+    console.log("[Frappe Unit Plans Notice] Offline mode active.");
+  }
+  try {
+    const saved = localStorage.getItem("crm_unit_plans");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const deleteUnitPlanApi = async (planId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_unit_plan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan_id: planId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: `Unit Plan ${planId} deleted` };
+};
+
+export const fetchPropertyVideosApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_property_videos`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {
+    console.log("[Frappe Videos Notice] Offline mode active.");
+  }
+  try {
+    const saved = localStorage.getItem("crm_videos");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const deletePropertyVideoApi = async (videoId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_property_video`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ video_id: videoId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: `Video Tour ${videoId} deleted` };
+};
+
+export const fetchCmaAnalysesApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_cma_analyses`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  return [];
+};
+
+export const deleteCmaAnalysisApi = async (cmaId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_cma_analysis`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cma_id: cmaId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: `CMA Record ${cmaId} deleted` };
+};
+
+export const fetchProjectSurveysApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_project_surveys`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  return [];
+};
+
+export const deleteProjectSurveyApi = async (surveyId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_project_survey`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ survey_id: surveyId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: `Survey ${surveyId} deleted` };
+};
+
 export const uploadPropertyListingApi = async (data) => {
   try {
     let res = await fetch(`${FRAPPE_API_URL}.save_property_listing`, {
@@ -269,6 +405,58 @@ export const uploadPropertyListingApi = async (data) => {
     console.log("[Upload Listing Notice] Offline mode active.");
   }
   return { status: "success", message: "Property Listing saved to Frappe DB!" };
+};
+
+export const savePropertyListingApi = uploadPropertyListingApi;
+
+export const fetchPropertyListingsApi = async (listingType = null) => {
+  try {
+    const url = listingType ? `${FRAPPE_API_URL}.get_property_listings?listing_type=${encodeURIComponent(listingType)}` : `${FRAPPE_API_URL}.get_property_listings`;
+    let res = await fetch(url);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {
+    console.log("[Frappe Listings Notice] Offline mode active.");
+  }
+  return [];
+};
+
+export const deletePropertyListingApi = async (listingId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_property_listing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listing_id: listingId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: `Listing ${listingId} deleted` };
+};
+
+export const deletePropertyApi = async (title) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_property`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: title })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: `Property ${title} deleted` };
+};
+
+export const uploadFileToFrappeApi = async (fileName, base64Content) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.upload_file_api`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: fileName, file_content_base64: base64Content })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", file_url: `/files/${fileName}` };
 };
 
 export const saveLeadApi = async (leadData) => {

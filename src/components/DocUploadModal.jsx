@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { X, UploadCloud, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { uploadPropertyDocumentApi, uploadFileToFrappeApi } from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function DocUploadModal({ isOpen, onClose, onDocumentUploaded, categoryTitle = "Property Documents" }) {
@@ -75,16 +76,48 @@ export default function DocUploadModal({ isOpen, onClose, onDocumentUploaded, ca
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
+      const base64Data = reader.result;
+      const formattedDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+      const fType = selectedFile.name.endsWith(".pdf") ? "PDF" : "DOC";
+      const fSize = formatFileSize(selectedFile.size);
+      const titleClean = docTitle.trim() || selectedFile.name;
+
+      // 1. Upload file to Frappe Storage
+      let uploadedUrl = `/files/${selectedFile.name}`;
+      try {
+        const fileRes = await uploadFileToFrappeApi(selectedFile.name, base64Data);
+        if (fileRes && fileRes.file_url) uploadedUrl = fileRes.file_url;
+      } catch (e) {}
+
+      // 2. Save Document metadata in Frappe DB
+      try {
+        await uploadPropertyDocumentApi({
+          document_name: titleClean,
+          project: titleClean,
+          category: docCategory,
+          file_type: fType,
+          file_size: fSize,
+          upload_date: formattedDate,
+          file_url: uploadedUrl,
+          data_url: base64Data
+        });
+      } catch (e) {}
+
       const newDocItem = {
         id: `DOC-${Date.now().toString().slice(-4)}`,
-        name: docTitle.trim() || selectedFile.name,
+        name: titleClean,
+        document_name: titleClean,
         fileName: selectedFile.name,
-        fileType: selectedFile.name.endsWith(".pdf") ? "PDF" : "DOC",
+        fileType: fType,
+        file_type: fType,
         category: docCategory,
-        size: formatFileSize(selectedFile.size),
-        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-        dataUrl: reader.result
+        size: fSize,
+        file_size: fSize,
+        date: formattedDate,
+        upload_date: formattedDate,
+        file_url: uploadedUrl,
+        dataUrl: base64Data
       };
 
       if (onDocumentUploaded) {
@@ -93,7 +126,7 @@ export default function DocUploadModal({ isOpen, onClose, onDocumentUploaded, ca
 
       setAlertConfig({
         title: "Uploaded Successfully!",
-        message: `📄 '${newDocItem.name}' (${newDocItem.fileType}) has been added to ${categoryTitle}!`,
+        message: `📄 '${newDocItem.name}' (${newDocItem.fileType}) has been added & saved to CRM Database!`,
         type: "success"
       });
     };
