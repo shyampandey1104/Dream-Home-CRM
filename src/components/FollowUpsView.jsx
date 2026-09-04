@@ -187,7 +187,7 @@ export default function FollowUpsView({ leads, onCallLead, onLeadUpdated, onLead
               </div>
               
               <div className="lead-customer-name" style={{ fontSize: "1.05rem", fontWeight: 800, color: "#0f172a", margin: "0.35rem 0 0.25rem" }}>
-                {lead.name}
+                {lead.lead_name || lead.name || "Real Estate Client"}
               </div>
 
               <div className="lead-details-row" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", fontSize: "0.78125rem", color: "#64748b" }}>

@@ -72,9 +72,20 @@ export const fetchCrmLeads = async (userEmail = null) => {
 
     if (res && res.ok) {
       const json = await res.json().catch(() => null);
-      if (json && json.message && json.message.data && json.message.data.length > 0) {
-        saveStoredLeads(json.message.data);
-        return json.message.data;
+      const rawLeads = json?.message?.data || json?.data || [];
+      if (Array.isArray(rawLeads) && rawLeads.length > 0) {
+        const normalized = rawLeads.map(l => ({
+          ...l,
+          id: l.name, // Unique hash ID
+          name: l.lead_name || l.name, // Display Client Name (e.g. Sneha Kapoor)
+          lead_name: l.lead_name || l.name,
+          bhkType: l.bhk_type || l.bhkType || "2 BHK",
+          bhk_type: l.bhk_type || l.bhkType || "2 BHK",
+          timeAgo: l.creation ? new Date(l.creation).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "Today",
+          callCount: l.call_count || 0
+        }));
+        saveStoredLeads(normalized);
+        return normalized;
       }
     }
   } catch (e) {
