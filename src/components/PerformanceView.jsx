@@ -36,15 +36,15 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
   const conversionAmountStr = metrics?.conversionsAmount || `₹${closedCount * 30 + 5}K`;
 
   const metricCategories = [
-    { id: "My Visits", title: "My Visits", count: myVisitsLeads.length, icon: "🚗", color: "#2563eb", bg: "#eff6ff", leads: myVisitsLeads },
-    { id: "Qualified Leads", title: "Qualified Leads", count: qualifiedLeads.length, icon: "🔥", color: "#dc2626", bg: "#fef2f2", leads: qualifiedLeads },
-    { id: "Leads Claimed", title: "Leads Claimed", count: leadsClaimed.length, icon: "🎯", color: "#16a34a", bg: "#f0fdf4", leads: leadsClaimed },
-    { id: "Unique Leads Created", title: "Unique Leads Created", count: leads.length, icon: "✨", color: "#9333ea", bg: "#faf5ff", leads: leads },
-    { id: "Site Visit Schedule", title: "Site Visit Schedule", count: siteVisitLeads.length, icon: "📅", color: "#ea580c", bg: "#fff7ed", leads: siteVisitLeads },
-    { id: "Meeting Schedule", title: "Meeting Schedule", count: meetingLeads.length, icon: "🤝", color: "#0284c7", bg: "#f0f9ff", leads: meetingLeads },
-    { id: "Video Call Schedule", title: "Video Call Schedule", count: videoCallLeads.length, icon: "🎥", color: "#4f46e5", bg: "#eef2ff", leads: videoCallLeads },
-    { id: "My Team", title: "My Team", count: 6, icon: "👥", color: "#0891b2", bg: "#ecfeff", leads: [] },
-    { id: "Three Minute Calls", title: "Three Minute Calls", count: threeMinCallLeads.length, icon: "⏱️", color: "#d97706", bg: "#fffbeb", leads: threeMinCallLeads }
+    { id: "My Visits", title: "My Visits", count: metrics?.myVisitsCount ?? myVisitsLeads.length, icon: "🚗", color: "#2563eb", bg: "#eff6ff", leads: myVisitsLeads },
+    { id: "Qualified Leads", title: "Qualified Leads", count: metrics?.qualifiedLeadsCount ?? qualifiedLeads.length, icon: "🔥", color: "#dc2626", bg: "#fef2f2", leads: qualifiedLeads },
+    { id: "Leads Claimed", title: "Leads Claimed", count: metrics?.leadsClaimedCount ?? leadsClaimed.length, icon: "🎯", color: "#16a34a", bg: "#f0fdf4", leads: leadsClaimed },
+    { id: "Unique Leads Created", title: "Unique Leads Created", count: metrics?.uniqueLeadsCount ?? leads.length, icon: "✨", color: "#9333ea", bg: "#faf5ff", leads: leads },
+    { id: "Site Visit Schedule", title: "Site Visit Schedule", count: metrics?.siteVisitScheduleCount ?? siteVisitLeads.length, icon: "📅", color: "#ea580c", bg: "#fff7ed", leads: siteVisitLeads },
+    { id: "Meeting Schedule", title: "Meeting Schedule", count: metrics?.meetingScheduleCount ?? meetingLeads.length, icon: "🤝", color: "#0284c7", bg: "#f0f9ff", leads: meetingLeads },
+    { id: "Video Call Schedule", title: "Video Call Schedule", count: metrics?.videoCallScheduleCount ?? videoCallLeads.length, icon: "🎥", color: "#4f46e5", bg: "#eef2ff", leads: videoCallLeads },
+    { id: "My Team", title: "My Team", count: metrics?.myTeamCount ?? (metrics?.teamMembers?.length || 6), icon: "👥", color: "#0891b2", bg: "#ecfeff", leads: [] },
+    { id: "Three Minute Calls", title: "Three Minute Calls", count: metrics?.threeMinCallsCount ?? threeMinCallLeads.length, icon: "⏱️", color: "#d97706", bg: "#fffbeb", leads: threeMinCallLeads }
   ];
 
   const activeCategoryObj = metricCategories.find(c => c.id === activeMetricFilter) || metricCategories[1];
@@ -195,12 +195,12 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
 
         {activeCategoryObj.id === "My Team" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-            {[
+            {(metrics?.teamMembers || [
               { name: "Priya Sharma", role: "Sales Manager", calls: "48 Calls Today", status: "Active" },
               { name: "Rajesh Kumar", role: "Senior Telecaller", calls: "62 Calls Today", status: "Active" },
               { name: "Sunil Kapoor", role: "Telecaller", calls: "35 Calls Today", status: "Active" },
               { name: "Shyam Pandey", role: "Sales Executive", calls: "54 Calls Today", status: "Active" }
-            ].map((t, idx) => (
+            ]).map((t, idx) => (
               <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0.75rem", background: "#f8fafc", borderRadius: "0.6rem", border: "1px solid #e2e8f0" }}>
                 <div>
                   <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#0f172a" }}>👤 {t.name}</div>

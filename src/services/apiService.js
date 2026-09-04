@@ -729,9 +729,10 @@ export const fetchCrmMetrics = async () => {
     }
     if (res.ok) {
       const json = await res.json();
-      if (json.message && json.message.data) {
-        saveStoredMetrics(json.message.data);
-        return json.message.data;
+      const payload = json.message?.data || json.message?.metrics || json.message || json.data || json.metrics || json;
+      if (payload && typeof payload === "object") {
+        saveStoredMetrics(payload);
+        return payload;
       }
     }
   } catch (e) {
