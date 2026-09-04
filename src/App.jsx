@@ -274,12 +274,18 @@ export default function App() {
   };
 
   const handleSaveCall = async ({ leadId, duration, outcome, bhkType, notes, followupDate, recordedAudioUrl }) => {
+    let targetLeadName = "Lead";
     const updatedLeads = leads.map(l => {
       if (l.id === leadId) {
-        const newCallCount = l.callCount + 1;
-        let newStatus = l.status;
-        if (outcome === "Deal Closed (Won)") {
+        targetLeadName = l.name || l.lead_name || "Lead";
+        const newCallCount = (l.callCount || 0) + 1;
+        let newStatus = "FOLLOWUP";
+        const outLower = (outcome || "").toLowerCase();
+
+        if (outLower.includes("closed") || outLower.includes("deal") || outLower.includes("won")) {
           newStatus = "CLOSED";
+        } else if (outLower.includes("not interested") || outLower.includes("wrong number") || outLower.includes("lost")) {
+          newStatus = "NOT_INTERESTED";
         } else if (followupDate) {
           newStatus = "FOLLOWUP_TODAY";
         } else {
@@ -362,7 +368,14 @@ export default function App() {
       recordedAudioUrl
     });
 
-    showToast(`🎙️ Call logged & live recording saved successfully for ${leadId}!`);
+    const isDealWon = (outcome || "").includes("Closed") || (outcome || "").includes("Won");
+    const isNotInt = (outcome || "").toLowerCase().includes("not interested");
+    const toastMsg = isDealWon 
+      ? `🎉 Deal Closed (Won) for '${targetLeadName}'!` 
+      : isNotInt 
+      ? `❌ '${targetLeadName}' marked as Not Interested.` 
+      : `⏰ Disposition '${outcome}' logged! '${targetLeadName}' moved from Fresh to Follow-ups.`;
+    showToast(toastMsg);
     setActiveCallLead(null);
   };
 
@@ -541,6 +554,9 @@ export default function App() {
               setLeads(updated);
               saveStoredLeads(updated);
               showToast(`🎉 Fresh Lead '${newLead.name}' created successfully!`);
+              fetchCrmLeads().then((data) => {
+                if (data && data.length > 0) setLeads(data);
+              });
             }}
             onLeadUpdated={handleLeadUpdated}
             onLeadDeleted={handleLeadDeleted}

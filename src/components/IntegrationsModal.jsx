@@ -12,10 +12,10 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
   const [virtualNumber, setVirtualNumber] = useState("+91 022 6985 4120");
   const [forwardingPhone, setForwardingPhone] = useState("+91 98677 78229");
   const [telephonyProvider, setTelephonyProvider] = useState("Exotel / Cloud IVR (Free Virtual)");
-  const [inboundWebhookUrl, setInboundWebhookUrl] = useState("https://dream-home-crm.onrender.com/api/method/real_estate_crm.real_estate_crm.api.inbound_call_webhook");
+  const [inboundWebhookUrl, setInboundWebhookUrl] = useState("http://127.0.0.1:8000/api/method/real_state_crm.api.inbound_call_webhook");
 
   const [websiteUrl, setWebsiteUrl] = useState("https://dreamhomes42.com");
-  const [websiteWebhook, setWebsiteWebhook] = useState("http://127.0.0.1:8000/api/method/real_estate_crm.api.website_lead_webhook");
+  const [websiteWebhook, setWebsiteWebhook] = useState("http://127.0.0.1:8000/api/method/real_state_crm.api.website_lead_webhook");
   
   const [instaPageId, setInstaPageId] = useState("dreamhomes_official");
   const [instaToken, setInstaToken] = useState("EAAB123456789_INSTA_TOKEN");

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, FileText, CheckCircle2 } from "lucide-react";
 import CustomAlertDialog from "./CustomAlertDialog";
+import { getApiHeaders } from "../services/apiService";
 
 export default function TCFModal({ isOpen, onClose }) {
   const [leadId, setLeadId] = useState("");
@@ -17,7 +18,7 @@ export default function TCFModal({ isOpen, onClose }) {
     try {
       await fetch("/api/method/real_state_crm.api.save_tcf", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getApiHeaders(),
         body: JSON.stringify({
           client_name: clientName || leadId || "Client",
           phone: "+91 98200 44556",

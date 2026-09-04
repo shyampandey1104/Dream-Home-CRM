@@ -15,8 +15,14 @@ export default function FollowUpsView({ leads, onCallLead, onLeadUpdated, onLead
   const [editingLead, setEditingLead] = useState(null);
   const [leadToDelete, setLeadToDelete] = useState(null);
 
-  // Leads that have been called or marked for follow-up
-  const followUpLeads = leads.filter(l => l.status === "FOLLOWUP_TODAY" || l.status === "FOLLOWUP" || l.status === "OVERDUE" || (l.callCount && l.callCount > 0));
+  // Leads that have been called or marked for follow-up (excluding CLOSED and NOT_INTERESTED)
+  const followUpLeads = React.useMemo(() => {
+    return leads.filter(l => 
+      (l.status === "FOLLOWUP_TODAY" || l.status === "FOLLOWUP" || l.status === "OVERDUE" || (l.callCount && l.callCount > 0)) &&
+      l.status !== "CLOSED" &&
+      l.status !== "NOT_INTERESTED"
+    );
+  }, [leads]);
 
   const filtered = followUpLeads.filter(lead => {
     if (priorityFilter !== "ALL" && lead.priority !== priorityFilter) return false;

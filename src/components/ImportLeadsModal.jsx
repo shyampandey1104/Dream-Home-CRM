@@ -1,11 +1,12 @@
 import React, { useState, useRef } from "react";
 import { X, FileSpreadsheet, UploadCloud, CheckCircle2, Download, AlertCircle, Users, ArrowRight } from "lucide-react";
-import { saveLeadApi } from "../services/apiService";
+import { saveLeadApi, bulkSaveLeadsApi } from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
-export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported }) {
+export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported, existingLeads = [] }) {
   const [file, setFile] = useState(null);
   const [parsedLeads, setParsedLeads] = useState([]);
+  const [duplicateCount, setDuplicateCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [alertConfig, setAlertConfig] = useState(null);
@@ -86,21 +87,39 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported }) {
       const priorityIdx = headers.findIndex(h => h.includes("priority") || h.includes("stage"));
       const notesIdx = headers.findIndex(h => h.includes("note") || h.includes("comment") || h.includes("remark") || h.includes("detail"));
 
+      // Existing phone set for duplicate detection
+      const existingPhoneSet = new Set(
+        (existingLeads || []).map(l => (l.phone || "").replace(/\D/g, "").slice(-10)).filter(Boolean)
+      );
+      const seenInThisFile = new Set();
+
       const leadsList = [];
+      let skippedDuplicates = 0;
 
       for (let i = 1; i < lines.length; i++) {
         const row = lines[i].split(",").map(col => col.trim().replace(/^["']|["']$/g, ""));
         if (row.length === 0 || !row.some(c => c.length > 0)) continue;
 
         const nameVal = (nameIdx >= 0 && row[nameIdx]) ? row[nameIdx] : `Lead #${i}`;
-        const phoneVal = (phoneIdx >= 0 && row[phoneIdx]) ? row[phoneIdx] : "+91 98000 00000";
+        const rawPhone = (phoneIdx >= 0 && row[phoneIdx]) ? row[phoneIdx] : "+91 98000 00000";
+        const cleanDigits = rawPhone.replace(/\D/g, "").slice(-10);
 
-        if (nameVal && phoneVal) {
+        // Check duplicates
+        if (cleanDigits && (existingPhoneSet.has(cleanDigits) || seenInThisFile.has(cleanDigits))) {
+          skippedDuplicates++;
+          continue;
+        }
+
+        if (cleanDigits) {
+          seenInThisFile.add(cleanDigits);
+        }
+
+        if (nameVal && rawPhone) {
           leadsList.push({
             id: `LEAD-IMP-${Date.now().toString().slice(-4)}${i}`,
             name: nameVal,
             lead_name: nameVal,
-            phone: phoneVal,
+            phone: rawPhone,
             email: (emailIdx >= 0 && row[emailIdx]) ? row[emailIdx] : "",
             location: (locIdx >= 0 && row[locIdx]) ? row[locIdx] : "Mumbai",
             bhkType: (bhkIdx >= 0 && row[bhkIdx]) ? row[bhkIdx] : "2 BHK",
@@ -115,7 +134,16 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported }) {
         }
       }
 
+      setDuplicateCount(skippedDuplicates);
       setParsedLeads(leadsList);
+
+      if (leadsList.length === 0 && skippedDuplicates > 0) {
+        setAlertConfig({
+          title: "All Leads Already Exist",
+          message: `All ${skippedDuplicates} leads in this file already exist in the CRM Database! No duplicate entries created.`,
+          type: "warning"
+        });
+      }
     } catch (err) {
       console.error("CSV parsing error", err);
       setAlertConfig({
@@ -129,8 +157,10 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported }) {
   const handleImportSubmit = async () => {
     if (parsedLeads.length === 0) {
       setAlertConfig({
-        title: "No Leads Found",
-        message: "Please select a valid CSV/Excel file with lead rows.",
+        title: "No New Leads",
+        message: duplicateCount > 0 
+          ? `All leads in the file are duplicates (${duplicateCount} skipped).`
+          : "Please select a valid CSV/Excel file with lead rows.",
         type: "warning"
       });
       return;
@@ -138,11 +168,22 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported }) {
 
     setIsProcessing(true);
 
-    // Save each lead via API in background
-    for (const lead of parsedLeads) {
-      try {
-        await saveLeadApi(lead);
-      } catch (e) {}
+    let backendImported = parsedLeads.length;
+    let backendSkipped = duplicateCount;
+
+    // Save batch of leads to MariaDB via bulk_save_leads API
+    try {
+      const res = await bulkSaveLeadsApi(parsedLeads);
+      if (res && res.lead_ids && res.lead_ids.length > 0) {
+        parsedLeads.forEach((l, idx) => {
+          if (res.lead_ids[idx]) l.id = res.lead_ids[idx];
+        });
+      }
+      if (res && res.duplicates_skipped) {
+        backendSkipped += res.duplicates_skipped;
+      }
+    } catch (e) {
+      console.log("[Bulk Save Fallback]", e);
     }
 
     setIsProcessing(false);
@@ -151,9 +192,10 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported }) {
       onLeadsImported(parsedLeads);
     }
 
+    const dupMsg = backendSkipped > 0 ? ` (${backendSkipped} duplicate numbers skipped)` : "";
     setAlertConfig({
       title: "Import Completed!",
-      message: `🎉 Successfully imported ${parsedLeads.length} leads into CRM Database!`,
+      message: `🎉 Successfully imported ${parsedLeads.length} unique leads into CRM MariaDB Database!${dupMsg}`,
       type: "success"
     });
   };

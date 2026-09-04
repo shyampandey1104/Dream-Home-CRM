@@ -21,7 +21,20 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
   const [leadToDelete, setLeadToDelete] = useState(null);
 
   // Only leads that have NEVER been called (callCount === 0 and status is NEW)
-  const allFreshLeads = leads.filter(l => (l.callCount === 0 || !l.callCount) && (l.status === "NEW" || !l.status));
+  // Deduplicate by normalized 10-digit phone so duplicate leads never appear in Fresh
+  const allFreshLeads = React.useMemo(() => {
+    const rawFresh = leads.filter(l => (l.callCount === 0 || !l.callCount) && (l.status === "NEW" || !l.status));
+    const seen = new Set();
+    const result = [];
+    for (const lead of rawFresh) {
+      const cleanPhone = (lead.phone || "").replace(/\D/g, "").slice(-10);
+      const key = cleanPhone || lead.id || lead.name;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(lead);
+    }
+    return result;
+  }, [leads]);
 
   const filtered = allFreshLeads.filter(lead => {
     if (sourceFilter !== "All Sources" && lead.source !== sourceFilter) return false;
@@ -103,6 +116,7 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
       <ImportLeadsModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
+        existingLeads={leads}
         onLeadsImported={handleImportLeads}
       />
 

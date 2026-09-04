@@ -7,6 +7,15 @@ import json
 # --- REAL ESTATE LEADS REST APIS ---
 
 @frappe.whitelist(allow_guest=True)
+def get_csrf_token():
+    """Returns the current session's CSRF token for secure frontend calls."""
+    token = None
+    if hasattr(frappe, "session") and hasattr(frappe.session, "data") and frappe.session.data:
+        token = getattr(frappe.session.data, "csrf_token", None)
+    return {"status": "success", "csrf_token": token or "None"}
+
+
+@frappe.whitelist(allow_guest=True)
 def get_leads(status=None, priority=None, user_email=None):
     """
     Fetches all Real Estate Leads from Frappe MariaDB.
@@ -29,40 +38,90 @@ def get_leads(status=None, priority=None, user_email=None):
         return {"status": "error", "message": str(e), "data": []}
 
 
+def normalize_phone_number(phone_str):
+    """Normalizes phone number to last 10 digits for accurate deduplication."""
+    if not phone_str:
+        return ""
+    digits = "".join(c for c in str(phone_str) if c.isdigit())
+    if len(digits) >= 10:
+        return digits[-10:]
+    return digits
+
+
 @frappe.whitelist(allow_guest=True)
 def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", status="NEW", service="Home Buying", bhk_type="2 BHK", location="Mumbai", source="Manual", notes=None, lead_name=None, bhkType=None, **kwargs):
     """
-    Creates or updates a Real Estate Lead in Frappe DB.
+    Creates or updates a Real Estate Lead in Frappe DB with duplicate phone prevention.
     """
-    final_name = name or lead_name or kwargs.get("client_name") or "New Inbound Lead"
-    final_bhk = bhk_type or bhkType or "2 BHK"
+    final_name = name or lead_name or kwargs.get("client_name") or kwargs.get("fullName") or "New Inbound Lead"
+    final_phone = phone or kwargs.get("contact_phone") or kwargs.get("mobile_no") or kwargs.get("mobile") or kwargs.get("contact") or "+91 98000 00000"
+    final_email = email or kwargs.get("contact_email") or kwargs.get("email_id") or ""
+    final_bhk = bhk_type or bhkType or kwargs.get("bhk") or "2 BHK"
+    
+    raw_priority = str(priority or kwargs.get("priority") or "HOT").upper()
+    final_priority = raw_priority if raw_priority in ["HOT", "WARM", "COLD"] else "HOT"
+    
+    raw_status = str(status or kwargs.get("status") or "NEW").upper()
+    valid_statuses = ["NEW", "FOLLOWUP", "FOLLOWUP_TODAY", "OVERDUE", "CLOSED", "NOT_INTERESTED"]
+    final_status = raw_status if raw_status in valid_statuses else "NEW"
+    
+    final_location = location or kwargs.get("preferred_location") or kwargs.get("locality") or "Mumbai"
+    final_source = source or kwargs.get("source") or "Direct Walk-in"
+    final_notes = notes or kwargs.get("notes") or kwargs.get("discussion") or ""
+    final_service = service or kwargs.get("service") or kwargs.get("type") or "Home Buying"
+
+    clean_phone = normalize_phone_number(final_phone)
+    is_duplicate = False
     
     if lead_id and frappe.db.exists("Real Estate Lead", lead_id):
         doc = frappe.get_doc("Real Estate Lead", lead_id)
     else:
-        doc = frappe.new_doc("Real Estate Lead")
+        # Check if lead with identical 10-digit phone already exists in DB to prevent duplicates in Fresh
+        existing_doc_name = None
+        if clean_phone:
+            existing_leads = frappe.get_all("Real Estate Lead", fields=["name", "phone", "lead_name"])
+            for el in existing_leads:
+                if normalize_phone_number(el.phone) == clean_phone:
+                    existing_doc_name = el.name
+                    break
+        
+        if existing_doc_name:
+            doc = frappe.get_doc("Real Estate Lead", existing_doc_name)
+            is_duplicate = True
+        else:
+            doc = frappe.new_doc("Real Estate Lead")
 
     doc.lead_name = final_name
-    doc.phone = phone
-    doc.email = email
-    doc.priority = priority or "HOT"
-    doc.status = status or "NEW"
-    doc.service = service or "Home Buying"
+    doc.phone = final_phone
+    if final_email:
+        doc.email = final_email
+    doc.priority = final_priority
+    doc.status = final_status
+    doc.service = final_service
     doc.bhk_type = final_bhk
-    doc.location = location or "Mumbai"
-    doc.source = source or "Manual Entry"
-    doc.notes = notes or ""
+    doc.location = final_location
+    doc.source = final_source
+    if is_duplicate and doc.notes:
+        doc.notes = f"{doc.notes}\n[Update]: {final_notes}".strip()
+    else:
+        doc.notes = final_notes
 
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
-    return {"status": "success", "lead_id": doc.name, "message": f"Lead '{final_name}' saved to MariaDB!"}
+    msg = f"Lead with phone '{final_phone}' already exists! Updated existing record '{final_name}'." if is_duplicate else f"Lead '{final_name}' saved to MariaDB!"
+    return {
+        "status": "success",
+        "is_duplicate": is_duplicate,
+        "lead_id": doc.name,
+        "message": msg
+    }
 
 
 @frappe.whitelist(allow_guest=True)
 def bulk_save_leads(leads=None, **kwargs):
     """
-    Bulk saves an array of leads imported from Excel/CSV file to MariaDB.
+    Bulk saves leads imported from Excel/CSV file to MariaDB while preventing duplicate phone entries.
     """
     if isinstance(leads, str):
         try:
@@ -72,26 +131,51 @@ def bulk_save_leads(leads=None, **kwargs):
     
     if not leads or not isinstance(leads, list):
         return {"status": "error", "message": "No leads provided for bulk import"}
+
+    # Build cache of existing phone numbers in MariaDB
+    existing_phones = set()
+    try:
+        db_leads = frappe.get_all("Real Estate Lead", fields=["phone"])
+        for dl in db_leads:
+            norm = normalize_phone_number(dl.phone)
+            if norm:
+                existing_phones.add(norm)
+    except Exception:
+        pass
     
     saved_count = 0
+    duplicate_count = 0
     created_ids = []
+    
     for l in leads:
         if not isinstance(l, dict):
             continue
         try:
+            raw_phone = l.get("phone") or l.get("contact_phone") or l.get("mobile") or ""
+            norm_phone = normalize_phone_number(raw_phone)
+            
+            # Prevent duplicate phone insertion in database
+            if norm_phone and norm_phone in existing_phones:
+                duplicate_count += 1
+                continue
+            
             name_val = l.get("name") or l.get("lead_name") or "Imported Lead"
             doc = frappe.new_doc("Real Estate Lead")
             doc.lead_name = name_val
-            doc.phone = l.get("phone") or "+91 98000 00000"
+            doc.phone = raw_phone or "+91 98000 00000"
             doc.email = l.get("email") or ""
             doc.priority = l.get("priority") or "HOT"
-            doc.status = l.get("status") or "NEW"
+            doc.status = "NEW"
             doc.service = l.get("service") or "Home Buying"
             doc.bhk_type = l.get("bhk_type") or l.get("bhkType") or "2 BHK"
             doc.location = l.get("location") or "Mumbai"
             doc.source = l.get("source") or "Excel Import"
             doc.notes = l.get("notes") or "Bulk imported from Excel file"
+            doc.call_count = 0
             doc.save(ignore_permissions=True)
+            
+            if norm_phone:
+                existing_phones.add(norm_phone)
             created_ids.append(doc.name)
             saved_count += 1
         except Exception as err:
@@ -102,8 +186,9 @@ def bulk_save_leads(leads=None, **kwargs):
     return {
         "status": "success",
         "imported_count": saved_count,
+        "duplicates_skipped": duplicate_count,
         "lead_ids": created_ids,
-        "message": f"Successfully imported {saved_count} leads to MariaDB!"
+        "message": f"Successfully imported {saved_count} new leads! ({duplicate_count} duplicate phone numbers skipped)"
     }
 
 
@@ -156,34 +241,87 @@ def delete_lead(lead_id=None):
 
 
 @frappe.whitelist(allow_guest=True)
-def log_call(lead_id, duration, outcome, bhk_type=None, notes=None, followup_date=None):
+def log_call(lead_id=None, duration="00:30", outcome="Interested", bhk_type=None, notes=None, followup_date=None, **kwargs):
     """
-    Logs an outbound telecaller call outcome into Frappe Call Log.
+    Logs an outbound telecaller call outcome and transitions lead status according to disposition.
     """
-    log_doc = frappe.new_doc("Call Log")
-    log_doc.lead = lead_id
-    log_doc.duration = duration
-    log_doc.outcome = outcome
-    log_doc.notes = notes
-    log_doc.followup_date = followup_date
-
-    log_doc.save(ignore_permissions=True)
+    try:
+        if frappe.db.exists("DocType", "Call Log"):
+            log_doc = frappe.new_doc("Call Log")
+            log_doc.lead = lead_id
+            log_doc.duration = duration
+            log_doc.outcome = outcome
+            log_doc.notes = notes
+            log_doc.followup_date = followup_date
+            log_doc.save(ignore_permissions=True)
+    except Exception:
+        pass
     
-    if frappe.db.exists("Real Estate Lead", lead_id):
+    lead = None
+    if lead_id and frappe.db.exists("Real Estate Lead", lead_id):
         lead = frappe.get_doc("Real Estate Lead", lead_id)
+    elif lead_id:
+        matched = frappe.get_all("Real Estate Lead", filters={"phone": lead_id}, pluck="name")
+        if matched:
+            lead = frappe.get_doc("Real Estate Lead", matched[0])
+
+    if lead:
         lead.call_count = (lead.call_count or 0) + 1
         if bhk_type:
             lead.bhk_type = bhk_type
-        if outcome == "Deal Closed (Won)":
+        if notes:
+            lead.notes = f"{lead.notes or ''}\n[{outcome}]: {notes}".strip()
+            
+        out_lower = str(outcome or "").lower()
+        if "closed" in out_lower or "deal" in out_lower or "won" in out_lower:
             lead.status = "CLOSED"
-        elif followup_date:
-            lead.status = "FOLLOWUP_TODAY"
+        elif "not interested" in out_lower or "wrong number" in out_lower or "lost" in out_lower:
+            lead.status = "NOT_INTERESTED"
+        elif followup_date or "follow" in out_lower or "callback" in out_lower or "visit" in out_lower or "interested" in out_lower:
+            lead.status = "FOLLOWUP_TODAY" if followup_date else "FOLLOWUP"
         else:
             lead.status = "FOLLOWUP"
+            
         lead.save(ignore_permissions=True)
+        frappe.db.commit()
+        return {
+            "status": "success",
+            "lead_id": lead.name,
+            "new_status": lead.status,
+            "call_count": lead.call_count,
+            "message": f"Lead '{lead.lead_name}' moved to '{lead.status}'"
+        }
 
-    frappe.db.commit()
-    return {"status": "success", "call_log": log_doc.name}
+    return {"status": "success", "message": "Call logged successfully"}
+
+
+@frappe.whitelist(allow_guest=True)
+def update_lead_status(lead_id=None, status="FOLLOWUP", disposition=None, notes=None, **kwargs):
+    """
+    Updates the disposition and status of a Real Estate Lead.
+    """
+    if not lead_id:
+        return {"status": "error", "message": "lead_id is required"}
+        
+    lead = None
+    if frappe.db.exists("Real Estate Lead", lead_id):
+        lead = frappe.get_doc("Real Estate Lead", lead_id)
+    else:
+        matched = frappe.get_all("Real Estate Lead", filters={"phone": lead_id}, pluck="name")
+        if matched:
+            lead = frappe.get_doc("Real Estate Lead", matched[0])
+            
+    if lead:
+        lead.status = status
+        lead.call_count = (lead.call_count or 0) + 1
+        if notes or disposition:
+            log_entry = f"[{disposition or status}]: {notes or 'Status updated'}"
+            lead.notes = f"{lead.notes or ''}\n{log_entry}".strip()
+        lead.save(ignore_permissions=True)
+        frappe.db.commit()
+        return {"status": "success", "lead_id": lead.name, "new_status": lead.status}
+        
+    return {"status": "error", "message": f"Lead {lead_id} not found"}
 
 
 @frappe.whitelist(allow_guest=True)

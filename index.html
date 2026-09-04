@@ -17,6 +17,9 @@
     <title>Dream Homes - Real Estate CRM & Sales Portal</title>
   </head>
   <body>
+    <script>
+      window.csrf_token = "{{ frappe.session.data.csrf_token if frappe and frappe.session and frappe.session.data else '' }}";
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>

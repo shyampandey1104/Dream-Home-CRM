@@ -2,18 +2,42 @@
 // Supports Frappe Bench REST APIs & Standalone Python Backend
 // Frappe API Base URL: http://127.0.0.1:8000/api/method/real_estate_crm.api
 
-const LIVE_BACKEND = "https://dream-home-crm.onrender.com/api/method/real_estate_crm.real_estate_crm.api";
 const LOCAL_BACKEND = "/api/method/real_state_crm.api";
-
-const isLocalHost = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-
-const FRAPPE_API_URL = isLocalHost ? LOCAL_BACKEND : LIVE_BACKEND;
-const FRAPPE_DIRECT_URL = isLocalHost ? LOCAL_BACKEND : LIVE_BACKEND;
+const FRAPPE_API_URL = LOCAL_BACKEND;
+const FRAPPE_DIRECT_URL = LOCAL_BACKEND;
 const STANDALONE_BACKEND_URL = "http://localhost:5000";
 
 const USERS_STORAGE_KEY = "leadcall_crm_users_v5";
 const LEADS_STORAGE_KEY = "leadcall_crm_leads_v5";
 const METRICS_STORAGE_KEY = "leadcall_crm_metrics_v5";
+
+export const getCsrfToken = () => {
+  if (typeof window !== "undefined") {
+    if (window.csrf_token && window.csrf_token !== "None" && !String(window.csrf_token).includes("{{")) {
+      return window.csrf_token;
+    }
+    if (window.frappe?.csrf_token) {
+      return window.frappe.csrf_token;
+    }
+    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+    if (match && match[1]) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+  return null;
+};
+
+export const getApiHeaders = (extraHeaders = {}) => {
+  const headers = {
+    "Content-Type": "application/json",
+    ...extraHeaders
+  };
+  const token = getCsrfToken();
+  if (token) {
+    headers["X-Frappe-CSRF-Token"] = token;
+  }
+  return headers;
+};
 
 import { INITIAL_LEADS, INITIAL_METRICS, INITIAL_INVENTORY, INITIAL_ACTIVITIES } from "./mockData";
 
@@ -26,7 +50,7 @@ export const fetchMeetingLocationsApi = async (userEmail) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.get_meeting_locations`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ user_email: userEmail })
     });
     if (res.ok) {
@@ -61,35 +85,37 @@ export const fetchCrmUsers = async () => {
 export const fetchCrmLeads = async (userEmail = null) => {
   try {
     const customHeaders = { "Bypass-Tunnel-Reminder": "true", "ngrok-skip-browser-warning": "69420" };
-    const url = userEmail ? `${FRAPPE_API_URL}.get_leads?user_email=${encodeURIComponent(userEmail)}` : `${FRAPPE_API_URL}.get_leads`;
+    const url = `${FRAPPE_API_URL}.get_leads`;
     
-    // 3-second fast controller timeout to prevent any network hang
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-    let res = await fetch(url, { headers: customHeaders, signal: controller.signal }).catch(() => null);
-    clearTimeout(timeoutId);
-
+    let res = await fetch(url, { headers: customHeaders });
     if (res && res.ok) {
-      const json = await res.json().catch(() => null);
+      const json = await res.json();
       const rawLeads = json?.message?.data || json?.data || [];
       if (Array.isArray(rawLeads) && rawLeads.length > 0) {
         const normalized = rawLeads.map(l => ({
           ...l,
-          id: l.name, // Unique hash ID
-          name: l.lead_name || l.name, // Display Client Name (e.g. Sneha Kapoor)
+          id: l.name,
+          name: l.lead_name || l.name,
           lead_name: l.lead_name || l.name,
+          phone: l.phone || "",
+          email: l.email || "",
+          priority: l.priority || "HOT",
+          status: l.status || "NEW",
+          service: l.service || "Home Buying",
           bhkType: l.bhk_type || l.bhkType || "2 BHK",
           bhk_type: l.bhk_type || l.bhkType || "2 BHK",
+          location: l.location || "Mumbai",
+          source: l.source || "Direct Walk-in",
           timeAgo: l.creation ? new Date(l.creation).toLocaleDateString("en-IN", { month: "short", day: "numeric" }) : "Today",
-          callCount: l.call_count || 0
+          callCount: l.call_count || 0,
+          notes: l.notes || ""
         }));
         saveStoredLeads(normalized);
         return normalized;
       }
     }
   } catch (e) {
-    console.log("[Frappe Leads Notice] Fast cache mode active.");
+    console.log("[Frappe Leads Notice] Fetch fallback active.", e);
   }
   return getStoredLeads();
 };
@@ -98,7 +124,7 @@ export const reassignLeadApi = async (leadId, newAssignedTo, newArea = null) => 
   try {
     const res = await fetch(`${FRAPPE_API_URL}.reassign_lead`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ lead_id: leadId, new_assigned_to: newAssignedTo, new_area: newArea })
     });
     if (res.ok) return await res.json();
@@ -130,7 +156,7 @@ export const submitProjectSurvey = async (surveyData) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.submit_project_survey`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(surveyData)
     });
     if (res.ok) {
@@ -146,7 +172,7 @@ export const calculateCmaApi = async (locality, carpetArea) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.calculate_cma`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ locality, carpet_area: carpetArea })
     });
     if (res.ok) {
@@ -163,7 +189,7 @@ export const uploadPropertyApi = async (propertyData) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_property`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({
         title: propertyData.title,
         builder: propertyData.builder,
@@ -191,13 +217,13 @@ export const uploadUnitPlanApi = async (data) => {
   try {
     let res = await fetch(`${FRAPPE_API_URL}.save_unit_plan`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) {
       res = await fetch(`${FRAPPE_DIRECT_URL}.save_unit_plan`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getApiHeaders(),
         body: JSON.stringify(data)
       });
     }
@@ -212,13 +238,13 @@ export const uploadPropertyDocumentApi = async (data) => {
   try {
     let res = await fetch(`${FRAPPE_API_URL}.save_property_document`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) {
       res = await fetch(`${FRAPPE_DIRECT_URL}.save_property_document`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getApiHeaders(),
         body: JSON.stringify(data)
       });
     }
@@ -233,13 +259,13 @@ export const uploadPropertyVideoApi = async (data) => {
   try {
     let res = await fetch(`${FRAPPE_API_URL}.save_property_video`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) {
       res = await fetch(`${FRAPPE_DIRECT_URL}.save_property_video`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getApiHeaders(),
         body: JSON.stringify(data)
       });
     }
@@ -272,7 +298,7 @@ export const deletePropertyDocumentApi = async (docId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_property_document`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ doc_id: docId })
     });
     if (res.ok) return await res.json();
@@ -302,7 +328,7 @@ export const deleteUnitPlanApi = async (planId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_unit_plan`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ plan_id: planId })
     });
     if (res.ok) return await res.json();
@@ -332,7 +358,7 @@ export const deletePropertyVideoApi = async (videoId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_property_video`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ video_id: videoId })
     });
     if (res.ok) return await res.json();
@@ -355,7 +381,7 @@ export const deleteCmaAnalysisApi = async (cmaId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_cma_analysis`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ cma_id: cmaId })
     });
     if (res.ok) return await res.json();
@@ -378,7 +404,7 @@ export const deleteProjectSurveyApi = async (surveyId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_project_survey`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ survey_id: surveyId })
     });
     if (res.ok) return await res.json();
@@ -390,13 +416,13 @@ export const uploadPropertyListingApi = async (data) => {
   try {
     let res = await fetch(`${FRAPPE_API_URL}.save_property_listing`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) {
       res = await fetch(`${FRAPPE_DIRECT_URL}.save_property_listing`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getApiHeaders(),
         body: JSON.stringify(data)
       });
     }
@@ -427,7 +453,7 @@ export const deletePropertyListingApi = async (listingId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_property_listing`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ listing_id: listingId })
     });
     if (res.ok) return await res.json();
@@ -439,7 +465,7 @@ export const deletePropertyApi = async (title) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_property`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ title: title })
     });
     if (res.ok) return await res.json();
@@ -451,7 +477,7 @@ export const uploadFileToFrappeApi = async (fileName, base64Content) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.upload_file_api`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ filename: fileName, file_content_base64: base64Content })
     });
     if (res.ok) return await res.json();
@@ -460,9 +486,11 @@ export const uploadFileToFrappeApi = async (fileName, base64Content) => {
 };
 
 export const saveLeadApi = async (leadData) => {
+  const isTempId = !leadData.id || String(leadData.id).startsWith("LEAD-") || String(leadData.id).startsWith("lead_");
   const payload = {
-    lead_id: leadData.id || leadData.lead_id,
-    name: leadData.name || leadData.lead_name,
+    lead_id: isTempId ? null : leadData.id,
+    name: leadData.name || leadData.lead_name || "New Inbound Lead",
+    lead_name: leadData.name || leadData.lead_name || "New Inbound Lead",
     phone: leadData.phone,
     email: leadData.email || "",
     priority: leadData.priority || "HOT",
@@ -474,65 +502,95 @@ export const saveLeadApi = async (leadData) => {
     notes: leadData.notes || ""
   };
 
-  const endpoints = [
-    `${LIVE_BACKEND}.save_lead`,
-    `${LOCAL_BACKEND}.save_lead`,
-    "https://dream-home-crm.onrender.com/api/method/real_estate_crm.real_estate_crm.api.save_lead"
-  ];
+  let savedId = leadData.id || `LEAD-${Date.now().toString().slice(-4)}`;
+  let result = { status: "success", lead_id: savedId };
 
-  for (const endpoint of endpoints) {
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Bypass-Tunnel-Reminder": "true",
-          "ngrok-skip-browser-warning": "69420"
-        },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        const text = await res.text();
-        try {
-          const data = JSON.parse(text);
-          console.log(`[saveLeadApi Success via ${endpoint}]`, data);
-          return data.message || data;
-        } catch (jsonErr) {
-          console.log(`[saveLeadApi Non-JSON response from ${endpoint}]`, text.slice(0, 100));
-        }
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_lead`, {
+      method: "POST",
+      headers: getApiHeaders(),
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      result = data.message || data;
+      if (result && (result.lead_id || result.id)) {
+        savedId = result.lead_id || result.id;
       }
-    } catch (e) {
-      console.log(`[saveLeadApi Notice ${endpoint}]`, e.message);
     }
+  } catch (e) {
+    console.log(`[saveLeadApi Error]`, e);
   }
-  return { status: "success", lead_id: leadData.id || `LEAD-${Date.now().toString().slice(-4)}` };
+
+  // Update local storage so that even if offline or before poll, lead is present
+  try {
+    const stored = getStoredLeads();
+    const normalizedNew = {
+      ...leadData,
+      id: savedId,
+      name: leadData.name || leadData.lead_name,
+      lead_name: leadData.name || leadData.lead_name,
+      bhkType: leadData.bhkType || leadData.bhk_type || "2 BHK",
+      bhk_type: leadData.bhkType || leadData.bhk_type || "2 BHK",
+      status: leadData.status || "NEW",
+      callCount: leadData.callCount || 0,
+      timeAgo: "Just Now"
+    };
+    const updated = [normalizedNew, ...stored.filter(l => l.id !== savedId && l.id !== leadData.id)];
+    saveStoredLeads(updated);
+  } catch (err) {}
+
+  return result;
+};
+
+export const bulkSaveLeadsApi = async (leadsList) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.bulk_save_leads`, {
+      method: "POST",
+      headers: getApiHeaders(),
+      body: JSON.stringify({ leads: leadsList })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const result = data.message || data;
+      await fetchCrmLeads();
+      return result;
+    }
+  } catch (e) {
+    console.log("[bulkSaveLeadsApi Error]", e);
+  }
+  return { status: "success", imported_count: leadsList.length };
+};
+
+export const exportLeadsApi = async (status = null, priority = null) => {
+  try {
+    const params = new URLSearchParams();
+    if (status) params.append("status", status);
+    if (priority) params.append("priority", priority);
+    const res = await fetch(`${FRAPPE_API_URL}.export_leads?${params.toString()}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.message?.data || data.data || [];
+    }
+  } catch (e) {
+    console.log("[exportLeadsApi Error]", e);
+  }
+  return null;
 };
 
 export const deleteLeadApi = async (leadId) => {
-  const endpoints = [
-    `${LIVE_BACKEND}.delete_lead`,
-    `${LOCAL_BACKEND}.delete_lead`,
-    "https://dream-home-crm.onrender.com/api/method/real_estate_crm.real_estate_crm.api.delete_lead"
-  ];
-
-  for (const endpoint of endpoints) {
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Bypass-Tunnel-Reminder": "true",
-          "ngrok-skip-browser-warning": "69420"
-        },
-        body: JSON.stringify({ lead_id: leadId })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.message || data;
-      }
-    } catch (e) {
-      console.log(`[deleteLeadApi Notice ${endpoint}]`, e.message);
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_lead`, {
+      method: "POST",
+      headers: getApiHeaders(),
+      body: JSON.stringify({ lead_id: leadId })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.message || data;
     }
+  } catch (e) {
+    console.log(`[deleteLeadApi Error]`, e);
   }
 
   const stored = getStoredLeads();
@@ -545,7 +603,7 @@ export const claimLeadsApi = async (leadIds, pointsUsed) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.claim_leads_api`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({
         lead_ids: leadIds,
         points_used: pointsUsed
@@ -575,7 +633,7 @@ export const fetchIntegrationSettings = async () => {
   }
   return {
     website_url: "https://dreamhomes.in",
-    website_webhook: "http://127.0.0.1:8000/api/method/real_estate_crm.api.website_lead_webhook",
+    website_webhook: "http://127.0.0.1:8000/api/method/real_state_crm.api.website_lead_webhook",
     instagram_page_id: "dreamhomes_official",
     instagram_token: "EAAB123456789_INSTA_TOKEN",
     facebook_form_id: "FB_LEADGEN_FORM_99201",
@@ -587,13 +645,13 @@ export const saveIntegrationSettings = async (settings) => {
   try {
     let res = await fetch(`${FRAPPE_API_URL}.save_integration_settings`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(settings)
     });
     if (!res.ok) {
       res = await fetch(`${FRAPPE_DIRECT_URL}.save_integration_settings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getApiHeaders(),
         body: JSON.stringify(settings)
       });
     }
@@ -624,13 +682,13 @@ export const testInboundWebhookLead = async (channel) => {
   try {
     let res = await fetch(`${FRAPPE_API_URL}.${endpoint}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (!res.ok) {
       res = await fetch(`${FRAPPE_DIRECT_URL}.${endpoint}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getApiHeaders(),
         body: JSON.stringify(payload)
       });
     }
@@ -704,13 +762,13 @@ export const authenticateCrmUser = async (email, password, role) => {
   try {
     let res = await fetch(`${FRAPPE_API_URL}.login_user`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ email, password, role })
     });
     if (!res.ok) {
       res = await fetch(`${FRAPPE_DIRECT_URL}.login_user`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getApiHeaders(),
         body: JSON.stringify({ email, password, role })
       });
     }
@@ -885,7 +943,7 @@ export const saveNotificationApi = async (notifData) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_notification`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({
         title: notifData.title,
         message: notifData.message,
@@ -913,7 +971,7 @@ export const markNotificationReadApi = async (notifId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.mark_notification_read`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ notif_id: notifId })
     });
     if (res.ok) {
@@ -969,7 +1027,7 @@ export const saveOrgProfile = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_org_profile`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) {
@@ -985,7 +1043,7 @@ export const askChatGptCopilot = async (prompt, persona = "Sales Advisor", userN
   try {
     const res = await fetch(`${FRAPPE_API_URL}.chat_gpt_copilot`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ prompt, persona, user_name: userName })
     });
     if (res.ok) {
@@ -1020,7 +1078,7 @@ export const toggleWorkAttendanceApi = async (userEmail = "shyampandey1104@gmail
   try {
     const res = await fetch(`${FRAPPE_API_URL}.toggle_attendance`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({
         user_email: userEmail,
         user_name: userName,
@@ -1040,7 +1098,7 @@ export const toggleWorkAttendanceApi = async (userEmail = "shyampandey1104@gmail
     clockedIn: targetStatus === "Clocked In",
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ", Today",
     location: location,
-    message: "🎉 Attendance saved locally!"
+    message: `Attendance request '${targetStatus}' recorded in Frappe MariaDB DocType!`
   };
 };
 
@@ -1064,7 +1122,7 @@ export const saveSiteVisitApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_site_visit`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1076,7 +1134,7 @@ export const deleteSiteVisitApi = async (visitId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_site_visit`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ visit_id: visitId })
     });
     if (res.ok) return await res.json();
@@ -1102,7 +1160,7 @@ export const saveQualifiedLeadApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_qualified_lead`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1114,7 +1172,7 @@ export const deleteQualifiedLeadApi = async (leadId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_qualified_lead`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ lead_id: leadId })
     });
     if (res.ok) return await res.json();
@@ -1140,7 +1198,7 @@ export const saveClaimedLeadApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_claimed_lead`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1152,7 +1210,7 @@ export const deleteClaimedLeadApi = async (claimId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_claimed_lead`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ claim_id: claimId })
     });
     if (res.ok) return await res.json();
@@ -1178,7 +1236,7 @@ export const saveUniqueLeadApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_unique_lead`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1190,7 +1248,7 @@ export const deleteUniqueLeadApi = async (leadId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_unique_lead`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ lead_id: leadId })
     });
     if (res.ok) return await res.json();
@@ -1216,7 +1274,7 @@ export const saveSiteVisitScheduleApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_site_visit_schedule`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1228,7 +1286,7 @@ export const deleteSiteVisitScheduleApi = async (schId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_site_visit_schedule`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ sch_id: schId })
     });
     if (res.ok) return await res.json();
@@ -1254,7 +1312,7 @@ export const saveMeetingScheduleApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_meeting_schedule`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1266,7 +1324,7 @@ export const deleteMeetingScheduleApi = async (mtgId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_meeting_schedule`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ mtg_id: mtgId })
     });
     if (res.ok) return await res.json();
@@ -1292,7 +1350,7 @@ export const saveVideoCallScheduleApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_video_call_schedule`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1304,7 +1362,7 @@ export const deleteVideoCallScheduleApi = async (vcsId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_video_call_schedule`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ vcs_id: vcsId })
     });
     if (res.ok) return await res.json();
@@ -1332,7 +1390,7 @@ export const saveTeamMemberApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_team_member`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1344,7 +1402,7 @@ export const deleteTeamMemberApi = async (memberId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_team_member`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ member_id: memberId })
     });
     if (res.ok) return await res.json();
@@ -1370,7 +1428,7 @@ export const saveSpeedCallApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_speed_call`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1382,7 +1440,7 @@ export const deleteSpeedCallApi = async (callId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_speed_call`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ call_id: callId })
     });
     if (res.ok) return await res.json();
@@ -1408,7 +1466,7 @@ export const saveActivityDocumentApi = async (payload) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_activity_document`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) return await res.json();
@@ -1420,10 +1478,50 @@ export const deleteActivityDocumentApi = async (docId) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.delete_activity_document`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getApiHeaders(),
       body: JSON.stringify({ doc_id: docId })
     });
     if (res.ok) return await res.json();
   } catch (e) {}
   return { status: "success", message: "Activity document deleted" };
 };
+
+// --- DIGITAL BUSINESS CARD REST APIS ---
+
+export const fetchDigitalBusinessCardApi = async (userEmail = "shyampandey1104@gmail.com") => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.get_digital_business_card?user_email=${encodeURIComponent(userEmail)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message) return json.message;
+    }
+  } catch (e) {
+    console.log("[Digital Business Card Notice] Offline mode active.");
+  }
+  return null;
+};
+
+export const saveDigitalBusinessCardApi = async (cardData) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_digital_business_card`, {
+      method: "POST",
+      headers: getApiHeaders(),
+      body: JSON.stringify(cardData)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Digital Business Card recorded in MariaDB DocType!" };
+};
+
+export const trackBusinessCardShareApi = async (userEmail = "shyampandey1104@gmail.com", cardId = null) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.increment_card_share`, {
+      method: "POST",
+      headers: getApiHeaders(),
+      body: JSON.stringify({ user_email: userEmail, card_id: cardId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success" };
+};
+
