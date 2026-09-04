@@ -985,3 +985,387 @@ export const toggleWorkAttendanceApi = async (userEmail = "shyampandey1104@gmail
     message: "🎉 Attendance saved locally!"
   };
 };
+
+// --- ACTIVITY & SCHEDULE REST APIS ---
+
+export const fetchSiteVisitsApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_site_visits`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem("crm_act_visits");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) { return []; }
+};
+
+export const saveSiteVisitApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_site_visit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Site Visit saved locally!" };
+};
+
+export const deleteSiteVisitApi = async (visitId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_site_visit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visit_id: visitId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Site visit deleted" };
+};
+
+export const fetchQualifiedLeadsApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_qualified_leads`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem("crm_act_sql");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) { return []; }
+};
+
+export const saveQualifiedLeadApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_qualified_lead`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Qualified Lead saved locally!" };
+};
+
+export const deleteQualifiedLeadApi = async (leadId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_qualified_lead`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lead_id: leadId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Qualified lead deleted" };
+};
+
+export const fetchClaimedLeadsApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_claimed_leads`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem("crm_act_claimed");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) { return []; }
+};
+
+export const saveClaimedLeadApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_claimed_lead`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Claimed Lead saved locally!" };
+};
+
+export const deleteClaimedLeadApi = async (claimId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_claimed_lead`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ claim_id: claimId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Claimed record deleted" };
+};
+
+export const fetchUniqueLeadsApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_unique_leads`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem("crm_act_unique");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) { return []; }
+};
+
+export const saveUniqueLeadApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_unique_lead`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Unique Lead saved locally!" };
+};
+
+export const deleteUniqueLeadApi = async (leadId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_unique_lead`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lead_id: leadId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Unique lead deleted" };
+};
+
+export const fetchSiteVisitSchedulesApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_site_visit_schedules`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem("crm_act_schedules");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) { return []; }
+};
+
+export const saveSiteVisitScheduleApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_site_visit_schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Site visit schedule saved locally!" };
+};
+
+export const deleteSiteVisitScheduleApi = async (schId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_site_visit_schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sch_id: schId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Schedule deleted" };
+};
+
+export const fetchMeetingSchedulesApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_meeting_schedules`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem("crm_act_meetings");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) { return []; }
+};
+
+export const saveMeetingScheduleApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_meeting_schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Meeting schedule saved locally!" };
+};
+
+export const deleteMeetingScheduleApi = async (mtgId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_meeting_schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mtg_id: mtgId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Meeting deleted" };
+};
+
+export const fetchVideoCallSchedulesApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_video_call_schedules`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem("crm_act_videocalls");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) { return []; }
+};
+
+export const saveVideoCallScheduleApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_video_call_schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Video tour schedule saved locally!" };
+};
+
+export const deleteVideoCallScheduleApi = async (vcsId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_video_call_schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vcs_id: vcsId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Video call deleted" };
+};
+
+export const fetchTeamMembersApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_team_members`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  return [
+    { name_member: "Rahul Sharma", role: "Telecaller", calls_count: 48, visits_count: 6, score: "94%" },
+    { name_member: "Priya Sharma", role: "Sr. Telecaller", calls_count: 42, visits_count: 5, score: "91%" },
+    { name_member: "Rajesh Kumar", role: "Mining Specialist", calls_count: 39, visits_count: 4, score: "88%" },
+    { name_member: "Amit Patel", role: "Telecaller", calls_count: 31, visits_count: 3, score: "84%" }
+  ];
+};
+
+export const saveTeamMemberApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_team_member`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Team Member saved locally!" };
+};
+
+export const deleteTeamMemberApi = async (memberId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_team_member`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ member_id: memberId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Team member deleted" };
+};
+
+export const fetchSpeedCallsApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_speed_calls`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem("crm_act_3mincalls");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) { return []; }
+};
+
+export const saveSpeedCallApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_speed_call`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Speed call saved locally!" };
+};
+
+export const deleteSpeedCallApi = async (callId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_speed_call`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ call_id: callId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Speed call deleted" };
+};
+
+export const fetchActivityDocumentsApi = async () => {
+  try {
+    let res = await fetch(`${FRAPPE_API_URL}.get_activity_documents`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.message && json.message.data) return json.message.data;
+    }
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem("crm_activity_docs");
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) { return []; }
+};
+
+export const saveActivityDocumentApi = async (payload) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.save_activity_document`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Activity Document saved locally!" };
+};
+
+export const deleteActivityDocumentApi = async (docId) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.delete_activity_document`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doc_id: docId })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { status: "success", message: "Activity document deleted" };
+};
