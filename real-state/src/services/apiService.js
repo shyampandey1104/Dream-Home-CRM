@@ -462,9 +462,11 @@ export const uploadFileToFrappeApi = async (fileName, base64Content) => {
 };
 
 export const saveLeadApi = async (leadData) => {
+  const isTempId = !leadData.id || String(leadData.id).startsWith("LEAD-") || String(leadData.id).startsWith("lead_");
   const payload = {
-    lead_id: leadData.id || leadData.lead_id,
-    name: leadData.name || leadData.lead_name,
+    lead_id: isTempId ? null : leadData.id,
+    name: leadData.name || leadData.lead_name || "New Inbound Lead",
+    lead_name: leadData.name || leadData.lead_name || "New Inbound Lead",
     phone: leadData.phone,
     email: leadData.email || "",
     priority: leadData.priority || "HOT",
@@ -482,11 +484,7 @@ export const saveLeadApi = async (leadData) => {
   try {
     const res = await fetch(`${FRAPPE_API_URL}.save_lead`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Bypass-Tunnel-Reminder": "true",
-        "ngrok-skip-browser-warning": "69420"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
     if (res.ok) {
@@ -497,7 +495,7 @@ export const saveLeadApi = async (leadData) => {
       }
     }
   } catch (e) {
-    console.log(`[saveLeadApi Notice]`, e.message);
+    console.log(`[saveLeadApi Error]`, e);
   }
 
   // Update local storage so that even if offline or before poll, lead is present
