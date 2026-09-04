@@ -2,6 +2,18 @@ import React from "react";
 import { Bell, X, PhoneCall, MessageSquare, CheckCheck, Trash2, Clock, Sparkles, PhoneIncoming, Calendar, Car, Flame } from "lucide-react";
 
 export default function NotificationsModal({ notifications, onClose, onCallLead, onWhatsAppLead, onClearAll, onMarkRead }) {
+  const formatNotifTime = (timeStr) => {
+    if (!timeStr) return "Scheduled";
+    if (typeof timeStr === "string" && timeStr.includes("T") && (timeStr.endsWith("Z") || timeStr.includes("+"))) {
+      try {
+        const d = new Date(timeStr);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+        }
+      } catch (e) {}
+    }
+    return timeStr;
+  };
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div 
@@ -79,7 +91,7 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
                     {badgeIcon} {n.source || "Scheduled Disposition"}
                   </span>
                   <span style={{ fontSize: "0.71875rem", color: "#94a3b8", display: "flex", alignItems: "center", gap: "0.2rem" }}>
-                    <Clock size={11} /> {n.timeAgo || "Scheduled"}
+                    <Clock size={11} /> {formatNotifTime(n.timeAgo)}
                   </span>
                 </div>
 
