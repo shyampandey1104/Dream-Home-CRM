@@ -166,8 +166,9 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
 
     // Save to Backend Database
     const res = await saveLeadApi(leadObj);
-    if (res && res.lead_id) {
-      leadObj.id = res.lead_id;
+    const assignedId = res?.lead_id || res?.message?.lead_id || res?.id || res?.message?.id;
+    if (assignedId) {
+      leadObj.id = assignedId;
     }
 
     if (onLeadCreated) {
@@ -178,7 +179,7 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
       title: isEditing ? "Lead Updated!" : "Lead Created!",
       message: isEditing
         ? `✅ Lead '${name}' has been updated successfully!`
-        : `🎉 Fresh Lead '${name}' saved to Database! (Lead ID: ${res?.lead_id || leadObj.id})`,
+        : `🎉 Fresh Lead '${name}' saved to Database! (Lead ID: ${assignedId || leadObj.id})`,
       type: "success"
     });
   };
