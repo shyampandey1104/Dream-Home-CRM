@@ -26,7 +26,7 @@ export default function MCFModal({ isOpen, onClose }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           client_name: clientName || "Client",
-          phone: "+91 98200 44556",
+          phone: "9867778229",
           project_visited: meetingLocation,
           meeting_outcome: "Meeting Completed (Verified)",
           notes: `Scheduled: ${meetingDate}`

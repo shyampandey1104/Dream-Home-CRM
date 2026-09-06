@@ -21,7 +21,7 @@ export default function TCFModal({ isOpen, onClose }) {
         headers: getApiHeaders(),
         body: JSON.stringify({
           client_name: clientName || leadId || "Client",
-          phone: "+91 98200 44556",
+          phone: "9867778229",
           call_outcome: possession,
           budget: budget,
           notes: notes

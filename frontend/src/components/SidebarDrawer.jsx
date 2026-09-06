@@ -64,7 +64,7 @@ export default function SidebarDrawer({
               👑 Senior Sales Consultant
             </div>
             <div style={{ fontSize: "0.725rem", color: "#94a3b8", fontWeight: "600", marginTop: "0.15rem" }}>
-              {currentUser?.phone || "+91 98200 44556"}
+              {currentUser?.mobile_no || currentUser?.phone || "9867778229"}
             </div>
           </div>
 

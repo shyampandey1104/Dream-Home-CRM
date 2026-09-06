@@ -43,7 +43,8 @@ import {
   markNotificationReadApi,
   clearAllNotificationsApi,
   fetchOrgProfile,
-  claimLeadsApi
+  claimLeadsApi,
+  fetchUserProfileApi
 } from "./services/apiService";
 import { SOCIAL_LEAD_TEMPLATES, INITIAL_LEADS } from "./services/mockData";
 
@@ -58,7 +59,7 @@ export default function App() {
       try { 
         const parsed = JSON.parse(saved);
         if (parsed && parsed.name) {
-          parsed.phone = parsed.mobile_no || parsed.phone || "+91 98677 78229";
+          parsed.phone = parsed.mobile_no || parsed.phone || "9867778229";
           if (!parsed.email) parsed.email = "shyampandey1104@gmail.com";
           return parsed;
         }
@@ -67,8 +68,8 @@ export default function App() {
     return {
       name: "Shyam Pandey",
       email: "shyampandey1104@gmail.com",
-      phone: "+91 98677 78229",
-      mobile_no: "+91 98677 78229",
+      phone: "9867778229",
+      mobile_no: "9867778229",
       role: "Senior Sales Consultant",
       initials: "SP",
       areas: ["Andheri", "Bandra", "Goregaon"]
@@ -194,6 +195,22 @@ export default function App() {
     syncLiveData();
     const pollInterval = setInterval(syncLiveData, 5000);
 
+    fetchUserProfileApi(userEmail).then((freshProfile) => {
+      if (freshProfile && (freshProfile.phone || freshProfile.mobile_no)) {
+        const cleanPhone = String(freshProfile.mobile_no || freshProfile.phone || "9867778229").trim();
+        setUserProfile((prev) => {
+          const updated = {
+            ...prev,
+            ...freshProfile,
+            phone: cleanPhone,
+            mobile_no: cleanPhone
+          };
+          localStorage.setItem("crm_user_profile", JSON.stringify(updated));
+          return updated;
+        });
+      }
+    });
+
     fetchCrmMetrics().then((data) => {
       if (data) setMetrics(data);
       else setMetrics(getStoredMetrics());
@@ -211,10 +228,12 @@ export default function App() {
   }, [userProfile?.email, activeCallLead]);
 
   const handleLoginSuccess = (profile) => {
+    const rawPhone = profile?.mobile_no || profile?.phone || "9867778229";
     const defaultProfile = {
       name: profile?.name || "Shyam Pandey",
       email: profile?.email || "shyampandey1104@gmail.com",
-      phone: profile?.mobile_no || profile?.phone || "+91 84240 12185",
+      phone: rawPhone,
+      mobile_no: rawPhone,
       role: profile?.role || "Senior Sales Consultant",
       initials: profile?.initials || "SP",
       areas: profile?.areas || ["Andheri", "Bandra", "Goregaon"]

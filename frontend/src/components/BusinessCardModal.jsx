@@ -60,8 +60,8 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
 
   const currentUser = dbCard || propUser || agentProfile;
   const name = currentUser?.agent_name || currentUser?.name || "Shyam Pandey";
-  const phone = currentUser?.phone || currentUser?.mobile_no || "+91 98677 78229";
-  const email = currentUser?.email || "shyampandey1104@gmail.com";
+  const phone = propUser?.mobile_no || propUser?.phone || currentUser?.phone || currentUser?.mobile_no || "9867778229";
+  const email = currentUser?.email || propUser?.email || "shyampandey1104@gmail.com";
 
   const triggerToast = (msg) => {
     setToastAlert(msg);

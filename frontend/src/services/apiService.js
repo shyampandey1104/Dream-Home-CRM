@@ -42,9 +42,24 @@ export const getApiHeaders = (extraHeaders = {}) => {
 import { INITIAL_LEADS, INITIAL_METRICS, INITIAL_INVENTORY, INITIAL_ACTIVITIES } from "./mockData";
 
 export const INITIAL_ADMIN_USERS = [
-  { id: 1, name: "Shyam", email: "shyampandey1104@gmail.com", phone: "+91 98200 44556", role: "Telecaller", status: "Active", areas: ["Andheri", "Bandra"], leadCap: 50, initials: "SP" },
-  { id: 2, name: "Administrator", email: "Administrator", phone: "+91 98201 11223", role: "Sales Manager", status: "Active", areas: ["All"], leadCap: 200, initials: "AD" }
+  { id: 1, name: "Shyam Pandey", email: "shyampandey1104@gmail.com", phone: "9867778229", mobile_no: "9867778229", role: "Senior Sales Consultant", status: "Active", areas: ["Andheri", "Bandra", "Goregaon"], leadCap: 100, initials: "SP" },
+  { id: 2, name: "Administrator", email: "Administrator", phone: "+91 98201 11223", mobile_no: "+91 98201 11223", role: "Sales Manager", status: "Active", areas: ["All"], leadCap: 200, initials: "AD" }
 ];
+
+export const fetchUserProfileApi = async (userEmail = "shyampandey1104@gmail.com") => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.get_user_profile?user_email=${encodeURIComponent(userEmail)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.message?.data || json?.data) {
+        return json.message?.data || json.data;
+      }
+    }
+  } catch (e) {
+    console.log("[User Profile Fetch Error]", e);
+  }
+  return null;
+};
 
 export const fetchMeetingLocationsApi = async (userEmail) => {
   try {
