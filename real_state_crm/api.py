@@ -1134,9 +1134,11 @@ def inbound_call_webhook(caller_number=None, caller_name=None, source="Direct In
     # 2. Create Lead Notification in MariaDB to broadcast to active CRM frontend sessions
     try:
         if frappe.db.exists("DocType", "Lead Notification"):
+            now_dt = frappe.utils.now_datetime()
+            call_time_label = frappe.utils.format_datetime(now_dt, "dd MMM, hh:mm a")
             notif = frappe.new_doc("Lead Notification")
-            notif.title = f"📞 Inbound Call: {name}"
-            notif.message = f"{src} • {bhk_type} ({loc})"
+            notif.title = f"📞 Incoming Call: {name}"
+            notif.message = f"Call received at {call_time_label} on +91 98677 78229 | Interested in {bhk_type} ({loc})"
             notif.source = src
             notif.notif_type = "inbound"
             notif.lead_id = lead_id
@@ -1145,7 +1147,7 @@ def inbound_call_webhook(caller_number=None, caller_name=None, source="Direct In
             notif.lead_location = loc
             notif.lead_bhk = bhk_type
             notif.is_read = 0
-            notif.time_ago = "Just Now"
+            notif.time_ago = f"Today, {frappe.utils.format_datetime(now_dt, 'hh:mm a')}"
             notif.save(ignore_permissions=True)
             frappe.db.commit()
     except Exception as e:

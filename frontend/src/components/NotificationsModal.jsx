@@ -2,6 +2,8 @@ import React from "react";
 import { Bell, X, PhoneCall, MessageSquare, CheckCheck, Trash2, Clock, Sparkles, PhoneIncoming, Calendar, Car, Flame } from "lucide-react";
 
 export default function NotificationsModal({ notifications, onClose, onCallLead, onWhatsAppLead, onClearAll, onMarkRead }) {
+  const [filterCategory, setFilterCategory] = React.useState("all"); // "all" | "inbound" | "followup" | "visit"
+
   const formatNotifTime = (timeStr) => {
     if (!timeStr) return "Scheduled";
     if (typeof timeStr === "string" && timeStr.includes("T") && (timeStr.endsWith("Z") || timeStr.includes("+"))) {
@@ -14,6 +16,19 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
     }
     return timeStr;
   };
+
+  const inboundCount = notifications.filter(n => n.type === "inbound" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("call")).length;
+  const followupCount = notifications.filter(n => n.type === "followup" || n.source?.toLowerCase().includes("followup")).length;
+  const visitCount = notifications.filter(n => n.type === "visit" || n.source?.toLowerCase().includes("visit")).length;
+
+  const filteredNotifs = notifications.filter(n => {
+    if (filterCategory === "all") return true;
+    if (filterCategory === "inbound") return n.type === "inbound" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("call");
+    if (filterCategory === "followup") return n.type === "followup" || n.source?.toLowerCase().includes("followup");
+    if (filterCategory === "visit") return n.type === "visit" || n.source?.toLowerCase().includes("visit");
+    return true;
+  });
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div 
@@ -36,12 +51,40 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
           </button>
         </div>
 
+        {/* Filter Category Tabs */}
+        <div style={{ display: "flex", gap: "0.35rem", padding: "0.5rem 0.75rem", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", overflowX: "auto", scrollbarWidth: "none" }}>
+          {[
+            { id: "all", label: `All (${notifications.length})` },
+            { id: "inbound", label: `📞 Inbound Calls (${inboundCount})`, highlight: inboundCount > 0 },
+            { id: "followup", label: `⏰ Follow-ups (${followupCount})` },
+            { id: "visit", label: `🚗 Visits (${visitCount})` }
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setFilterCategory(t.id)}
+              style={{
+                background: filterCategory === t.id ? (t.highlight ? "#16a34a" : "#2563eb") : "#ffffff",
+                color: filterCategory === t.id ? "#ffffff" : (t.highlight ? "#15803d" : "#64748b"),
+                border: filterCategory === t.id ? "none" : (t.highlight ? "1px solid #86efac" : "1px solid #e2e8f0"),
+                padding: "0.3rem 0.65rem",
+                borderRadius: "9999px",
+                fontSize: "0.71875rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         {/* Notifications List */}
         <div className="dialer-body" style={{ padding: "0.75rem", maxHeight: "420px", overflowY: "auto" }}>
-          {notifications.map((n) => {
+          {filteredNotifs.map((n) => {
             const isVisit = n.type === "visit" || n.title?.toLowerCase().includes("visit");
             const isFollowup = n.type === "followup" || n.title?.toLowerCase().includes("follow") || n.source?.toLowerCase().includes("disposition");
-            const isInbound = n.type === "inbound" || n.source?.toLowerCase().includes("inbound");
+            const isInbound = n.type === "inbound" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("call");
 
             let badgeBg = "#eff6ff";
             let badgeColor = "#2563eb";
