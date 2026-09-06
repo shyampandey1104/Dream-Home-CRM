@@ -497,58 +497,6 @@ def get_notifications():
                 } if d.lead_name else None
             })
 
-    if not formatted:
-        formatted = [
-            {
-                "id": "NOTIF-0001",
-                "title": "⏰ Follow-up Due: Priyanka Iyer",
-                "message": "Follow-up scheduled via call disposition (Needs 3BHK property valuation & site visit booking.). Client interested in 3 BHK (Goregaon).",
-                "source": "Scheduled Follow-up",
-                "type": "followup",
-                "read": False,
-                "timeAgo": "Today, 4:00 PM",
-                "lead": {
-                    "id": "LEAD-001",
-                    "name": "Priyanka Iyer",
-                    "phone": "+91 98450 77123",
-                    "location": "Goregaon",
-                    "bhkType": "3 BHK"
-                }
-            },
-            {
-                "id": "NOTIF-0002",
-                "title": "⏰ Follow-up Due: Meera Patel",
-                "message": "Follow-up scheduled via call disposition (Schedule site visit team.). Client interested in 1 BHK (Goregaon).",
-                "source": "Scheduled Follow-up",
-                "type": "followup",
-                "read": False,
-                "timeAgo": "Today, 11:30 AM",
-                "lead": {
-                    "id": "LEAD-002",
-                    "name": "Meera Patel",
-                    "phone": "+91 98921 00987",
-                    "location": "Goregaon",
-                    "bhkType": "1 BHK"
-                }
-            },
-            {
-                "id": "NOTIF-0003",
-                "title": "🚗 Site Visit Scheduled: Aarav Sharma",
-                "message": "Site visit scheduled for Purva Estrella, Lokhandwala. Driver assigned.",
-                "source": "Site Visit Scheduled",
-                "type": "visit",
-                "read": False,
-                "timeAgo": "Tomorrow, 2:00 PM",
-                "lead": {
-                    "id": "LEAD-003",
-                    "name": "Aarav Sharma",
-                    "phone": "+91 98205 91823",
-                    "location": "Lokhandwala",
-                    "bhkType": "3 BHK"
-                }
-            }
-        ]
-
     return {"status": "success", "data": formatted}
 
 
