@@ -415,24 +415,27 @@ export default function App() {
 
   const simulateSocialInboundLead = () => {
     const template = SOCIAL_LEAD_TEMPLATES[Math.floor(Math.random() * SOCIAL_LEAD_TEMPLATES.length)];
-    const newLeadId = `LEAD-00${Math.floor(10 + Math.random() * 89)}`;
+    const randomDigits = Math.floor(10000 + Math.random() * 89999);
+    const newLeadId = `LEAD-INB-${randomDigits}`;
 
     const newLeadObj = {
       id: newLeadId,
       name: template.name,
-      phone: template.phone,
-      email: `${template.name.toLowerCase().replace(" ", ".")}@gmail.com`,
-      priority: template.priority,
+      lead_name: template.name,
+      phone: template.phone || `+91 98205 ${randomDigits}`,
+      email: `${template.name.toLowerCase().replace(/\s+/g, ".")}@gmail.com`,
+      priority: template.priority || "HOT",
       status: "NEW",
-      service: template.service,
-      bhkType: template.bhkType,
-      location: template.location,
-      source: template.source,
+      service: template.service || "Home Buying",
+      bhkType: template.bhkType || "2 BHK",
+      bhk_type: template.bhkType || "2 BHK",
+      location: template.location || "Mumbai",
+      source: "Direct Inbound Call",
       timeAgo: "Just now",
       createdAt: new Date().toISOString(),
       callCount: 0,
       callbackTime: null,
-      notes: template.notes,
+      notes: template.notes || "Inbound caller connected via IVR.",
       history: []
     };
 
@@ -447,7 +450,7 @@ export default function App() {
 
     const newNotification = {
       id: Date.now(),
-      title: `Inbound Call: ${newLeadObj.name}`,
+      title: `📞 Inbound Call: ${newLeadObj.name}`,
       message: `${newLeadObj.source} - ${newLeadObj.service} (${newLeadObj.location})`,
       source: newLeadObj.source,
       timeAgo: "Just now",
@@ -457,6 +460,7 @@ export default function App() {
     setNotifications(prev => [newNotification, ...prev]);
     saveNotificationApi(newNotification);
 
+    // Save lead to MariaDB immediately so it is recorded
     syncWithFrappeBackend("create_lead", newLeadObj);
   };
 
@@ -465,19 +469,33 @@ export default function App() {
       handledInboundCallsRef.current.add(String(incomingCallNotifId));
       markNotificationReadApi(incomingCallNotifId);
     }
-    if (lead?.id) {
-      handledInboundCallsRef.current.add(String(lead.id));
+    const currentLead = lead || incomingCallLead;
+    if (currentLead?.id) {
+      handledInboundCallsRef.current.add(String(currentLead.id));
     }
-    if (lead?.phone) {
-      handledInboundCallsRef.current.add(String(lead.phone));
+    if (currentLead?.phone) {
+      handledInboundCallsRef.current.add(String(currentLead.phone));
     }
     setNotifications(prev => prev.map(n => n.id === incomingCallNotifId ? { ...n, read: true } : n));
-    const updated = [lead, ...leads.filter(l => l.id !== lead.id)];
-    setLeads(updated);
-    saveStoredLeads(updated);
+    
+    if (currentLead) {
+      const acceptedLead = {
+        ...currentLead,
+        status: "NEW",
+        callCount: 0
+      };
+      setLeads(prev => {
+        const filtered = prev.filter(l => l.id !== acceptedLead.id && l.phone !== acceptedLead.phone);
+        const updated = [acceptedLead, ...filtered];
+        saveStoredLeads(updated);
+        return updated;
+      });
+      syncWithFrappeBackend("create_lead", acceptedLead);
+      setActiveCallLead(acceptedLead);
+    }
+
     setIncomingCallLead(null);
     setIncomingCallNotifId(null);
-    setActiveCallLead(lead);
   };
 
   const handleRejectIncomingCall = () => {
@@ -485,15 +503,48 @@ export default function App() {
       handledInboundCallsRef.current.add(String(incomingCallNotifId));
       markNotificationReadApi(incomingCallNotifId);
     }
-    if (incomingCallLead?.id) {
-      handledInboundCallsRef.current.add(String(incomingCallLead.id));
+    const currentLead = incomingCallLead;
+    if (currentLead?.id) {
+      handledInboundCallsRef.current.add(String(currentLead.id));
     }
-    if (incomingCallLead?.phone) {
-      handledInboundCallsRef.current.add(String(incomingCallLead.phone));
+    if (currentLead?.phone) {
+      handledInboundCallsRef.current.add(String(currentLead.phone));
     }
     setNotifications(prev => prev.map(n => n.id === incomingCallNotifId ? { ...n, read: true } : n));
     setIncomingCallLead(null);
     setIncomingCallNotifId(null);
+
+    if (currentLead) {
+      const declinedLead = {
+        id: currentLead.id || `LEAD-INB-${Date.now()}`,
+        name: currentLead.name || currentLead.lead_name || "Direct Inbound Caller",
+        lead_name: currentLead.name || currentLead.lead_name || "Direct Inbound Caller",
+        phone: currentLead.phone || "+91 98000 00000",
+        email: currentLead.email || "",
+        priority: "HOT",
+        status: "NEW", // ALWAYS Fresh Leads
+        service: currentLead.service || "Home Buying",
+        bhkType: currentLead.bhkType || currentLead.bhk_type || "2 BHK",
+        bhk_type: currentLead.bhkType || currentLead.bhk_type || "2 BHK",
+        location: currentLead.location || "Mumbai",
+        source: "Direct Inbound Call",
+        timeAgo: "Just now",
+        createdAt: new Date().toISOString(),
+        callCount: 0,
+        notes: currentLead.notes ? `${currentLead.notes} (Inbound Call Disconnected/Declined)` : "Inbound caller rang agent. Call disconnected/declined. Follow up immediately."
+      };
+
+      setLeads(prev => {
+        const filtered = prev.filter(l => l.id !== declinedLead.id && l.phone !== declinedLead.phone);
+        const updated = [declinedLead, ...filtered];
+        saveStoredLeads(updated);
+        return updated;
+      });
+
+      syncWithFrappeBackend("create_lead", declinedLead);
+      handleSetTab("fresh");
+      showToast(`⚡ Call disconnected - Inbound lead '${declinedLead.name}' added to Fresh Leads!`);
+    }
   };
 
   const handleClaimLeads = () => {
@@ -685,6 +736,7 @@ export default function App() {
       {incomingCallLead && (
         <InboundCallModal
           lead={incomingCallLead}
+          userProfile={userProfile}
           onAccept={handleAcceptIncomingCall}
           onReject={handleRejectIncomingCall}
           onDecline={handleRejectIncomingCall}

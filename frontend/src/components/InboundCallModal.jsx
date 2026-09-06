@@ -1,11 +1,32 @@
-import React, { useEffect, useRef } from "react";
-import { PhoneCall, PhoneOff, PhoneIncoming, User, MapPin, Building, Sparkles } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { PhoneCall, PhoneOff, PhoneIncoming, User, MapPin, Building, Sparkles, Smartphone } from "lucide-react";
 
-export default function InboundCallModal({ lead, incomingLead, onAccept, onReject, onDecline }) {
+export default function InboundCallModal({ lead, incomingLead, onAccept, onReject, onDecline, userProfile }) {
   const currentLead = lead || incomingLead;
   const handleDecline = onReject || onDecline;
   const audioCtxRef = useRef(null);
   const ringIntervalRef = useRef(null);
+  const [countdown, setCountdown] = useState(25);
+
+  const agentPhone = userProfile?.mobile_no || userProfile?.phone || "9867778229";
+  const agentName = userProfile?.name || "Shyam Pandey";
+
+  // Auto-decline / Missed Call timer after 25 seconds
+  useEffect(() => {
+    if (!currentLead) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          if (handleDecline) handleDecline();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [currentLead, handleDecline]);
 
   // Synthesize realistic phone ringtone via browser Web Audio API
   useEffect(() => {
@@ -109,8 +130,26 @@ export default function InboundCallModal({ lead, incomingLead, onAccept, onRejec
           animation: "scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
         }}
       >
+        {/* Logged in Agent Route Banner */}
+        <div style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.4rem",
+          background: "rgba(16, 185, 129, 0.15)",
+          border: "1px solid rgba(16, 185, 129, 0.35)",
+          padding: "0.3rem 0.75rem",
+          borderRadius: "9999px",
+          fontSize: "0.75rem",
+          fontWeight: 700,
+          color: "#6ee7b7",
+          marginBottom: "1rem"
+        }}>
+          <Smartphone size={13} color="#34d399" />
+          <span>Call to: <strong>{agentPhone}</strong> ({agentName})</span>
+        </div>
+
         {/* Animated Radar Ripples & Icon */}
-        <div style={{ position: "relative", width: "90px", height: "90px", margin: "0 auto 1.25rem auto" }}>
+        <div style={{ position: "relative", width: "84px", height: "84px", margin: "0 auto 1rem auto" }}>
           <div 
             style={{
               position: "absolute",
@@ -132,8 +171,8 @@ export default function InboundCallModal({ lead, incomingLead, onAccept, onRejec
           <div 
             style={{
               position: "relative",
-              width: "90px",
-              height: "90px",
+              width: "84px",
+              height: "84px",
               borderRadius: "50%",
               background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
               display: "flex",
@@ -142,29 +181,29 @@ export default function InboundCallModal({ lead, incomingLead, onAccept, onRejec
               boxShadow: "0 8px 24px rgba(37, 99, 235, 0.5)"
             }}
           >
-            <PhoneIncoming size={40} color="#ffffff" style={{ animation: "bounce 1s infinite" }} />
+            <PhoneIncoming size={38} color="#ffffff" style={{ animation: "bounce 1s infinite" }} />
           </div>
         </div>
 
-        <div style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: "rgba(37, 99, 235, 0.2)", border: "1px solid rgba(37, 99, 235, 0.4)", padding: "0.25rem 0.75rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700, color: "#93c5fd", marginBottom: "0.75rem" }}>
-          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#60a5fa", display: "inline-block", animation: "pulse 1s infinite" }} />
-          INCOMING DIRECT CALL
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: "rgba(37, 99, 235, 0.2)", border: "1px solid rgba(37, 99, 235, 0.4)", padding: "0.2rem 0.65rem", borderRadius: "9999px", fontSize: "0.7rem", fontWeight: 700, color: "#93c5fd", marginBottom: "0.5rem" }}>
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#60a5fa", display: "inline-block", animation: "pulse 1s infinite" }} />
+          DIRECT INCOMING CALL ({countdown}s)
         </div>
 
-        <h2 style={{ fontSize: "1.35rem", fontWeight: 800, margin: "0 0 0.3rem 0", color: "#f8fafc" }}>
+        <h2 style={{ fontSize: "1.35rem", fontWeight: 800, margin: "0 0 0.2rem 0", color: "#f8fafc" }}>
           {currentLead.name || currentLead.lead_name || "Direct Inbound Caller"}
         </h2>
-        <p style={{ color: "#94a3b8", fontSize: "0.95rem", fontWeight: 600, margin: "0 0 1rem 0" }}>
+        <p style={{ color: "#93c5fd", fontSize: "1rem", fontWeight: 800, margin: "0 0 0.85rem 0", letterSpacing: "0.02em" }}>
           {currentLead.phone || "+91 98205 91823"}
         </p>
 
         {/* Lead Details Card */}
-        <div style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "0.875rem", padding: "0.875rem 1rem", textAlign: "left", marginBottom: "1.75rem", fontSize: "0.8125rem" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+        <div style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "0.875rem", padding: "0.75rem 0.875rem", textAlign: "left", marginBottom: "1.5rem", fontSize: "0.8125rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.35rem" }}>
             <span style={{ color: "#94a3b8" }}>Source:</span>
-            <span style={{ fontWeight: 700, color: "#60a5fa" }}>{currentLead.source || "Cloud IVR / Webhook"}</span>
+            <span style={{ fontWeight: 700, color: "#60a5fa" }}>{currentLead.source || "Direct Inbound Call"}</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.35rem" }}>
             <span style={{ color: "#94a3b8" }}>Looking For:</span>
             <span style={{ fontWeight: 700, color: "#f1f5f9" }}>{currentLead.bhkType || currentLead.bhk_type || "2 BHK"} • {currentLead.service || "Home Buying"}</span>
           </div>
