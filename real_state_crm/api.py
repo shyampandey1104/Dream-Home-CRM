@@ -1170,6 +1170,75 @@ def inbound_call_webhook(caller_number=None, caller_name=None, source="Direct In
     }
 
 
+@frappe.whitelist(allow_guest=True)
+def exotel_inbound_webhook(**kwargs):
+    """
+    Exotel Cloud IVR Inbound Passthru Applet Webhook.
+    Captures caller phone, creates Fresh Lead, and routes call to Agent SIM 9867778229.
+    """
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    caller_num = kwargs.get("CallFrom") or kwargs.get("From") or form_data.get("CallFrom") or form_data.get("From") or "+91 98205 91823"
+    call_sid = kwargs.get("CallSid") or form_data.get("CallSid") or ""
+    
+    # Save Fresh Lead and Trigger Inbound Ringing
+    result = inbound_call_webhook(
+        caller_number=caller_num,
+        caller_name=f"Exotel Caller {str(caller_num)[-4:]}",
+        source="Exotel Cloud IVR",
+        notes=f"Exotel Inbound Call (SID: {call_sid}) routed to Agent 9867778229"
+    )
+    
+    return {
+        "status": "success",
+        "action": "dial",
+        "forward_to": "+919867778229",
+        "lead_id": result.get("lead_id"),
+        "message": "Call connected to Agent 9867778229 and lead saved to Fresh Leads!"
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def twilio_voice_webhook(**kwargs):
+    """
+    Twilio Inbound Voice Webhook.
+    Creates Fresh Lead in CRM and forwards call to Agent iPhone SIM 9867778229.
+    """
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    caller_num = kwargs.get("From") or form_data.get("From") or "+91 98205 91823"
+    call_sid = kwargs.get("CallSid") or form_data.get("CallSid") or ""
+    
+    result = inbound_call_webhook(
+        caller_number=caller_num,
+        caller_name=f"Twilio Caller {str(caller_num)[-4:]}",
+        source="Twilio Cloud IVR",
+        notes=f"Twilio Voice Call (SID: {call_sid}) routed to iPhone SIM 9867778229"
+    )
+    
+    return {
+        "status": "success",
+        "action": "dial",
+        "forward_to": "+919867778229",
+        "lead_id": result.get("lead_id"),
+        "twiml": f"<Response><Dial timeout='25' callerId='{caller_num}'>+919867778229</Dial></Response>"
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def airtel_iq_webhook(**kwargs):
+    """
+    Airtel IQ / Tata Smartflo / Zadarma Webhook.
+    """
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    caller_num = kwargs.get("customer_number") or kwargs.get("caller_id") or form_data.get("customer_number") or form_data.get("caller_id") or "+91 98205 91823"
+    
+    return inbound_call_webhook(
+        caller_number=caller_num,
+        caller_name=f"Airtel IQ Caller {str(caller_num)[-4:]}",
+        source="Airtel IQ IVR",
+        notes="Airtel IQ Cloud IVR Call received"
+    )
+
+
 # --- FOCUS PROJECTS & INVENTORY APIS ---
 
 @frappe.whitelist(allow_guest=True)
