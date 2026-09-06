@@ -238,49 +238,21 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
               <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", padding: "0.85rem", borderRadius: "0.85rem", fontSize: "0.75rem", color: "#166534" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 800, fontSize: "0.8125rem", color: "#15803d", marginBottom: "0.3rem" }}>
                   <Radio size={16} className="animate-pulse" color="#16a34a" /> 
-                  <span>Virtual Business Number Active (Free Cloud IVR)</span>
+                  <span>Direct SIM & Cloud Inbound Call Sync Active</span>
                 </div>
-                <span>Jab client aapke is Virtual Number par call karega, toh call turant aapke <strong>iPhone SIM par forward hogi</strong> aur <strong>Safari CRM screen par live ghanti baje gi!</strong></span>
-              </div>
-
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-                  📞 Dedicated Virtual Number (Client Facing)
-                </label>
-                <input
-                  type="text"
-                  className="modern-search-input"
-                  style={{ fontWeight: 800, color: "#15803d", fontSize: "0.875rem" }}
-                  value={virtualNumber}
-                  onChange={e => setVirtualNumber(e.target.value)}
-                />
-                <span style={{ fontSize: "0.6875rem", color: "#64748b", marginTop: "0.2rem", display: "block" }}>
-                  Display this number on your ads, website, and brochures.
-                </span>
-              </div>
-
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-                  📱 Forward Calls To Your Real Phone Number (iPhone SIM)
-                </label>
-                <input
-                  type="text"
-                  className="modern-search-input"
-                  style={{ fontWeight: 700, color: "#2563eb", fontSize: "0.8125rem" }}
-                  value={forwardingPhone}
-                  onChange={e => setForwardingPhone(e.target.value)}
-                />
+                <span>Phone par aane wali har direct SIM call (Android/iPhone) ya Virtual Number call automatically <strong>CRM Screen par ring karegi</strong> aur <strong>Fresh Leads mein capture hogi!</strong></span>
               </div>
 
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
                   <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
-                    ⚡ Cloud Inbound Ringing Webhook URL
+                    ⚡ Live Inbound Webhook URL (Android & iPhone)
                   </label>
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(inboundWebhookUrl);
+                      const urlToCopy = (typeof window !== "undefined" ? window.location.origin : "") + "/api/method/real_state_crm.api.inbound_call_webhook";
+                      navigator.clipboard.writeText(urlToCopy);
                       setCopiedWebhook(true);
                       setTimeout(() => setCopiedWebhook(false), 2500);
                     }}
@@ -293,35 +265,75 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                   type="text"
                   className="modern-search-input"
                   readOnly
-                  style={{ fontSize: "0.6875rem", background: "#f8fafc", color: "#64748b" }}
-                  value={inboundWebhookUrl}
+                  style={{ fontSize: "0.6875rem", background: "#f8fafc", color: "#2563eb", fontWeight: 700 }}
+                  value={(typeof window !== "undefined" ? window.location.origin : "") + "/api/method/real_state_crm.api.inbound_call_webhook"}
                 />
               </div>
 
+              {/* Device Specific Setup Instructions */}
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "0.85rem", padding: "0.75rem", fontSize: "0.75rem" }}>
+                <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <span>📱 Setup on Android (1-Minute Setup):</span>
+                </div>
+                <ol style={{ margin: "0 0 0.5rem 1.1rem", padding: 0, color: "#475569", lineHeight: 1.4 }}>
+                  <li>Install <strong>MacroDroid</strong> (Free) from Play Store.</li>
+                  <li><strong>Trigger:</strong> Call Incoming (Any / Unknown).</li>
+                  <li><strong>Action:</strong> HTTP Request &rarr; <code>POST</code> to Webhook URL above.</li>
+                  <li>Body: <code>&#123; "caller_number": "{call_number}" &#125;</code></li>
+                </ol>
+
+                <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <span>🍏 Setup on iPhone (iOS Cloud Forward / Shortcuts):</span>
+                </div>
+                <ol style={{ margin: "0 0 0 1.1rem", padding: 0, color: "#475569", lineHeight: 1.4 }}>
+                  <li>Use Cloud IVR / Virtual Number (Exotel / Twilio / Airtel IQ).</li>
+                  <li>Forward client calls to your iPhone SIM (<strong>+91 98677 78229</strong>).</li>
+                  <li>Set Inbound Webhook URL in cloud dashboard.</li>
+                </ol>
+              </div>
+
+              {/* Instant Live Test Caller Trigger */}
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
+                  const testNumber = `+91 98205 ${Math.floor(10000 + Math.random() * 89999)}`;
+                  const testName = `Live Inbound Caller (${testNumber.slice(-4)})`;
+                  
                   if (onTestLeadCreated) {
                     onTestLeadCreated({
-                      id: `LEAD-00${Math.floor(10 + Math.random() * 89)}`,
-                      name: "Rahul Verma (Virtual Call)",
-                      phone: "+91 98205 91823",
-                      priority: "HIGH",
+                      id: `LEAD-INB-${Date.now()}`,
+                      name: testName,
+                      phone: testNumber,
+                      priority: "HOT",
                       status: "NEW",
-                      service: "Virtual IVR Call Inbound",
-                      bhkType: "3 BHK Luxury",
-                      location: "Bandra West, Mumbai",
-                      source: "Virtual Number (+91 022 6985 4120)",
+                      service: "Direct Inbound Phone Call",
+                      bhkType: "2 BHK Luxury",
+                      location: "Mumbai",
+                      source: "Direct SIM / Cloud Inbound Call",
                       timeAgo: "Just now",
                       createdAt: new Date().toISOString(),
                       callCount: 0,
-                      notes: "Client called Virtual IVR Number directly asking for 3 BHK under ₹3.5 Cr in Bandra.",
+                      notes: `Customer called agent on +91 98677 78229.`,
                       history: []
                     });
                   }
+
+                  try {
+                    await fetch("/api/method/real_state_crm.api.inbound_call_webhook", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        caller_number: testNumber,
+                        caller_name: testName,
+                        source: "Direct Inbound Call",
+                        notes: "Direct phone call received on agent SIM 9867778229"
+                      })
+                    });
+                  } catch (e) {}
+
                   setAlertConfig({
-                    title: "Incoming Virtual Call Test Triggered! 📞",
-                    message: "Virtual Number call webhook stimulated! Look at your CRM screen—the ringing pop-up is live!",
+                    title: "📞 Incoming Call Ringing on Screen!",
+                    message: `Incoming call from '${testName}' (${testNumber}) triggered! Check your screen—ringing modal is active and will save to Fresh Leads!`,
                     type: "success"
                   });
                 }}
@@ -341,7 +353,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                   boxShadow: "0 4px 12px rgba(22,163,74,0.3)"
                 }}
               >
-                <PhoneIncoming size={16} /> ⚡ Test Virtual Number Inbound Call
+                <PhoneIncoming size={16} /> ⚡ Test Incoming Call to Agent (9867778229)
               </button>
             </div>
           )}

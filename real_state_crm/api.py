@@ -1081,15 +1081,41 @@ def save_integration_settings(**kwargs):
 @frappe.whitelist(allow_guest=True)
 def inbound_call_webhook(caller_number=None, caller_name=None, source="Direct Inbound Call", location="Mumbai", bhk="2 BHK", notes=None, **kwargs):
     """
-    Receives incoming direct calls from Cloud Telephony / Exotel / IVR / Webhooks.
+    Receives incoming direct calls from Cloud Telephony / Exotel / Android MacroDroid / iPhone Shortcuts / IVR.
     Creates Real Estate Lead and saves a live Lead Notification in MariaDB to trigger CRM ringing.
     """
-    phone = caller_number or kwargs.get("From") or kwargs.get("phone") or kwargs.get("contact_phone") or "+91 98205 91823"
-    name = caller_name or kwargs.get("name") or kwargs.get("CallerName") or f"Direct Caller {phone[-4:]}"
-    src = source or kwargs.get("channel") or "Direct Inbound Call"
-    loc = location or kwargs.get("locality") or kwargs.get("preferred_location") or "Mumbai"
-    bhk_type = bhk or kwargs.get("bhk_type") or kwargs.get("bhkType") or "2 BHK"
-    discussion = notes or kwargs.get("notes") or f"Incoming call captured via Cloud IVR on {src}"
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    
+    phone = (
+        caller_number or 
+        kwargs.get("From") or 
+        kwargs.get("from") or 
+        kwargs.get("phone") or 
+        kwargs.get("caller") or 
+        kwargs.get("caller_phone") or 
+        kwargs.get("contact_phone") or 
+        kwargs.get("mobile") or 
+        kwargs.get("CallFrom") or 
+        form_data.get("caller_number") or 
+        form_data.get("From") or 
+        form_data.get("phone") or 
+        "+91 98205 91823"
+    )
+    
+    name = (
+        caller_name or 
+        kwargs.get("name") or 
+        kwargs.get("CallerName") or 
+        kwargs.get("caller_name") or 
+        form_data.get("caller_name") or 
+        form_data.get("name") or 
+        f"Inbound Caller {str(phone)[-4:]}"
+    )
+    
+    src = source or kwargs.get("channel") or form_data.get("source") or "Direct Inbound Call"
+    loc = location or kwargs.get("locality") or kwargs.get("preferred_location") or form_data.get("location") or "Mumbai"
+    bhk_type = bhk or kwargs.get("bhk_type") or kwargs.get("bhkType") or form_data.get("bhk") or "2 BHK"
+    discussion = notes or kwargs.get("notes") or form_data.get("notes") or f"Direct incoming call captured on {src}"
 
     # 1. Save or update lead in MariaDB
     lead_res = save_lead(
