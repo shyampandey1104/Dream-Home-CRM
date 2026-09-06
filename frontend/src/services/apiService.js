@@ -939,14 +939,16 @@ export const syncWithFrappeBackend = async (actionType, payload) => {
 
 export const fetchCrmNotifications = async () => {
   try {
-    let res = await fetch(`${FRAPPE_API_URL}.get_notifications`);
+    const customHeaders = { "Bypass-Tunnel-Reminder": "true", "ngrok-skip-browser-warning": "69420" };
+    let res = await fetch(`${FRAPPE_API_URL}.get_notifications`, { headers: customHeaders });
     if (!res.ok) {
-      res = await fetch(`${FRAPPE_DIRECT_URL}.get_notifications`);
+      res = await fetch(`${FRAPPE_DIRECT_URL}.get_notifications`, { headers: customHeaders });
     }
-    if (res.ok) {
+    if (res && res.ok) {
       const json = await res.json();
-      if (json.message && json.message.data) {
-        return json.message.data;
+      const list = json?.message?.data || json?.data || json?.message;
+      if (Array.isArray(list)) {
+        return list;
       }
     }
   } catch (e) {
