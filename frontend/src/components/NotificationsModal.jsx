@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Bell, X, PhoneCall, MessageSquare, CheckCheck, Trash2, Clock, Sparkles, PhoneIncoming, Calendar, Car, Flame } from "lucide-react";
 
-export default function NotificationsModal({ notifications, onClose, onCallLead, onWhatsAppLead, onClearAll, onMarkRead }) {
-  const [filterCategory, setFilterCategory] = React.useState("all"); // "all" | "inbound" | "followup" | "visit"
+export default function NotificationsModal({ notifications = [], onClose, onCallLead, onWhatsAppLead, onClearAll, onMarkRead }) {
+  const [filterCategory, setFilterCategory] = useState("all"); // "all" | "inbound" | "followup" | "visit"
+  const notifsList = Array.isArray(notifications) ? notifications : [];
 
   const formatNotifTime = (timeStr) => {
     if (!timeStr) return "Scheduled";
@@ -17,11 +18,11 @@ export default function NotificationsModal({ notifications, onClose, onCallLead,
     return timeStr;
   };
 
-  const inboundCount = notifications.filter(n => n.type === "inbound" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("call")).length;
-  const followupCount = notifications.filter(n => n.type === "followup" || n.source?.toLowerCase().includes("followup")).length;
-  const visitCount = notifications.filter(n => n.type === "visit" || n.source?.toLowerCase().includes("visit")).length;
+  const inboundCount = notifsList.filter(n => n.type === "inbound" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("call")).length;
+  const followupCount = notifsList.filter(n => n.type === "followup" || n.source?.toLowerCase().includes("followup")).length;
+  const visitCount = notifsList.filter(n => n.type === "visit" || n.source?.toLowerCase().includes("visit")).length;
 
-  const filteredNotifs = notifications.filter(n => {
+  const filteredNotifs = notifsList.filter(n => {
     if (filterCategory === "all") return true;
     if (filterCategory === "inbound") return n.type === "inbound" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("call");
     if (filterCategory === "followup") return n.type === "followup" || n.source?.toLowerCase().includes("followup");

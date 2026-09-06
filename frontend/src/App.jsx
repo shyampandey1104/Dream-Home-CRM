@@ -261,7 +261,7 @@ export default function App() {
     localStorage.removeItem("crm_active_tab");
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = (Array.isArray(notifications) ? notifications : []).filter(n => !n.read).length;
 
   const showToast = (msg) => {
     setToastMsg(msg);
