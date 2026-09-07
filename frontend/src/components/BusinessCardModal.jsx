@@ -59,9 +59,13 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
   if (!isOpen) return null;
 
   const currentUser = dbCard || propUser || agentProfile;
-  const name = currentUser?.agent_name || currentUser?.name || "Shyam Pandey";
-  const phone = propUser?.mobile_no || propUser?.phone || currentUser?.phone || currentUser?.mobile_no || "9867778229";
+  const name = currentUser?.agent_name || currentUser?.full_name || currentUser?.name || "Shyam Pandey";
+  const phone = currentUser?.mobile_no || currentUser?.phone || propUser?.mobile_no || propUser?.phone || "9867778229";
   const email = currentUser?.email || propUser?.email || "shyampandey1104@gmail.com";
+  const reraNo = currentUser?.rera_no || propUser?.rera_no || "A51800036410";
+  const instagramId = currentUser?.instagram_id || propUser?.instagram_id || "dream_homes42";
+  const facebookId = currentUser?.facebook_id || propUser?.facebook_id || "dreamhomes.mumbai";
+  const youtubeId = currentUser?.youtube_id || propUser?.youtube_id || "@DreamHomesRealEstate";
 
   const triggerToast = (msg) => {
     setToastAlert(msg);
@@ -365,7 +369,7 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
                   boxShadow: "0 1px 3px rgba(245,158,11,0.12)"
                 }}
               >
-                RERA NO: A51800045492
+                RERA NO: {reraNo}
               </div>
 
               {/* Circular Gold Emblem Logo (User Uploaded 3D Gold Logo) */}
@@ -467,7 +471,7 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
                       <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
                     </svg>
                   </div>
-                  <span style={{ fontSize: "0.625rem", fontWeight: "600", color: "#1e293b" }}>dream_homes42</span>
+                  <span style={{ fontSize: "0.625rem", fontWeight: "600", color: "#1e293b" }}>{instagramId}</span>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "0.45rem" }}>

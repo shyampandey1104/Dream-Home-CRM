@@ -93,14 +93,14 @@ export default function UserProfileModal({ userProfile, onClose, onLogout }) {
             </div>
           </div>
 
-          {/* Details Table */}
+          {/* Details Table from Frappe User DocType */}
           <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "0.875rem", padding: "0.875rem", display: "flex", flexDirection: "column", gap: "0.65rem", fontSize: "0.8125rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
               <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                <ShieldCheck size={15} color="#2563eb" /> Employee ID:
+                <ShieldCheck size={15} color="#2563eb" /> Employee ID / Name:
               </span>
               <strong style={{ color: "#0f172a", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {empIdText}
+                {userProfile.employee_id || userProfile.full_name || userProfile.name || empIdText}
               </strong>
             </div>
 
@@ -119,6 +119,46 @@ export default function UserProfileModal({ userProfile, onClose, onLogout }) {
               </span>
               <strong style={{ color: "#0f172a", marginLeft: "auto", fontSize: "0.78125rem", fontWeight: 800 }}>
                 {userProfile.mobile_no || userProfile.phone || "9867778229"}
+              </strong>
+            </div>
+
+            {/* MahaRERA No */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
+              <span style={{ color: "#b45309", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem", fontWeight: 700 }}>
+                📜 MahaRERA No:
+              </span>
+              <strong style={{ color: "#b45309", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 800, background: "#fef3c7", padding: "0.1rem 0.4rem", borderRadius: "4px", border: "1px solid #fde68a" }}>
+                {userProfile.rera_no || "A51800036410"}
+              </strong>
+            </div>
+
+            {/* Instagram ID */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
+              <span style={{ color: "#be185d", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
+                📸 Instagram:
+              </span>
+              <strong style={{ color: "#be185d", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
+                @{userProfile.instagram_id || "dream_homes42"}
+              </strong>
+            </div>
+
+            {/* Facebook ID */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
+              <span style={{ color: "#1d4ed8", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
+                👥 Facebook:
+              </span>
+              <strong style={{ color: "#1d4ed8", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
+                {userProfile.facebook_id || "dreamhomes.mumbai"}
+              </strong>
+            </div>
+
+            {/* YouTube ID */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
+              <span style={{ color: "#dc2626", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
+                ▶️ YouTube:
+              </span>
+              <strong style={{ color: "#dc2626", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
+                {userProfile.youtube_id || "@DreamHomesRealEstate"}
               </strong>
             </div>
 
