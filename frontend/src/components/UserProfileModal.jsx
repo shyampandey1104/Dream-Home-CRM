@@ -122,45 +122,53 @@ export default function UserProfileModal({ userProfile, onClose, onLogout }) {
               </strong>
             </div>
 
-            {/* MahaRERA No */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-              <span style={{ color: "#b45309", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem", fontWeight: 700 }}>
-                📜 MahaRERA No:
-              </span>
-              <strong style={{ color: "#b45309", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 800, background: "#fef3c7", padding: "0.1rem 0.4rem", borderRadius: "4px", border: "1px solid #fde68a" }}>
-                {userProfile.rera_no || "A51800036410"}
-              </strong>
-            </div>
+            {/* MahaRERA No - Only rendered if exists in User DocType */}
+            {userProfile.rera_no && String(userProfile.rera_no).trim() !== "" && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
+                <span style={{ color: "#b45309", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem", fontWeight: 700 }}>
+                  📜 MahaRERA No:
+                </span>
+                <strong style={{ color: "#b45309", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 800, background: "#fef3c7", padding: "0.1rem 0.4rem", borderRadius: "4px", border: "1px solid #fde68a" }}>
+                  {userProfile.rera_no}
+                </strong>
+              </div>
+            )}
 
-            {/* Instagram ID */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-              <span style={{ color: "#be185d", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                📸 Instagram:
-              </span>
-              <strong style={{ color: "#be185d", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
-                @{userProfile.instagram_id || "dream_homes42"}
-              </strong>
-            </div>
+            {/* Instagram ID - Only rendered if exists in User DocType */}
+            {userProfile.instagram_id && String(userProfile.instagram_id).trim() !== "" && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
+                <span style={{ color: "#be185d", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
+                  📸 Instagram:
+                </span>
+                <strong style={{ color: "#be185d", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
+                  @{String(userProfile.instagram_id).replace(/^@/, '')}
+                </strong>
+              </div>
+            )}
 
-            {/* Facebook ID */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-              <span style={{ color: "#1d4ed8", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                👥 Facebook:
-              </span>
-              <strong style={{ color: "#1d4ed8", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
-                {userProfile.facebook_id || "dreamhomes.mumbai"}
-              </strong>
-            </div>
+            {/* Facebook ID - Only rendered if exists in User DocType */}
+            {userProfile.facebook_id && String(userProfile.facebook_id).trim() !== "" && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
+                <span style={{ color: "#1d4ed8", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
+                  👥 Facebook:
+                </span>
+                <strong style={{ color: "#1d4ed8", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
+                  {userProfile.facebook_id}
+                </strong>
+              </div>
+            )}
 
-            {/* YouTube ID */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-              <span style={{ color: "#dc2626", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                ▶️ YouTube:
-              </span>
-              <strong style={{ color: "#dc2626", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
-                {userProfile.youtube_id || "@DreamHomesRealEstate"}
-              </strong>
-            </div>
+            {/* YouTube ID - Only rendered if exists in User DocType */}
+            {userProfile.youtube_id && String(userProfile.youtube_id).trim() !== "" && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
+                <span style={{ color: "#dc2626", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
+                  ▶️ YouTube:
+                </span>
+                <strong style={{ color: "#dc2626", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
+                  {userProfile.youtube_id}
+                </strong>
+              </div>
+            )}
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
               <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>

@@ -62,10 +62,10 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
   const name = currentUser?.agent_name || currentUser?.full_name || currentUser?.name || "Shyam Pandey";
   const phone = currentUser?.mobile_no || currentUser?.phone || propUser?.mobile_no || propUser?.phone || "9867778229";
   const email = currentUser?.email || propUser?.email || "shyampandey1104@gmail.com";
-  const reraNo = currentUser?.rera_no || propUser?.rera_no || "A51800036410";
-  const instagramId = currentUser?.instagram_id || propUser?.instagram_id || "dream_homes42";
-  const facebookId = currentUser?.facebook_id || propUser?.facebook_id || "dreamhomes.mumbai";
-  const youtubeId = currentUser?.youtube_id || propUser?.youtube_id || "@DreamHomesRealEstate";
+  const reraNo = currentUser?.rera_no || propUser?.rera_no || "";
+  const instagramId = currentUser?.instagram_id || propUser?.instagram_id || "";
+  const facebookId = currentUser?.facebook_id || propUser?.facebook_id || "";
+  const youtubeId = currentUser?.youtube_id || propUser?.youtube_id || "";
 
   const triggerToast = (msg) => {
     setToastAlert(msg);
@@ -353,24 +353,26 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
                 textAlign: "center"
               }}
             >
-              {/* RERA NO Header Badge above Logo - Top Aligned */}
-              <div
-                style={{
-                  fontSize: "0.45rem",
-                  fontWeight: "800",
-                  color: "#b45309",
-                  background: "linear-gradient(90deg, #fef3c7 0%, #fffbe6 100%)",
-                  border: "1px solid #f59e0b",
-                  borderRadius: "9999px",
-                  padding: "0.15rem 0.45rem",
-                  marginBottom: "0.15rem",
-                  letterSpacing: "0.03em",
-                  whiteSpace: "nowrap",
-                  boxShadow: "0 1px 3px rgba(245,158,11,0.12)"
-                }}
-              >
-                RERA NO: {reraNo}
-              </div>
+              {/* RERA NO Header Badge above Logo - Top Aligned (Only if exists in User DocType) */}
+              {reraNo && String(reraNo).trim() !== "" && (
+                <div
+                  style={{
+                    fontSize: "0.45rem",
+                    fontWeight: "800",
+                    color: "#b45309",
+                    background: "linear-gradient(90deg, #fef3c7 0%, #fffbe6 100%)",
+                    border: "1px solid #f59e0b",
+                    borderRadius: "9999px",
+                    padding: "0.15rem 0.45rem",
+                    marginBottom: "0.15rem",
+                    letterSpacing: "0.03em",
+                    whiteSpace: "nowrap",
+                    boxShadow: "0 1px 3px rgba(245,158,11,0.12)"
+                  }}
+                >
+                  RERA NO: {reraNo}
+                </div>
+              )}
 
               {/* Circular Gold Emblem Logo (User Uploaded 3D Gold Logo) */}
               <div style={{ marginBottom: "0.2rem" }}>
@@ -463,16 +465,19 @@ export default function BusinessCardModal({ isOpen, onClose, agentProfile, curre
                   <span style={{ fontSize: "0.625rem", fontWeight: "600", color: "#1e293b", wordBreak: "break-all" }}>{email}</span>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
-                  <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "radial-gradient(circle, #fde68a 0%, #d97706 100%)", border: "1px solid #b45309", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                    </svg>
+                {/* Instagram Row (Only rendered if exists in User DocType) */}
+                {instagramId && String(instagramId).trim() !== "" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+                    <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "radial-gradient(circle, #fde68a 0%, #d97706 100%)", border: "1px solid #b45309", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                      </svg>
+                    </div>
+                    <span style={{ fontSize: "0.625rem", fontWeight: "600", color: "#1e293b" }}>{String(instagramId).replace(/^@/, '')}</span>
                   </div>
-                  <span style={{ fontSize: "0.625rem", fontWeight: "600", color: "#1e293b" }}>{instagramId}</span>
-                </div>
+                )}
 
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "0.45rem" }}>
                   <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "radial-gradient(circle, #fde68a 0%, #d97706 100%)", border: "1px solid #b45309", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "1px", boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }}>
