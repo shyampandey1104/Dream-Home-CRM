@@ -447,6 +447,28 @@ export default function PropertiesView({ onShareProperty, showToast }) {
             <FileUp size={15} /> + Upload PDF / DOC
           </button>
 
+          {/* Direct Video Tour Upload Button */}
+          <button
+            onClick={() => { setItemModalMode("video"); setIsItemModalOpen(true); }}
+            style={{
+              background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+              color: "#ffffff",
+              border: "none",
+              padding: "0.45rem 0.75rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.78125rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <Video size={15} /> + Upload Video
+          </button>
+
           {/* Upload Property Button */}
           <button
             onClick={() => setIsUploadModalOpen(true)}
