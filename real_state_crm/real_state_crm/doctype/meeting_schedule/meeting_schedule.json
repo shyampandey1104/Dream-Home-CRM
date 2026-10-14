@@ -59,7 +59,7 @@
  "module": "Real State Crm",
  "name": "Meeting Schedule",
  "naming_rule": "Expression",
- "autoname": "format:MTG-.####",
+ "autoname": "MTG-.####",
  "owner": "Administrator",
  "permissions": [
   {

@@ -59,7 +59,7 @@
  "module": "Real State Crm",
  "name": "Claimed Lead",
  "naming_rule": "Expression",
- "autoname": "format:CLM-.####",
+ "autoname": "CLM-.####",
  "owner": "Administrator",
  "permissions": [
   {

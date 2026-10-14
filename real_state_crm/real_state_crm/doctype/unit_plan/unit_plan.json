@@ -58,8 +58,8 @@
  "modified_by": "Administrator",
  "module": "Real State Crm",
  "name": "Unit Plan",
- "naming_rule": "Expression",
- "autoname": "format:UP-.####",
+ "naming_rule": "Random",
+ "autoname": "hash",
  "owner": "Administrator",
  "permissions": [
   {

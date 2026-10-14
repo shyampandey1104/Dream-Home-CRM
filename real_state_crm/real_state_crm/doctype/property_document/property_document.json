@@ -78,8 +78,8 @@
  "modified_by": "Administrator",
  "module": "Real State Crm",
  "name": "Property Document",
- "naming_rule": "Expression",
- "autoname": "format:DOC-.####",
+ "naming_rule": "Random",
+ "autoname": "hash",
  "owner": "Administrator",
  "permissions": [
   {

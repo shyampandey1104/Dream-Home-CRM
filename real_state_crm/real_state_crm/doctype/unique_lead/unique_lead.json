@@ -58,7 +58,7 @@
  "module": "Real State Crm",
  "name": "Unique Lead",
  "naming_rule": "Expression",
- "autoname": "format:UNQ-.####",
+ "autoname": "UNQ-.####",
  "owner": "Administrator",
  "permissions": [
   {

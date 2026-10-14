@@ -68,7 +68,7 @@
  "module": "Real State Crm",
  "name": "Team Member",
  "naming_rule": "Expression",
- "autoname": "format:TM-.####",
+ "autoname": "TM-.####",
  "owner": "Administrator",
  "permissions": [
   {

@@ -67,7 +67,7 @@
  "module": "Real State Crm",
  "name": "Site Visit",
  "naming_rule": "Expression",
- "autoname": "format:VISIT-.####",
+ "autoname": "VISIT-.####",
  "owner": "Administrator",
  "permissions": [
   {

@@ -81,7 +81,7 @@
  "module": "Real State Crm",
  "name": "Property Listing",
  "naming_rule": "Expression",
- "autoname": "format:LST-.####",
+ "autoname": "LST-.####",
  "owner": "Administrator",
  "permissions": [
   {

@@ -60,7 +60,7 @@
  "module": "Real State Crm",
  "name": "CMA Analysis",
  "naming_rule": "Expression",
- "autoname": "format:CMA-.####",
+ "autoname": "CMA-.####",
  "owner": "Administrator",
  "permissions": [
   {

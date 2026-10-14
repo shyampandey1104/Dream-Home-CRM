@@ -34,6 +34,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a, input, select {
+  touch-action: manipulation;
 }
 
 body {
@@ -42,6 +47,7 @@ body {
   color: var(--text-dark);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* App Container */
@@ -1327,11 +1333,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0.4rem 0.25rem;
+  padding: 0.4rem 0.25rem calc(0.4rem + env(safe-area-inset-bottom, 0px)) 0.25rem;
   position: sticky;
   bottom: 0;
   z-index: 40;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  user-select: none;
 }
 
 .mobile-nav-item {

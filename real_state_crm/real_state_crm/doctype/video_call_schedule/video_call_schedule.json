@@ -60,7 +60,7 @@
  "module": "Real State Crm",
  "name": "Video Call Schedule",
  "naming_rule": "Expression",
- "autoname": "format:VCS-.####",
+ "autoname": "VCS-.####",
  "owner": "Administrator",
  "permissions": [
   {

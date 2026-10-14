@@ -48,6 +48,21 @@ def normalize_phone_number(phone_str):
     return digits
 
 
+def generate_custom_id(doctype, prefix):
+    """Generates guaranteed unique primary key names for custom DocTypes"""
+    import random, time
+    from frappe.model.naming import make_autoname
+    try:
+        cand = make_autoname(f"{prefix}-.####")
+        if cand and ".####" not in cand:
+            return cand
+    except Exception:
+        pass
+    ts = int(time.time() * 1000) % 1000000
+    rnd = random.randint(100, 999)
+    return f"{prefix}-{ts:06d}{rnd}"
+
+
 @frappe.whitelist(allow_guest=True)
 def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", status="NEW", service="Home Buying", bhk_type="2 BHK", location="Mumbai", source="Manual", notes=None, lead_name=None, bhkType=None, **kwargs):
     """
@@ -312,14 +327,34 @@ def update_lead_status(lead_id=None, status="FOLLOWUP", disposition=None, notes=
             lead = frappe.get_doc("Real Estate Lead", matched[0])
             
     if lead:
-        lead.status = status
+        valid_statuses = ["NEW", "FOLLOWUP", "FOLLOWUP_TODAY", "OVERDUE", "CLOSED", "NOT_INTERESTED"]
+        clean_status = str(status or "FOLLOWUP").upper().strip()
+        
+        if clean_status in valid_statuses:
+            final_status = clean_status
+        elif any(k in clean_status for k in ["CLOSE", "WON", "DEAL", "BOOK"]):
+            final_status = "CLOSED"
+        elif any(k in clean_status for k in ["NOT", "LOST", "REJECT", "WRONG"]):
+            final_status = "NOT_INTERESTED"
+        elif "TODAY" in clean_status:
+            final_status = "FOLLOWUP_TODAY"
+        elif "OVERDUE" in clean_status:
+            final_status = "OVERDUE"
+        elif clean_status == "NEW":
+            final_status = "NEW"
+        else:
+            final_status = "FOLLOWUP"
+
+        lead.status = final_status
         lead.call_count = (lead.call_count or 0) + 1
-        if notes or disposition:
-            log_entry = f"[{disposition or status}]: {notes or 'Status updated'}"
+        
+        effective_disp = disposition or status
+        if notes or effective_disp:
+            log_entry = f"[{effective_disp}]: {notes or 'Status updated'}"
             lead.notes = f"{lead.notes or ''}\n{log_entry}".strip()
         lead.save(ignore_permissions=True)
         frappe.db.commit()
-        return {"status": "success", "lead_id": lead.name, "new_status": lead.status}
+        return {"status": "success", "lead_id": lead.name, "new_status": lead.status, "disposition": effective_disp}
         
     return {"status": "error", "message": f"Lead {lead_id} not found"}
 
@@ -506,6 +541,7 @@ def save_notification(title, message=None, source="Scheduled Disposition", notif
     Saves or creates a Live Lead Notification into MariaDB.
     """
     doc = frappe.new_doc("Lead Notification")
+    doc.name = generate_custom_id("Lead Notification", "NOTIF")
     doc.title = title
     doc.message = message
     doc.source = source
@@ -638,17 +674,29 @@ def get_user_profile(user_email=None, **kwargs):
         if frappe.db.exists("User", target_email):
             u_doc = frappe.get_doc("User", target_email)
             phone_val = str(u_doc.mobile_no or u_doc.phone or "9867778229").strip()
+            full_name_val = str(u_doc.full_name or u_doc.first_name or "Shyam Pandey").strip()
+            rera_val = str(getattr(u_doc, "rera_no", None) or "").strip()
+            insta_val = str(getattr(u_doc, "instagram_id", None) or "").strip()
+            fb_val = str(getattr(u_doc, "facebook_id", None) or "").strip()
+            yt_val = str(getattr(u_doc, "youtube_id", None) or "").strip()
+            
             return {
                 "status": "success",
                 "data": {
                     "id": u_doc.name,
-                    "name": u_doc.full_name or u_doc.first_name or "Shyam Pandey",
+                    "employee_id": full_name_val or u_doc.name,
+                    "name": full_name_val,
+                    "full_name": full_name_val,
                     "email": u_doc.email or target_email,
                     "phone": phone_val,
                     "mobile_no": phone_val,
+                    "rera_no": rera_val,
+                    "instagram_id": insta_val,
+                    "facebook_id": fb_val,
+                    "youtube_id": yt_val,
                     "role": "Sales Manager" if "System Manager" in [r.role for r in u_doc.roles] else "Senior Sales Consultant",
                     "status": "Active" if u_doc.enabled else "Inactive",
-                    "initials": "".join([p[0].upper() for p in (u_doc.full_name or "SP").split()[:2]]),
+                    "initials": "".join([p[0].upper() for p in (full_name_val or "SP").split()[:2]]),
                     "areas": ["Andheri", "Bandra", "Goregaon"]
                 }
             }
@@ -659,9 +707,44 @@ def get_user_profile(user_email=None, **kwargs):
     if target_email in REGISTERED_CRM_USERS:
         u = dict(REGISTERED_CRM_USERS[target_email])
         u.pop("password", None)
+        u.setdefault("rera_no", "A51800036410")
+        u.setdefault("instagram_id", "dream_homes42")
+        u.setdefault("facebook_id", "dreamhomes.mumbai")
+        u.setdefault("youtube_id", "@DreamHomesRealEstate")
+        u.setdefault("employee_id", u.get("name") or target_email)
         return {"status": "success", "data": u}
 
     return {"status": "error", "message": f"User {target_email} not found."}
+
+
+@frappe.whitelist(allow_guest=True)
+def update_user_profile(user_email=None, full_name=None, mobile_no=None, rera_no=None, instagram_id=None, facebook_id=None, youtube_id=None, **kwargs):
+    """
+    Updates custom profile details directly in Frappe DocType User.
+    """
+    target_email = user_email or kwargs.get("email") or "shyampandey1104@gmail.com"
+    if not frappe.db.exists("User", target_email):
+        return {"status": "error", "message": f"User {target_email} not found"}
+
+    u_doc = frappe.get_doc("User", target_email)
+    if full_name:
+        u_doc.first_name = full_name
+        u_doc.full_name = full_name
+    if mobile_no:
+        u_doc.mobile_no = mobile_no
+        u_doc.phone = mobile_no
+    if rera_no:
+        setattr(u_doc, "rera_no", rera_no)
+    if instagram_id:
+        setattr(u_doc, "instagram_id", instagram_id)
+    if facebook_id:
+        setattr(u_doc, "facebook_id", facebook_id)
+    if youtube_id:
+        setattr(u_doc, "youtube_id", youtube_id)
+
+    u_doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"status": "success", "message": "User Profile updated successfully in Frappe User DocType!"}
 
 
 @frappe.whitelist(allow_guest=True)
@@ -685,6 +768,12 @@ def get_users():
                     safe_copy["mobile_no"] = str(u_doc.phone).strip()
                 if u_doc.full_name:
                     safe_copy["name"] = str(u_doc.full_name).strip()
+                
+                safe_copy["rera_no"] = str(getattr(u_doc, "rera_no", None) or "").strip()
+                safe_copy["instagram_id"] = str(getattr(u_doc, "instagram_id", None) or "").strip()
+                safe_copy["facebook_id"] = str(getattr(u_doc, "facebook_id", None) or "").strip()
+                safe_copy["youtube_id"] = str(getattr(u_doc, "youtube_id", None) or "").strip()
+                safe_copy["employee_id"] = safe_copy["name"]
         except Exception:
             pass
         users_list.append(safe_copy)
@@ -844,6 +933,7 @@ def register_user(name=None, email=None, phone=None, role=None, password=None, *
     try:
         if frappe.db.exists("DocType", "Team Member"):
             doc = frappe.new_doc("Team Member")
+            doc.name = generate_custom_id("Team Member", "TM")
             doc.name_member = final_name
             doc.role = final_role
             doc.email = final_email
@@ -1085,6 +1175,7 @@ def inbound_call_webhook(caller_number=None, caller_name=None, source="Direct In
             now_dt = frappe.utils.now_datetime()
             call_time_label = frappe.utils.format_datetime(now_dt, "dd MMM, hh:mm a")
             notif = frappe.new_doc("Lead Notification")
+            notif.name = generate_custom_id("Lead Notification", "NOTIF")
             notif.title = f"📞 Incoming Call: {name}"
             notif.message = f"Call received at {call_time_label} on +91 98677 78229 | Interested in {bhk_type} ({loc})"
             notif.source = src
@@ -1324,6 +1415,7 @@ def save_property_document(doc_id=None, document_name=None, project=None, catego
         doc = frappe.get_doc("Property Document", doc_id)
     else:
         doc = frappe.new_doc("Property Document")
+        doc.name = generate_custom_id("Property Document", "DOC")
 
     doc.document_name = document_name
     doc.project = project
@@ -1377,6 +1469,7 @@ def save_unit_plan(plan_id=None, project=None, bhk_type=None, area=None, plan_im
         doc = frappe.get_doc("Unit Plan", plan_id)
     else:
         doc = frappe.new_doc("Unit Plan")
+        doc.name = generate_custom_id("Unit Plan", "UP")
 
     doc.project = project
     doc.bhk_type = bhk_type
@@ -1427,6 +1520,7 @@ def save_property_video(video_id=None, title=None, project=None, duration="03:30
         doc = frappe.get_doc("Property Video", video_id)
     else:
         doc = frappe.new_doc("Property Video")
+        doc.name = generate_custom_id("Property Video", "VID")
 
     doc.title = title
     doc.project = project
@@ -1437,6 +1531,7 @@ def save_property_video(video_id=None, title=None, project=None, duration="03:30
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"status": "success", "video_id": doc.name, "message": f"Video Tour '{title}' saved successfully to CRM Database!"}
+
 
 
 @frappe.whitelist(allow_guest=True)
@@ -1482,6 +1577,7 @@ def calculate_cma(locality, carpet_area):
     # Save to CMA Analysis DocType
     try:
         cma_doc = frappe.new_doc("CMA Analysis")
+        cma_doc.name = generate_custom_id("CMA Analysis", "CMA")
         cma_doc.locality = locality
         cma_doc.carpet_area = area
         cma_doc.rate_per_sqft = rate_str
@@ -1492,7 +1588,7 @@ def calculate_cma(locality, carpet_area):
         frappe.db.commit()
         cma_id = cma_doc.name
     except Exception:
-        cma_id = "CMA-LOCAL"
+        cma_id = f"CMA-{int(frappe.utils.now_datetime().timestamp())}"
 
     return {
         "status": "success",
@@ -1528,18 +1624,20 @@ def delete_cma_analysis(cma_id):
 # --- PROJECT SURVEY REST APIS ---
 
 @frappe.whitelist(allow_guest=True)
-def submit_project_survey(builder, location=None, price_range=None, rera_no=None, surveyor_name=None, survey_notes=None):
+def submit_project_survey(builder=None, location=None, price_range=None, rera_no=None, surveyor_name=None, survey_notes=None, **kwargs):
     """Saves a new Builder Field Project Survey to MariaDB"""
+    final_builder = builder or kwargs.get("project_name") or kwargs.get("project") or kwargs.get("builder_name") or "General Builder"
     doc = frappe.new_doc("Project Survey")
-    doc.builder = builder
-    doc.location = location or "Mumbai"
+    doc.name = generate_custom_id("Project Survey", "SURV")
+    doc.builder = final_builder
+    doc.location = location or kwargs.get("locality") or "Mumbai"
     doc.price_range = price_range or "₹ 2.0 Cr+"
-    doc.rera_no = rera_no
+    doc.rera_no = rera_no or kwargs.get("rera") or ""
     doc.surveyor_name = surveyor_name or "Field Executive"
-    doc.survey_notes = survey_notes or "Field inspection survey report submitted"
+    doc.survey_notes = survey_notes or kwargs.get("notes") or "Field inspection survey report submitted"
     doc.save(ignore_permissions=True)
     frappe.db.commit()
-    return {"status": "success", "survey_id": doc.name, "message": f"Builder Project Survey for '{builder}' saved successfully to CRM Database!"}
+    return {"status": "success", "survey_id": doc.name, "message": f"Builder Project Survey for '{final_builder}' saved successfully to CRM Database!"}
 
 
 @frappe.whitelist(allow_guest=True)
@@ -1606,6 +1704,7 @@ def save_property_listing(listing_id=None, listing_type="My Listing", title=None
         doc = frappe.get_doc("Property Listing", listing_id)
     else:
         doc = frappe.new_doc("Property Listing")
+        doc.name = generate_custom_id("Property Listing", "LST")
 
     doc.listing_type = listing_type
     doc.title = title
@@ -1896,6 +1995,7 @@ def save_site_visit(visit_id=None, title=None, client=None, phone=None, location
         doc = frappe.get_doc("Site Visit", visit_id)
     else:
         doc = frappe.new_doc("Site Visit")
+        doc.name = generate_custom_id("Site Visit", "VISIT")
     doc.title = title or f"Site Visit: {location or 'Project'}"
     doc.client = client
     doc.phone = phone
@@ -1941,6 +2041,7 @@ def save_qualified_lead(lead_id=None, name_client=None, score="92% Hot Match", b
         doc = frappe.get_doc("Qualified Lead", lead_id)
     else:
         doc = frappe.new_doc("Qualified Lead")
+        doc.name = generate_custom_id("Qualified Lead", "QL")
     doc.name_client = name_client
     doc.score = score or "92% Hot Match"
     doc.budget = budget
@@ -1986,6 +2087,7 @@ def save_claimed_lead(claim_id=None, lead_name=None, points="50 Points", source=
         doc = frappe.get_doc("Claimed Lead", claim_id)
     else:
         doc = frappe.new_doc("Claimed Lead")
+        doc.name = generate_custom_id("Claimed Lead", "CLM")
     doc.lead_name = lead_name
     doc.points = points or "50 Points"
     doc.source = source
@@ -2029,6 +2131,7 @@ def save_unique_lead(lead_id=None, name_lead=None, source="Self Referral", phone
         doc = frappe.get_doc("Unique Lead", lead_id)
     else:
         doc = frappe.new_doc("Unique Lead")
+        doc.name = generate_custom_id("Unique Lead", "UNQ")
     doc.name_lead = name_lead
     doc.source = source
     doc.phone = phone
@@ -2072,6 +2175,7 @@ def save_site_visit_schedule(sch_id=None, client=None, project=None, slot=None, 
         doc = frappe.get_doc("Site Visit Schedule", sch_id)
     else:
         doc = frappe.new_doc("Site Visit Schedule")
+        doc.name = generate_custom_id("Site Visit Schedule", "SCH")
     doc.client = client
     doc.project = project
     doc.slot = slot or "Today, 4:00 PM"
@@ -2115,6 +2219,7 @@ def save_meeting_schedule(mtg_id=None, client=None, venue=None, agenda=None, tim
         doc = frappe.get_doc("Meeting Schedule", mtg_id)
     else:
         doc = frappe.new_doc("Meeting Schedule")
+        doc.name = generate_custom_id("Meeting Schedule", "MTG")
     doc.client = client
     doc.venue = venue or "Sales Office"
     doc.agenda = agenda or "Discussion"
@@ -2158,6 +2263,7 @@ def save_video_call_schedule(vcs_id=None, client=None, project=None, platform="Z
         doc = frappe.get_doc("Video Call Schedule", vcs_id)
     else:
         doc = frappe.new_doc("Video Call Schedule")
+        doc.name = generate_custom_id("Video Call Schedule", "VCS")
     doc.client = client
     doc.project = project
     doc.platform = platform or "Zoom HD Tour"
@@ -2203,6 +2309,7 @@ def save_team_member(member_id=None, name_member=None, role="Telecaller", email=
         doc = frappe.get_doc("Team Member", member_id)
     else:
         doc = frappe.new_doc("Team Member")
+        doc.name = generate_custom_id("Team Member", "TM")
     doc.name_member = name_member
     doc.role = role
     doc.email = email
@@ -2248,6 +2355,7 @@ def save_speed_call(call_id=None, client=None, duration="03:00 mins", topic=None
         doc = frappe.get_doc("Speed Call Log", call_id)
     else:
         doc = frappe.new_doc("Speed Call Log")
+        doc.name = generate_custom_id("Speed Call Log", "SCL")
     doc.client = client
     doc.duration = duration or "03:00 mins"
     doc.topic = topic
@@ -2292,6 +2400,7 @@ def save_activity_document(doc_id=None, name_doc=None, category="Client Visit Re
         doc = frappe.get_doc("Activity Document", doc_id)
     else:
         doc = frappe.new_doc("Activity Document")
+        doc.name = generate_custom_id("Activity Document", "ACTDOC")
     doc.name_doc = name_doc
     doc.category = category or "Client Visit Report"
     doc.file_type = file_type or "PDF"
@@ -2326,9 +2435,22 @@ def save_calculation(title=None, calc_type="sqft_rate", amount=None, property_ca
     if isinstance(results, dict) and not amount:
         amount = str(results.get("emi") or results.get("roi") or results.get("total_amount") or "")
     
+    raw_type = str(calc_type or "sqft_rate").lower().strip()
+    if "stamp" in raw_type:
+        normalized_type = "stamp"
+    elif "emi" in raw_type or "loan" in raw_type:
+        normalized_type = "emi"
+    elif "area" in raw_type or "carpet" in raw_type:
+        normalized_type = "area"
+    elif "yield" in raw_type or "rent" in raw_type or "roi" in raw_type:
+        normalized_type = "yield"
+    else:
+        normalized_type = "sqft_rate"
+
     doc = frappe.new_doc("CRM Calculation")
-    doc.title = title or f"{str(calc_type).upper()} Calculation ({frappe.utils.now()[:16]})"
-    doc.calc_type = (calc_type or "sqft_rate").lower()
+    doc.name = generate_custom_id("CRM Calculation", "CALC")
+    doc.title = title or f"{normalized_type.upper()} Calculation ({frappe.utils.now()[:16]})"
+    doc.calc_type = normalized_type
     doc.amount = str(amount or "")
     doc.property_category = property_category or "Residential"
     doc.agent_name = agent_name or "Shyam"

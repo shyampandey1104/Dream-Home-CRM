@@ -60,7 +60,7 @@
  "module": "Real State Crm",
  "name": "Site Visit Schedule",
  "naming_rule": "Expression",
- "autoname": "format:SCH-.####",
+ "autoname": "SCH-.####",
  "owner": "Administrator",
  "permissions": [
   {

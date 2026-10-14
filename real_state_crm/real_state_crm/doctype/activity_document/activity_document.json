@@ -65,7 +65,7 @@
  "module": "Real State Crm",
  "name": "Activity Document",
  "naming_rule": "Expression",
- "autoname": "format:ACTDOC-.####",
+ "autoname": "ACTDOC-.####",
  "owner": "Administrator",
  "permissions": [
   {

@@ -95,10 +95,10 @@ export default function InstallAppModal({ isOpen, onClose }) {
             </div>
 
             <ol style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "0.78125rem", color: "#334155", display: "flex", flexDirection: "column", gap: "0.4rem", lineHeight: "1.3" }}>
-              <li>Safari browser mein link kholein: <strong style={{ color: "#2563eb" }}>https://routers-regardless-compiler-lcd.trycloudflare.com</strong></li>
+              <li>Safari browser mein CRM link kholein: <strong style={{ color: "#2563eb", wordBreak: "break-all" }}>{typeof window !== "undefined" ? window.location.href : "https://allodially-goodish-lydia.ngrok-free.dev/crm"}</strong></li>
               <li>Bottom bar me Share Icon <strong style={{ background: "#e2e8f0", padding: "0.1rem 0.35rem", borderRadius: "0.25rem", color: "#0f172a" }}>[↑ Share]</strong> par click karein.</li>
               <li>Menu list me scroll karke <strong style={{ color: "#16a34a" }}>➕ Add to Home Screen</strong> par click karein.</li>
-              <li>Top right me <strong style={{ color: "#2563eb" }}>Add</strong> par click karein!</li>
+              <li>Top right me <strong style={{ color: "#2563eb" }}>Add</strong> tap karte hi app screen par aa jayega!</li>
             </ol>
           </div>
 

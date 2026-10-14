@@ -59,7 +59,7 @@
  "module": "Real State Crm",
  "name": "Project Survey",
  "naming_rule": "Expression",
- "autoname": "format:SURV-.####",
+ "autoname": "SURV-.####",
  "owner": "Administrator",
  "permissions": [
   {

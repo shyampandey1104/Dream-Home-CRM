@@ -59,8 +59,8 @@
  "modified_by": "Administrator",
  "module": "Real State Crm",
  "name": "Property Video",
- "naming_rule": "Expression",
- "autoname": "format:VID-.####",
+ "naming_rule": "Random",
+ "autoname": "hash",
  "owner": "Administrator",
  "permissions": [
   {

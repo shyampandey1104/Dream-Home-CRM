@@ -58,7 +58,7 @@
  "module": "Real State Crm",
  "name": "Speed Call Log",
  "naming_rule": "Expression",
- "autoname": "format:SCL-.####",
+ "autoname": "SCL-.####",
  "owner": "Administrator",
  "permissions": [
   {
