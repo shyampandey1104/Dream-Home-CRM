@@ -21,20 +21,9 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
   const [alertConfig, setAlertConfig] = useState(null);
   const [leadToDelete, setLeadToDelete] = useState(null);
 
-  // Only leads that have NEVER been called (callCount === 0 and status is NEW)
-  // Deduplicate by normalized 10-digit phone so duplicate leads never appear in Fresh
+  // Show all fresh leads (status NEW or uncalled) without dropping any records
   const allFreshLeads = React.useMemo(() => {
-    const rawFresh = leads.filter(l => (l.callCount === 0 || !l.callCount) && (l.status === "NEW" || !l.status));
-    const seen = new Set();
-    const result = [];
-    for (const lead of rawFresh) {
-      const cleanPhone = (lead.phone || "").replace(/\D/g, "").slice(-10);
-      const key = cleanPhone || lead.id || lead.name;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      result.push(lead);
-    }
-    return result;
+    return leads.filter(l => l.status === "NEW" || !l.status || l.callCount === 0 || !l.callCount);
   }, [leads]);
 
   const filtered = allFreshLeads.filter(lead => {

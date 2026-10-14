@@ -477,7 +477,7 @@ export default function App() {
         callCount: 0
       };
       setLeads(prev => {
-        const filtered = prev.filter(l => l.id !== acceptedLead.id && l.phone !== acceptedLead.phone);
+        const filtered = prev.filter(l => l.id !== acceptedLead.id);
         const updated = [acceptedLead, ...filtered];
         saveStoredLeads(updated);
         return updated;
@@ -521,7 +521,7 @@ export default function App() {
       };
 
       setLeads(prev => {
-        const filtered = prev.filter(l => l.id !== declinedLead.id && l.phone !== declinedLead.phone);
+        const filtered = prev.filter(l => l.id !== declinedLead.id);
         const updated = [declinedLead, ...filtered];
         saveStoredLeads(updated);
         return updated;

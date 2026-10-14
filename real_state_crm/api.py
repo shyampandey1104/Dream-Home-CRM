@@ -86,25 +86,11 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
     final_service = service or kwargs.get("service") or kwargs.get("type") or "Home Buying"
 
     clean_phone = normalize_phone_number(final_phone)
-    is_duplicate = False
     
     if lead_id and frappe.db.exists("Real Estate Lead", lead_id):
         doc = frappe.get_doc("Real Estate Lead", lead_id)
     else:
-        # Check if lead with identical 10-digit phone already exists in DB to prevent duplicates in Fresh
-        existing_doc_name = None
-        if clean_phone:
-            existing_leads = frappe.get_all("Real Estate Lead", fields=["name", "phone", "lead_name"])
-            for el in existing_leads:
-                if normalize_phone_number(el.phone) == clean_phone:
-                    existing_doc_name = el.name
-                    break
-        
-        if existing_doc_name:
-            doc = frappe.get_doc("Real Estate Lead", existing_doc_name)
-            is_duplicate = True
-        else:
-            doc = frappe.new_doc("Real Estate Lead")
+        doc = frappe.new_doc("Real Estate Lead")
 
     doc.lead_name = final_name
     doc.phone = final_phone
@@ -112,11 +98,13 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
         doc.email = final_email
     doc.priority = final_priority
     doc.status = final_status
+    if final_status == "NEW":
+        doc.call_count = 0
     doc.service = final_service
     doc.bhk_type = final_bhk
     doc.location = final_location
     doc.source = final_source
-    if is_duplicate and doc.notes:
+    if doc.notes and lead_id:
         doc.notes = f"{doc.notes}\n[Update]: {final_notes}".strip()
     else:
         doc.notes = final_notes
@@ -125,7 +113,7 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
     frappe.db.commit()
 
     agent_whatsapp_url = None
-    if not is_duplicate and not lead_id:
+    if not lead_id:
         try:
             now_dt = frappe.utils.now_datetime()
             notif = frappe.new_doc("Lead Notification")
@@ -1363,7 +1351,11 @@ def whatsapp_inbound_webhook(**kwargs):
     except Exception:
         pass
 
-    raw_phone = raw_phone or "+91 98205 91823"
+    import random
+    if not raw_phone or raw_phone == "+91 98205 91823":
+        suffix = random.randint(1000, 9999)
+        raw_phone = f"+91 98205 9{suffix}"
+
     client_name = client_name or f"WhatsApp Client {str(raw_phone)[-4:]}"
     
     # Extract BHK or location from message if present
