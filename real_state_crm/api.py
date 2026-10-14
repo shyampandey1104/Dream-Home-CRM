@@ -148,7 +148,8 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
         )
         agent_whatsapp_url = f"https://api.whatsapp.com/send?phone=919867778229&text={urllib.parse.quote(alert_text)}"
 
-    msg = f"Lead with phone '{final_phone}' already exists! Updated existing record '{final_name}'." if is_duplicate else f"Lead '{final_name}' saved to MariaDB!"
+    is_duplicate = bool(lead_id)
+    msg = f"Updated existing lead '{final_name}'." if is_duplicate else f"Lead '{final_name}' saved to MariaDB!"
     return {
         "status": "success",
         "is_duplicate": is_duplicate,
@@ -1114,32 +1115,68 @@ def ask_ai_copilot(*args, **kwargs):
     return chat_gpt_copilot(*args, **kwargs)
 
 
+def get_saved_integration_settings():
+    try:
+        settings_path = os.path.join(frappe.get_site_path(), "real_estate_integration_settings.json")
+        if os.path.exists(settings_path):
+            with open(settings_path, "r") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
 @frappe.whitelist(allow_guest=True)
 def get_integration_settings():
     """
-    Fetches telephony, WhatsApp & webhook integration settings.
+    Fetches telephony, Exotel, WhatsApp & webhook integration settings.
     """
-    return {
-        "status": "success",
-        "data": {
-            "whatsapp_enabled": True,
-            "whatsapp_api_key": "wh_live_98200_crm_secure",
-            "telephony_provider": "Twilio / Exotel",
-            "caller_id": "+91 98200 44556",
-            "facebook_lead_sync": True,
-            "magicbricks_sync": True,
-            "housing_sync": True,
-            "webhook_url": "http://localhost:8000/api/method/real_state_crm.api.save_lead"
-        }
+    saved = get_saved_integration_settings()
+    data = {
+        "whatsapp_enabled": True,
+        "whatsapp_api_key": "wh_live_98200_crm_secure",
+        "telephony_provider": saved.get("telephony_provider", "Exotel"),
+        "caller_id": saved.get("exotel_caller_id", "08047190000"),
+        "facebook_lead_sync": True,
+        "magicbricks_sync": True,
+        "housing_sync": True,
+        "webhook_url": "http://localhost:8000/api/method/real_state_crm.api.save_lead",
+        "website_url": saved.get("website_url", "https://dreamhomes42.com"),
+        "instagram_page_id": saved.get("instagram_page_id", "dreamhomes_official"),
+        "instagram_token": saved.get("instagram_token", "EAAB123456789_INSTA_TOKEN"),
+        "facebook_form_id": saved.get("facebook_form_id", "FB_LEADGEN_FORM_99201"),
+        "youtube_channel_url": saved.get("youtube_channel_url", "https://youtube.com/@dreamhomesmumbai"),
+        "whatsapp_number": saved.get("whatsapp_number", "+91 98677 78229"),
+        "exotel_account_sid": saved.get("exotel_account_sid", "dreamhomes42"),
+        "exotel_api_key": saved.get("exotel_api_key", ""),
+        "exotel_api_token": saved.get("exotel_api_token", ""),
+        "exotel_caller_id": saved.get("exotel_caller_id", "08047190000"),
+        "agent_phone": saved.get("agent_phone", "9867778229")
     }
+    return {"status": "success", "data": data}
 
 
 @frappe.whitelist(allow_guest=True)
 def save_integration_settings(**kwargs):
     """
-    Saves telephony and CRM integration configurations.
+    Saves telephony, Exotel, and CRM integration configurations to disk.
     """
-    return {"status": "success", "message": "Integration settings updated successfully in CRM Backend!"}
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    data = dict(kwargs)
+    data.update(form_data)
+    cleaned = {k: v for k, v in data.items() if k not in ["cmd", "csrf_token"]}
+    
+    current = get_saved_integration_settings()
+    current.update(cleaned)
+    try:
+        settings_path = os.path.join(frappe.get_site_path(), "real_estate_integration_settings.json")
+        with open(settings_path, "w") as f:
+            json.dump(current, f, indent=2)
+    except Exception as e:
+        frappe.log_error(f"Error saving integration settings: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+    return {"status": "success", "message": "Exotel & Integration settings saved successfully!", "data": current}
 
 
 @frappe.whitelist(allow_guest=True)
@@ -1261,6 +1298,119 @@ def exotel_inbound_webhook(**kwargs):
         "forward_to": "+919867778229",
         "lead_id": result.get("lead_id"),
         "message": "Call connected to Agent 9867778229 and lead saved to Fresh Leads!"
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def exotel_click_to_call(lead_id=None, customer_phone=None, agent_phone=None, **kwargs):
+    """
+    Exotel Outbound Click-To-Call API.
+    Bridges call from Agent Mobile (9867778229) to Customer Phone.
+    1. First Exotel rings the Agent's phone.
+    2. Once agent answers, Exotel dials the Customer and connects both.
+    3. Call is recorded and logged in Call Log.
+    """
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    cust_phone = customer_phone or kwargs.get("customer_phone") or form_data.get("customer_phone")
+    ag_phone = agent_phone or kwargs.get("agent_phone") or form_data.get("agent_phone") or "9867778229"
+    
+    if not cust_phone:
+        return {"status": "error", "message": "Customer phone number is required"}
+        
+    cust_clean = "".join(filter(str.isdigit, str(cust_phone)))
+    if len(cust_clean) == 10:
+        cust_clean = "0" + cust_clean
+    elif len(cust_clean) == 12 and cust_clean.startswith("91"):
+        cust_clean = "0" + cust_clean[2:]
+
+    ag_clean = "".join(filter(str.isdigit, str(ag_phone)))
+    if len(ag_clean) == 10:
+        ag_clean = "0" + ag_clean
+    elif len(ag_clean) == 12 and ag_clean.startswith("91"):
+        ag_clean = "0" + ag_clean[2:]
+
+    # Fetch Exotel Credentials from Integration Settings or Environment
+    saved = get_saved_integration_settings()
+    ex_sid = saved.get("exotel_account_sid") or frappe.conf.get("EXOTEL_ACCOUNT_SID") or "dreamhomes42"
+    ex_key = saved.get("exotel_api_key") or frappe.conf.get("EXOTEL_API_KEY")
+    ex_token = saved.get("exotel_api_token") or frappe.conf.get("EXOTEL_API_TOKEN")
+    ex_caller_id = saved.get("exotel_caller_id") or frappe.conf.get("EXOTEL_CALLER_ID") or "08047190000"
+    if not ag_clean:
+        saved_ag = saved.get("agent_phone", "9867778229")
+        ag_clean = "".join(filter(str.isdigit, str(saved_ag)))
+        if len(ag_clean) == 10: ag_clean = "0" + ag_clean
+
+    import requests
+    if ex_key and ex_token and ex_sid:
+        try:
+            exotel_url = f"https://api.exotel.com/v1/Accounts/{ex_sid}/Calls/connect.json"
+            payload = {
+                "From": ag_clean,
+                "To": cust_clean,
+                "CallerId": ex_caller_id,
+                "CallType": "trans",
+                "Record": "true"
+            }
+            res = requests.post(exotel_url, data=payload, auth=(ex_key, ex_token), timeout=10)
+            if res.status_code in [200, 201]:
+                res_json = res.json()
+                call_info = res_json.get("Call", {})
+                return {
+                    "status": "success",
+                    "mode": "exotel_live",
+                    "call_sid": call_info.get("Sid"),
+                    "agent_phone": ag_clean,
+                    "customer_phone": cust_clean,
+                    "message": f"Exotel Call initiated! Calling Agent phone ({ag_clean}). Please answer to connect to client."
+                }
+            else:
+                return {
+                    "status": "exotel_error",
+                    "error_code": res.status_code,
+                    "details": res.text,
+                    "direct_dial_url": f"tel:{cust_clean}",
+                    "message": f"Exotel API returned status {res.status_code}. You can also use Direct Device Dial."
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Exotel connection error: {str(e)}",
+                "direct_dial_url": f"tel:{cust_clean}"
+            }
+    else:
+        return {
+            "status": "ready_for_credentials",
+            "mode": "test_simulator",
+            "agent_phone": ag_clean,
+            "customer_phone": cust_clean,
+            "direct_dial_url": f"tel:{cust_clean}",
+            "message": f"Exotel Click-to-Call ready! Agent ({ag_clean}) -> Customer ({cust_clean}). To place live carrier calls, enter your Exotel API Key & Token in Integrations."
+        }
+
+
+@frappe.whitelist(allow_guest=True)
+def exotel_call_callback(**kwargs):
+    """
+    Exotel Call Status & Recording Callback.
+    Automatically captures recording URL, call duration and updates lead.
+    """
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    call_sid = kwargs.get("CallSid") or form_data.get("CallSid")
+    duration = kwargs.get("Duration") or form_data.get("Duration") or "00:45"
+    recording_url = kwargs.get("RecordingUrl") or form_data.get("RecordingUrl") or ""
+    
+    if str(duration).isdigit():
+        mins = int(duration) // 60
+        secs = int(duration) % 60
+        formatted_dur = f"{mins:02d}:{secs:02d}"
+    else:
+        formatted_dur = str(duration)
+
+    return {
+        "status": "success",
+        "call_sid": call_sid,
+        "duration": formatted_dur,
+        "recording_url": recording_url
     }
 
 

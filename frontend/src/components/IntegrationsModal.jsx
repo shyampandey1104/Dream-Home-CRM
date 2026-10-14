@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { 
   fetchIntegrationSettings, saveIntegrationSettings, testInboundWebhookLead, 
-  fetchOrgProfile, saveOrgProfile, sendWhatsAppTemplateApi 
+  fetchOrgProfile, saveOrgProfile, sendWhatsAppTemplateApi, triggerExotelClickToCall 
 } from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
@@ -31,10 +31,19 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
   const [fbFormId, setFbFormId] = useState("FB_LEADGEN_FORM_99201");
   const metaWebhookUrl = `${ngrokBase}/api/method/real_state_crm.api.facebook_instagram_lead_webhook`;
 
-  // Virtual Cloud Number States
+  // Virtual Cloud Number & Exotel States
   const [virtualNumber, setVirtualNumber] = useState("+91 022 6985 4120");
   const [forwardingPhone, setForwardingPhone] = useState("+91 98677 78229");
   const callWebhookUrl = `${ngrokBase}/api/method/real_state_crm.api.inbound_call_webhook`;
+  const exotelInboundUrl = `${ngrokBase}/api/method/real_state_crm.api.exotel_inbound_webhook`;
+
+  // Exotel Cloud Telephony States
+  const [exotelSid, setExotelSid] = useState("dreamhomes42");
+  const [exotelApiKey, setExotelApiKey] = useState("");
+  const [exotelApiToken, setExotelApiToken] = useState("");
+  const [exotelCallerId, setExotelCallerId] = useState("08047190000");
+  const [agentPhone, setAgentPhone] = useState("9867778229");
+  const [isTestingExotel, setIsTestingExotel] = useState(false);
 
   // Website Webhook
   const [websiteUrl, setWebsiteUrl] = useState("https://dreamhomes42.com");
@@ -62,6 +71,11 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
           if (data.instagram_token) setInstaToken(data.instagram_token);
           if (data.facebook_form_id) setFbFormId(data.facebook_form_id);
           if (data.youtube_channel_url) setYtChannelUrl(data.youtube_channel_url);
+          if (data.exotel_account_sid) setExotelSid(data.exotel_account_sid);
+          if (data.exotel_api_key) setExotelApiKey(data.exotel_api_key);
+          if (data.exotel_api_token) setExotelApiToken(data.exotel_api_token);
+          if (data.exotel_caller_id) setExotelCallerId(data.exotel_caller_id);
+          if (data.agent_phone) setAgentPhone(data.agent_phone);
         }
       });
 
@@ -86,6 +100,21 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
+  const handleTestExotelCall = async () => {
+    setIsTestingExotel(true);
+    const res = await triggerExotelClickToCall("TEST_LEAD", "9820591823", agentPhone);
+    setIsTestingExotel(false);
+    setAlertConfig({
+      title: res.status === "success" ? "📞 Exotel Test Call Dispatched!" : "Exotel Call Status",
+      message: res.message || "Exotel Click-to-Call triggered successfully.",
+      type: res.status === "success" ? "success" : "info",
+      actionBtn: res.direct_dial_url ? {
+        label: "📱 Direct Dial (Phone App)",
+        onClick: () => window.open(res.direct_dial_url, "_self")
+      } : null
+    });
+  };
+
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -97,7 +126,12 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
       instagram_token: instaToken,
       facebook_form_id: fbFormId,
       youtube_channel_url: ytChannelUrl,
-      whatsapp_number: waPhoneNumber
+      whatsapp_number: waPhoneNumber,
+      exotel_account_sid: exotelSid,
+      exotel_api_key: exotelApiKey,
+      exotel_api_token: exotelApiToken,
+      exotel_caller_id: exotelCallerId,
+      agent_phone: agentPhone
     };
 
     const orgPayload = {
@@ -119,7 +153,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
     setIsSaving(false);
     setAlertConfig({
       title: "Settings Saved! 💾",
-      message: "Lead integration credentials & Organization Profile updated in MariaDB!",
+      message: "Exotel Telephony credentials & Organization Profile updated in CRM Backend!",
       type: "success"
     });
   };
@@ -266,7 +300,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
             { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare size={13} color="#16a34a" /> },
             { id: "instagram", label: "Instagram", icon: <Camera size={13} color="#db2777" /> },
             { id: "facebook", label: "Facebook", icon: <Users size={13} color="#2563eb" /> },
-            { id: "virtual_number", label: "Virtual (IVR)", icon: <PhoneIncoming size={13} color="#15803d" /> },
+            { id: "virtual_number", label: "Exotel & Calls", icon: <PhoneCall size={13} color="#2563eb" /> },
             { id: "website", label: "Website", icon: <Globe size={13} color="#0284c7" /> },
             { id: "org", label: "Branding", icon: <Building size={13} color="#4f46e5" /> }
           ].map(tab => (
@@ -653,21 +687,154 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
             </div>
           )}
 
-          {/* TAB 4: VIRTUAL NUMBER & CLOUD IVR */}
+          {/* TAB 4: VIRTUAL NUMBER & EXOTEL CLOUD TELEPHONY */}
           {activeTab === "virtual_number" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {/* Exotel Cloud Click-to-Call Section */}
+              <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", padding: "0.85rem", borderRadius: "0.85rem", fontSize: "0.75rem", color: "#1e40af" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 800, fontSize: "0.8125rem", color: "#1d4ed8", marginBottom: "0.3rem" }}>
+                  <PhoneCall size={16} color="#2563eb" /> 
+                  <span>Exotel Cloud Click-to-Call (Real Mobile PSTN)</span>
+                </div>
+                <span>Dialer screen par <strong>'Exotel'</strong> button dabane par Exotel Cloud pehle agent ke phone (<strong>{agentPhone || agentAlertPhone}</strong>) ko call karega, aur uthane par turant customer se connect karega (with call recording).</span>
+              </div>
+
+              {/* Exotel Configuration Fields */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    Exotel Account SID
+                  </label>
+                  <input
+                    type="text"
+                    className="modern-search-input"
+                    placeholder="dreamhomes42"
+                    value={exotelSid}
+                    onChange={e => setExotelSid(e.target.value)}
+                    style={{ fontWeight: 700 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    Exotel Caller ID / Exophone
+                  </label>
+                  <input
+                    type="text"
+                    className="modern-search-input"
+                    placeholder="08047190000"
+                    value={exotelCallerId}
+                    onChange={e => setExotelCallerId(e.target.value)}
+                    style={{ fontWeight: 700 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    Exotel API Key
+                  </label>
+                  <input
+                    type="password"
+                    className="modern-search-input"
+                    placeholder="Enter Exotel API Key"
+                    value={exotelApiKey}
+                    onChange={e => setExotelApiKey(e.target.value)}
+                    style={{ fontWeight: 700 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    Exotel API Token
+                  </label>
+                  <input
+                    type="password"
+                    className="modern-search-input"
+                    placeholder="Enter Exotel API Token"
+                    value={exotelApiToken}
+                    onChange={e => setExotelApiToken(e.target.value)}
+                    style={{ fontWeight: 700 }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                  Agent Mobile Number (Rings First)
+                </label>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  placeholder="9867778229"
+                  value={agentPhone}
+                  onChange={e => setAgentPhone(e.target.value)}
+                  style={{ fontWeight: 700, color: "#2563eb" }}
+                />
+              </div>
+
+              {/* Test Exotel Click-to-Call */}
+              <button
+                type="button"
+                disabled={isTestingExotel}
+                onClick={handleTestExotelCall}
+                style={{
+                  background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                  border: "none",
+                  color: "#ffffff",
+                  borderRadius: "0.625rem",
+                  padding: "0.65rem",
+                  fontSize: "0.8125rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.4rem",
+                  boxShadow: "0 4px 12px rgba(37,99,235,0.3)"
+                }}
+              >
+                <PhoneCall size={16} /> 
+                {isTestingExotel ? "Connecting to Exotel..." : `⚡ Test Exotel Click-to-Call to Agent (${agentPhone || "9867778229"})`}
+              </button>
+
+              <hr style={{ border: "none", borderTop: "1px dashed #cbd5e1", margin: "0.25rem 0" }} />
+
+              {/* Inbound Call Webhook */}
               <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", padding: "0.85rem", borderRadius: "0.85rem", fontSize: "0.75rem", color: "#166534" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 800, fontSize: "0.8125rem", color: "#15803d", marginBottom: "0.3rem" }}>
                   <Radio size={16} className="animate-pulse" color="#16a34a" /> 
                   <span>Direct SIM & Cloud Inbound Call Sync Active</span>
                 </div>
-                <span>Phone par aane wali direct SIM call (Android/iPhone) ya Virtual Number call automatically <strong>CRM Screen par ring karegi</strong> aur <strong>Fresh Leads mein capture hogi!</strong></span>
+                <span>Phone par aane wali direct SIM call (Android/iPhone) ya Exotel Passthru call automatically <strong>CRM Screen par ring karegi</strong> aur <strong>Fresh Leads mein capture hogi!</strong></span>
               </div>
 
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
                   <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
-                    ⚡ Live Inbound Webhook URL (Android & iPhone)
+                    ⚡ Exotel Inbound Passthru Webhook URL
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(exotelInboundUrl, "exotel_url")}
+                    style={{ background: "none", border: "none", color: "#2563eb", fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
+                  >
+                    {copiedKey === "exotel_url" ? <Check size={12} color="#16a34a" /> : <Copy size={11} />} 
+                    {copiedKey === "exotel_url" ? "Copied!" : "Copy URL"}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  readOnly
+                  style={{ fontSize: "0.6875rem", background: "#f8fafc", color: "#2563eb", fontWeight: 700, fontFamily: "monospace" }}
+                  value={exotelInboundUrl}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                    ⚡ Direct Inbound Call Webhook (Android MacroDroid / iPhone)
                   </label>
                   <button
                     type="button"
@@ -703,9 +870,9 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                   <span>🍏 Setup on iPhone (iOS Cloud Forward / Shortcuts):</span>
                 </div>
                 <ol style={{ margin: "0 0 0 1.1rem", padding: 0, color: "#475569", lineHeight: 1.4 }}>
-                  <li>Use Cloud IVR / Virtual Number (Exotel / Twilio / Airtel IQ).</li>
+                  <li>Use Exotel / Cloud IVR Virtual Number.</li>
                   <li>Forward client calls to your iPhone SIM (<strong>{agentAlertPhone}</strong>).</li>
-                  <li>Set Inbound Webhook URL in cloud dashboard.</li>
+                  <li>Set Exotel Passthru Inbound Webhook URL in Exotel dashboard.</li>
                 </ol>
               </div>
 
@@ -730,7 +897,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                   boxShadow: "0 4px 12px rgba(22,163,74,0.3)"
                 }}
               >
-                <PhoneIncoming size={16} /> ⚡ Test Incoming Call to Agent ({agentAlertPhone})
+                <PhoneIncoming size={16} /> ⚡ Test Incoming Call Screen Ringing ({agentAlertPhone})
               </button>
             </div>
           )}

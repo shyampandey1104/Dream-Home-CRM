@@ -1606,3 +1606,24 @@ export const trackBusinessCardShareApi = async (userEmail = "shyampandey1104@gma
   return { status: "success" };
 };
 
+export const triggerExotelClickToCall = async (leadId, customerPhone, agentPhone = "9867778229") => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.exotel_click_to_call`, {
+      method: "POST",
+      headers: getApiHeaders(),
+      body: JSON.stringify({
+        lead_id: leadId,
+        customer_phone: customerPhone,
+        agent_phone: agentPhone
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.message || data;
+    }
+  } catch (err) {
+    console.error("[Exotel API Call Error]", err);
+  }
+  return { status: "error", message: "Failed to connect to Exotel server" };
+};
+
