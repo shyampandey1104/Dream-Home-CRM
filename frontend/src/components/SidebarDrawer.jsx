@@ -1,7 +1,7 @@
 import React from "react";
 import { 
   X, User, Share2, Clock, MapPin, Sparkles, FileText, List, 
-  PlusCircle, Megaphone, Settings, ChevronRight, ShieldCheck, HelpCircle, Bot, Calculator, Smartphone, PhoneIncoming, Zap
+  PlusCircle, Megaphone, Settings, ChevronRight, ShieldCheck, HelpCircle, Bot, Calculator, Smartphone, PhoneIncoming, Zap, MessageSquare
 } from "lucide-react";
 
 export default function SidebarDrawer({ 
@@ -19,6 +19,7 @@ export default function SidebarDrawer({
   onOpenStories,
   onOpenCalculator,
   onOpenInstallApp,
+  onOpenIntegrations,
   onSimulateInbound
 }) {
   if (!isOpen) return null;
@@ -111,6 +112,26 @@ export default function SidebarDrawer({
               AI 4.0
             </span>
           </button>
+
+          {/* WhatsApp & Multi-Channel Lead Integrations Button */}
+          <button
+            className="sidebar-menu-item"
+            onClick={() => { onClose(); if (onOpenIntegrations) onOpenIntegrations(); }}
+            style={{
+              background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+              border: "1px solid #bbf7d0",
+              color: "#166534",
+              borderRadius: "0.625rem",
+              fontWeight: 800,
+              margin: "0.15rem 0 0.4rem 0"
+            }}
+          >
+            <MessageSquare size={18} color="#16a34a" className="sidebar-menu-icon" />
+            <span>WhatsApp & Lead Integrations</span>
+            <span style={{ marginLeft: "auto", fontSize: "0.65rem", background: "#16a34a", color: "#ffffff", padding: "0.15rem 0.45rem", borderRadius: "9999px", fontWeight: 800 }}>
+              SETUP
+            </span>
+          </button>
           <button className="sidebar-menu-item" onClick={() => { onClose(); if (onOpenGpt) onOpenGpt(); }}>
             <HelpCircle className="sidebar-menu-icon" />
             Take a Tour
@@ -192,9 +213,9 @@ export default function SidebarDrawer({
             <span className="sidebar-badge" style={{ background: "#2563eb" }}>3</span>
           </button>
 
-          <button className="sidebar-menu-item" onClick={() => { onClose(); onNavigate("settings"); }}>
+          <button className="sidebar-menu-item" onClick={() => { onClose(); if (onOpenIntegrations) onOpenIntegrations(); }}>
             <Settings className="sidebar-menu-icon" />
-            Settings
+            Lead Integrations & Settings
           </button>
         </div>
 

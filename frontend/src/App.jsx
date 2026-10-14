@@ -1128,6 +1128,7 @@ export default function App() {
           onOpenStories={() => setShowStoriesModal(true)}
           onOpenCalculator={() => setShowCalculatorModal(true)}
           onOpenInstallApp={() => setShowInstallModal(true)}
+          onOpenIntegrations={() => setShowIntegrationsModal(true)}
           onSimulateInbound={simulateSocialInboundLead}
         />
 

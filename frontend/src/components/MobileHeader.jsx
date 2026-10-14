@@ -1,5 +1,5 @@
 import React from "react";
-import { Phone, Bell, Zap, Menu } from "lucide-react";
+import { Phone, Bell, Zap, Menu, MessageSquare } from "lucide-react";
 
 export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifications, userProfile, onOpenProfile, onOpenSidebar, onOpenIntegrations, orgProfile, onSimulateInbound }) {
   const companyName = orgProfile?.company_name || "Dream Homes";
@@ -100,29 +100,30 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
           <span>Call</span>
         </button>
 
-        {/* Compact Inbound Test Icon Button */}
-        {onSimulateInbound && (
-          <button
-            onClick={onSimulateInbound}
-            title="Simulate Inbound Call from Direct Client"
-            style={{
-              background: "#eff6ff",
-              border: "1px solid #bfdbfe",
-              color: "#2563eb",
-              width: "30px",
-              height: "30px",
-              borderRadius: "0.5rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              boxShadow: "0 1px 3px rgba(37, 99, 235, 0.15)",
-              flexShrink: 0
-            }}
-          >
-            <Zap size={15} fill="#2563eb" color="#2563eb" />
-          </button>
-        )}
+        {/* WhatsApp & Multi-Channel Integrations Button */}
+        <button
+          onClick={onOpenIntegrations}
+          title="WhatsApp, Instagram & Multi-Channel Integrations"
+          style={{
+            background: "#f0fdf4",
+            border: "1px solid #bbf7d0",
+            color: "#166534",
+            height: "30px",
+            padding: "0 0.5rem",
+            borderRadius: "0.5rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.25rem",
+            cursor: "pointer",
+            boxShadow: "0 1px 3px rgba(22, 163, 74, 0.15)",
+            flexShrink: 0,
+            fontSize: "0.725rem",
+            fontWeight: 800
+          }}
+        >
+          <MessageSquare size={13} color="#16a34a" />
+          <span>WhatsApp</span>
+        </button>
 
         {/* Notifications Bell */}
         <button
