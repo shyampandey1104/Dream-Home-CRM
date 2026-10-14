@@ -99,6 +99,11 @@ export default function App() {
     if (typeof window === "undefined") return false;
     return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   });
+  const [isDesktopExpanded, setIsDesktopExpanded] = useState(() => {
+    try {
+      return localStorage.getItem("crm_desktop_expanded") === "true";
+    } catch (e) { return false; }
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -979,10 +984,99 @@ export default function App() {
   }
 
   return (
-    <div className={isRealMobile ? "native-mobile-app-shell" : "mobile-frame-wrapper"} style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0f172a" }}>
-      <div className={isRealMobile ? "native-mobile-app-shell" : "phone-device-container"} style={{ width: isRealMobile ? "100%" : "412px", height: isRealMobile ? "100vh" : "890px", maxHeight: isRealMobile ? "100vh" : "95vh", background: "#ffffff", borderRadius: isRealMobile ? "0" : "36px", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative", boxShadow: isRealMobile ? "none" : "0 25px 60px rgba(0,0,0,0.7)" }}>
-        
-        {!isRealMobile && (
+    <div 
+      className={isRealMobile ? "native-mobile-app-shell" : "mobile-frame-wrapper"} 
+      style={{ 
+        minHeight: "100vh", 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "center", 
+        background: isDesktopExpanded ? "#f1f5f9" : "#0f172a",
+        position: "relative"
+      }}
+    >
+      {/* Floating Desktop Controls when viewing on laptop/desktop */}
+      {!isRealMobile && (
+        <div style={{
+          position: "fixed",
+          top: "14px",
+          right: "20px",
+          zIndex: 99999,
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          background: "rgba(15, 23, 42, 0.88)",
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(255, 255, 255, 0.15)",
+          padding: "0.35rem 0.65rem",
+          borderRadius: "9999px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
+        }}>
+          <button
+            type="button"
+            onClick={() => {
+              setIsDesktopExpanded(prev => {
+                const next = !prev;
+                try { localStorage.setItem("crm_desktop_expanded", String(next)); } catch (e) {}
+                return next;
+              });
+            }}
+            style={{
+              background: "rgba(255, 255, 255, 0.15)",
+              border: "none",
+              color: "#ffffff",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              padding: "0.3rem 0.75rem",
+              borderRadius: "9999px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem"
+            }}
+          >
+            {isDesktopExpanded ? "📱 Switch to Phone Frame" : "🖥️ Expand to Full Screen"}
+          </button>
+
+          <a
+            href="/app"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+              color: "#ffffff",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              padding: "0.3rem 0.75rem",
+              borderRadius: "9999px",
+              textDecoration: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem"
+            }}
+          >
+            ⚙️ Frappe Backend Desk (/app)
+          </a>
+        </div>
+      )}
+
+      <div 
+        className={isRealMobile ? "native-mobile-app-shell" : "phone-device-container"} 
+        style={{ 
+          width: isRealMobile ? "100%" : (isDesktopExpanded ? "100%" : "412px"), 
+          maxWidth: isRealMobile ? "100%" : (isDesktopExpanded ? "900px" : "412px"),
+          height: isRealMobile ? "100vh" : (isDesktopExpanded ? "100vh" : "890px"), 
+          maxHeight: isRealMobile ? "100vh" : (isDesktopExpanded ? "100vh" : "95vh"), 
+          background: "#ffffff", 
+          borderRadius: (isRealMobile || isDesktopExpanded) ? "0" : "36px", 
+          overflow: "hidden", 
+          display: "flex", 
+          flexDirection: "column", 
+          position: "relative", 
+          boxShadow: (isRealMobile || isDesktopExpanded) ? "0 0 30px rgba(0,0,0,0.12)" : "0 25px 60px rgba(0,0,0,0.7)" 
+        }}
+      >
+        {!isRealMobile && !isDesktopExpanded && (
           <div className="phone-status-bar" style={{ background: "#ffffff", height: "36px", padding: "0 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: 700, borderBottom: "1px solid #f1f5f9" }}>
             <span>9:41</span>
             <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
