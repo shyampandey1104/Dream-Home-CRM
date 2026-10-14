@@ -1368,7 +1368,29 @@ def whatsapp_inbound_webhook(**kwargs):
     
     # Extract BHK or location from message if present
     bhk = "2 BHK"
-    msg_lower = str(message_text).lower()
+    msg_str = str(message_text)
+    msg_lower = msg_str.lower()
+
+    # Structured WhatsApp key-value parsing (e.g. Client Name: ..., Client Mobile: ..., Requirement: ...)
+    for line in msg_str.splitlines():
+        line_clean = line.strip()
+        line_l = line_clean.lower()
+        if "client name:" in line_l:
+            extracted = line_clean.split(":", 1)[1].strip()
+            if extracted: client_name = extracted
+        elif line_l.startswith("name:"):
+            extracted = line_clean.split(":", 1)[1].strip()
+            if extracted: client_name = extracted
+        elif "client mobile:" in line_l or "mobile:" in line_l or "phone:" in line_l:
+            extracted = line_clean.split(":", 1)[1].strip()
+            if extracted: raw_phone = extracted
+        elif "requirement:" in line_l or "bhk:" in line_l or "looking for:" in line_l:
+            extracted = line_clean.split(":", 1)[1].strip()
+            if extracted: bhk = extracted
+        elif "location:" in line_l or "city:" in line_l or "area:" in line_l:
+            extracted = line_clean.split(":", 1)[1].strip()
+            if extracted: loc = extracted
+
     if "1 bhk" in msg_lower or "1bhk" in msg_lower: bhk = "1 BHK"
     elif "3 bhk" in msg_lower or "3bhk" in msg_lower: bhk = "3 BHK"
     elif "4 bhk" in msg_lower or "4bhk" in msg_lower: bhk = "4 BHK"
