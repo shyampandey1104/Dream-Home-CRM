@@ -169,16 +169,22 @@ export default function App() {
       fetchCrmNotifications().then((notifs) => {
         if (Array.isArray(notifs)) {
           setNotifications(notifs);
-          // Check for fresh unhandled inbound call or WhatsApp lead to ring the screen
-          const latestInbound = notifs.find(n => 
-            (n.type === "inbound" || n.type === "inbound_call" || n.source?.toLowerCase().includes("inbound") || n.source?.toLowerCase().includes("whatsapp") || n.title?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("whatsapp")) && 
+          // Check for fresh unhandled WhatsApp or inbound lead notification
+          const freshLeadNotif = notifs.find(n => 
             !n.read && 
             n.lead && 
             !handledInboundCallsRef.current.has(String(n.id))
           );
-          if (latestInbound && !activeCallLead && !incomingCallLead) {
-            setIncomingCallNotifId(latestInbound.id);
-            setIncomingCallLead(latestInbound.lead);
+          if (freshLeadNotif) {
+            handledInboundCallsRef.current.add(String(freshLeadNotif.id));
+            markNotificationReadApi(freshLeadNotif.id);
+            const clientName = freshLeadNotif.lead?.name || "Client";
+            const clientPhone = freshLeadNotif.lead?.phone || "";
+            showToast(`🟢 New Lead Added: ${clientName} (${clientPhone})`);
+            // Automatically refresh the leads list so it appears in the UI table immediately
+            fetchCrmLeads(userEmail).then((data) => {
+              if (Array.isArray(data)) setLeads(data);
+            });
           }
         }
       });
