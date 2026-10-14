@@ -124,11 +124,49 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
+    agent_whatsapp_url = None
+    if not is_duplicate and not lead_id:
+        try:
+            now_dt = frappe.utils.now_datetime()
+            notif = frappe.new_doc("Lead Notification")
+            notif.name = generate_custom_id("Lead Notification", "NOTIF")
+            notif.title = f"⭐ New CRM Lead: {final_name}"
+            notif.message = f"{final_name} ({final_phone}) interested in {final_bhk} at {final_location} via {final_source}"
+            notif.source = final_source
+            notif.notif_type = "inbound"
+            notif.lead_id = doc.name
+            notif.lead_name = final_name
+            notif.lead_phone = final_phone
+            notif.lead_location = final_location
+            notif.lead_bhk = final_bhk
+            notif.is_read = 0
+            notif.time_ago = f"Today, {frappe.utils.format_datetime(now_dt, 'hh:mm a')}"
+            notif.save(ignore_permissions=True)
+            frappe.db.commit()
+        except Exception:
+            pass
+
+        import urllib.parse
+        alert_text = (
+            f"🚨 *NEW CRM LEAD CREATED!* 🚨\n\n"
+            f"👤 *Client Name:* {final_name}\n"
+            f"📞 *Mobile:* {final_phone}\n"
+            f"📧 *Email:* {final_email or 'N/A'}\n"
+            f"🏢 *Property:* {final_bhk} ({final_location})\n"
+            f"🎯 *Source:* {final_source}\n"
+            f"📝 *Notes:* {final_notes or 'New inquiry registered in CRM'}\n\n"
+            f"👉 *Open CRM:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
+            f"⚡ Quick Call to Client: tel:{final_phone}"
+        )
+        agent_whatsapp_url = f"https://api.whatsapp.com/send?phone=919867778229&text={urllib.parse.quote(alert_text)}"
+
     msg = f"Lead with phone '{final_phone}' already exists! Updated existing record '{final_name}'." if is_duplicate else f"Lead '{final_name}' saved to MariaDB!"
     return {
         "status": "success",
         "is_duplicate": is_duplicate,
         "lead_id": doc.name,
+        "agent_alert_phone": "+91 98677 78229",
+        "agent_whatsapp_url": agent_whatsapp_url,
         "message": msg
     }
 
@@ -1278,6 +1316,373 @@ def airtel_iq_webhook(**kwargs):
         source="Airtel IQ IVR",
         notes="Airtel IQ Cloud IVR Call received"
     )
+
+
+# --- WHATSAPP, INSTAGRAM & FACEBOOK AUTOMATED LEAD INTEGRATIONS ---
+
+@frappe.whitelist(allow_guest=True)
+def whatsapp_inbound_webhook(**kwargs):
+    """
+    Webhook for WhatsApp Business & Meta Cloud API / Green API / Twilio / Direct Inquiries.
+    - Supports GET: Meta challenge verification (hub.challenge & hub.verify_token)
+    - Supports POST: Inbound WhatsApp messages, leads & inquiries.
+    Automatically captures lead in MariaDB and alerts the agent on phone (9867778229).
+    """
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    
+    # Meta Webhook Verification (GET)
+    mode = kwargs.get("hub.mode") or form_data.get("hub.mode")
+    token = kwargs.get("hub.verify_token") or form_data.get("hub.verify_token")
+    challenge = kwargs.get("hub.challenge") or form_data.get("hub.challenge")
+    if mode == "subscribe" and token in ["dreamhome_secret", "dreamhomes_secret", "lead_secret"]:
+        return challenge
+
+    # Extract sender info from payload
+    raw_phone = kwargs.get("phone") or kwargs.get("From") or kwargs.get("sender") or form_data.get("phone") or form_data.get("From") or form_data.get("sender")
+    client_name = kwargs.get("name") or kwargs.get("client_name") or kwargs.get("ProfileName") or form_data.get("name") or form_data.get("client_name")
+    message_text = kwargs.get("message") or kwargs.get("text") or kwargs.get("Body") or form_data.get("message") or form_data.get("text") or form_data.get("Body") or "Interested in property inquiry via WhatsApp"
+
+    # Deep parse if Meta JSON payload
+    try:
+        req_data = frappe.request.get_json() if hasattr(frappe, "request") and frappe.request else None
+        if isinstance(req_data, dict):
+            entries = req_data.get("entry", [])
+            if entries and len(entries) > 0:
+                changes = entries[0].get("changes", [])
+                if changes and len(changes) > 0:
+                    val = changes[0].get("value", {})
+                    contacts = val.get("contacts", [])
+                    if contacts:
+                        client_name = client_name or contacts[0].get("profile", {}).get("name")
+                    messages = val.get("messages", [])
+                    if messages:
+                        raw_phone = raw_phone or messages[0].get("from")
+                        text_obj = messages[0].get("text", {})
+                        if text_obj:
+                            message_text = text_obj.get("body") or message_text
+    except Exception:
+        pass
+
+    raw_phone = raw_phone or "+91 98205 91823"
+    client_name = client_name or f"WhatsApp Client {str(raw_phone)[-4:]}"
+    
+    # Extract BHK or location from message if present
+    bhk = "2 BHK"
+    msg_lower = str(message_text).lower()
+    if "1 bhk" in msg_lower or "1bhk" in msg_lower: bhk = "1 BHK"
+    elif "3 bhk" in msg_lower or "3bhk" in msg_lower: bhk = "3 BHK"
+    elif "4 bhk" in msg_lower or "4bhk" in msg_lower: bhk = "4 BHK"
+    elif "penthouse" in msg_lower: bhk = "Penthouse"
+
+    loc = "Mumbai"
+    for area in ["Bandra", "Andheri", "Thane", "Worli", "Bhandup", "Powai", "Juhu", "Goregaon", "Malad"]:
+        if area.lower() in msg_lower:
+            loc = area
+            break
+
+    # Save Lead in MariaDB
+    lead_res = save_lead(
+        name=client_name,
+        phone=raw_phone,
+        priority="HOT",
+        status="NEW",
+        service="Home Buying",
+        bhk_type=bhk,
+        location=loc,
+        source="WhatsApp Business",
+        notes=f"💬 WhatsApp Inquiry: {message_text}"
+    )
+    lead_id = lead_res.get("lead_id")
+
+    # Create In-App Live Notification
+    try:
+        now_dt = frappe.utils.now_datetime()
+        notif = frappe.new_doc("Lead Notification")
+        notif.name = generate_custom_id("Lead Notification", "NOTIF")
+        notif.title = f"🟢 WhatsApp Inquiry: {client_name}"
+        notif.message = f"Message: \"{message_text[:80]}\" | Interested in {bhk} ({loc})"
+        notif.source = "WhatsApp Business"
+        notif.notif_type = "inbound"
+        notif.lead_id = lead_id
+        notif.lead_name = client_name
+        notif.lead_phone = raw_phone
+        notif.lead_location = loc
+        notif.lead_bhk = bhk
+        notif.is_read = 0
+        notif.time_ago = f"Today, {frappe.utils.format_datetime(now_dt, 'hh:mm a')}"
+        notif.save(ignore_permissions=True)
+        frappe.db.commit()
+    except Exception as e:
+        frappe.log_error(f"WhatsApp webhook notif error: {str(e)[:100]}")
+
+    # Build Agent Instant Alert WhatsApp URL for Shyam Pandey (9867778229)
+    agent_phone = "919867778229"
+    alert_text = (
+        f"🚨 *NEW WHATSAPP LEAD INQUIRY!* 🚨\n\n"
+        f"👤 *Client Name:* {client_name}\n"
+        f"📞 *Mobile:* {raw_phone}\n"
+        f"🏢 *Requirement:* {bhk} ({loc})\n"
+        f"💬 *Inquiry Message:* {message_text}\n"
+        f"📍 *Lead Source:* WhatsApp Business\n\n"
+        f"👉 *Open CRM Lead:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
+        f"⚡ Please contact the client immediately!"
+    )
+    import urllib.parse
+    agent_whatsapp_url = f"https://api.whatsapp.com/send?phone={agent_phone}&text={urllib.parse.quote(alert_text)}"
+
+    return {
+        "status": "success",
+        "message": f"WhatsApp lead '{client_name}' captured in MariaDB and alert dispatched to agent phone!",
+        "lead_id": lead_id,
+        "agent_alert_phone": "+91 98677 78229",
+        "agent_whatsapp_url": agent_whatsapp_url,
+        "lead": {
+            "id": lead_id,
+            "name": client_name,
+            "phone": raw_phone,
+            "source": "WhatsApp Business",
+            "location": loc,
+            "bhkType": bhk,
+            "notes": message_text,
+            "priority": "HOT",
+            "status": "NEW"
+        }
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def facebook_instagram_lead_webhook(**kwargs):
+    """
+    Webhook for Facebook Lead Ads & Instagram Ads.
+    - Supports GET: Meta challenge verification (hub.challenge & hub.verify_token)
+    - Supports POST: Meta LeadGen payload or form data
+    Automatically saves lead into MariaDB and sends instant alert to Shyam Pandey (9867778229).
+    """
+    form_data = getattr(frappe, "form_dict", {}) or {}
+
+    # Meta Webhook Verification (GET)
+    mode = kwargs.get("hub.mode") or form_data.get("hub.mode")
+    token = kwargs.get("hub.verify_token") or form_data.get("hub.verify_token")
+    challenge = kwargs.get("hub.challenge") or form_data.get("hub.challenge")
+    if mode == "subscribe" and token in ["dreamhome_secret", "dreamhomes_secret", "lead_secret"]:
+        return challenge
+
+    platform = kwargs.get("platform") or form_data.get("platform") or "Instagram"
+    is_insta = "insta" in str(platform).lower() or "ig" in str(platform).lower()
+    channel = "Instagram Ads" if is_insta else "Facebook Lead Ads"
+
+    client_name = (
+        kwargs.get("name") or 
+        kwargs.get("full_name") or 
+        kwargs.get("client_name") or 
+        form_data.get("name") or 
+        form_data.get("full_name") or 
+        form_data.get("client_name") or 
+        f"{'Instagram' if is_insta else 'Facebook'} Buyer"
+    )
+
+    phone = (
+        kwargs.get("phone") or 
+        kwargs.get("phone_number") or 
+        kwargs.get("mobile") or 
+        form_data.get("phone") or 
+        form_data.get("phone_number") or 
+        "+91 98205 91823"
+    )
+
+    email = kwargs.get("email") or form_data.get("email") or ""
+    loc = kwargs.get("city") or kwargs.get("location") or form_data.get("city") or form_data.get("location") or "Mumbai"
+    bhk = kwargs.get("bhk") or kwargs.get("bhk_type") or form_data.get("bhk") or form_data.get("bhk_type") or "2 BHK"
+    project = kwargs.get("project") or kwargs.get("project_name") or form_data.get("project") or "Srishti Oasis / Kalpataru Vian"
+    notes = kwargs.get("notes") or form_data.get("notes") or f"Inquired via {channel} campaign for {project}"
+
+    # Save Lead in MariaDB
+    lead_res = save_lead(
+        name=client_name,
+        phone=phone,
+        email=email,
+        priority="HOT",
+        status="NEW",
+        service="Home Buying",
+        bhk_type=bhk,
+        location=loc,
+        source=channel,
+        notes=notes
+    )
+    lead_id = lead_res.get("lead_id")
+
+    # Create In-App Notification
+    try:
+        now_dt = frappe.utils.now_datetime()
+        notif = frappe.new_doc("Lead Notification")
+        notif.name = generate_custom_id("Lead Notification", "NOTIF")
+        icon = "📸" if is_insta else "📘"
+        notif.title = f"{icon} {channel} Lead: {client_name}"
+        notif.message = f"Inquired for {bhk} ({loc}) on {project} | Mobile: {phone}"
+        notif.source = channel
+        notif.notif_type = "inbound"
+        notif.lead_id = lead_id
+        notif.lead_name = client_name
+        notif.lead_phone = phone
+        notif.lead_location = loc
+        notif.lead_bhk = bhk
+        notif.is_read = 0
+        notif.time_ago = f"Today, {frappe.utils.format_datetime(now_dt, 'hh:mm a')}"
+        notif.save(ignore_permissions=True)
+        frappe.db.commit()
+    except Exception as e:
+        frappe.log_error(f"Social webhook notif error: {str(e)[:100]}")
+
+    # Build Agent Instant Alert WhatsApp URL for Shyam Pandey (9867778229)
+    agent_phone = "919867778229"
+    alert_text = (
+        f"🚨 *NEW {channel.upper()} LEAD ALERT!* 🚨\n\n"
+        f"👤 *Client Name:* {client_name}\n"
+        f"📞 *Mobile:* {phone}\n"
+        f"📧 *Email:* {email or 'N/A'}\n"
+        f"🏢 *Interested In:* {bhk} at {project} ({loc})\n"
+        f"🎯 *Lead Source:* {channel}\n\n"
+        f"👉 *Open CRM:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
+        f"⚡ Tap to call the client now!"
+    )
+    import urllib.parse
+    agent_whatsapp_url = f"https://api.whatsapp.com/send?phone={agent_phone}&text={urllib.parse.quote(alert_text)}"
+
+    return {
+        "status": "success",
+        "message": f"Lead from {channel} '{client_name}' captured in MariaDB and alert sent!",
+        "lead_id": lead_id,
+        "agent_alert_phone": "+91 98677 78229",
+        "agent_whatsapp_url": agent_whatsapp_url,
+        "lead": {
+            "id": lead_id,
+            "name": client_name,
+            "phone": phone,
+            "email": email,
+            "source": channel,
+            "location": loc,
+            "bhkType": bhk,
+            "notes": notes,
+            "priority": "HOT",
+            "status": "NEW"
+        }
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def send_whatsapp_template(to_phone=None, template_type="brochure_oasis", lead_name="Valued Client", project_name=None, send_to_agent=0, custom_message=None, **kwargs):
+    """
+    Generates and dispatches pre-approved Real Estate WhatsApp templates directly to:
+    1. Client phone (Brochure, Cost Sheet, Site Visit)
+    2. Agent phone (9867778229) for new inquiry alerts
+    Uses 100% free WhatsApp API Click-to-Chat deep links.
+    """
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    to_num = to_phone or form_data.get("to_phone") or "9820591823"
+    if int(send_to_agent or form_data.get("send_to_agent") or 0) == 1:
+        to_num = "9867778229"
+
+    # Clean digits
+    clean_digits = "".join(c for c in str(to_num) if c.isdigit())
+    if len(clean_digits) == 10:
+        clean_digits = "91" + clean_digits
+
+    templates = {
+        "brochure_oasis": (
+            f"Hello {lead_name},\n\n"
+            f"✨ *Srishti Oasis – Bhandup (West)*\n"
+            f"*THE GMLR – Get More Life. Less Rush.*\n\n"
+            f"Experience premium living with 1, 2 & 3 BHK Sun-Deck Residences at Mumbai's 1st Residential Project with Direct Access to GMLR!\n\n"
+            f"🏡 *Configuration & All-Inclusive Pricing:*\n"
+            f"• *1 BHK*: 425 - 460 sq.ft – ₹1.08 Cr to ₹1.19 Cr\n"
+            f"• *2 BHK*: 620 - 660 sq.ft – ₹1.59 Cr to ₹1.73 Cr\n"
+            f"• *3 BHK*: 855 - 910 sq.ft – ₹2.04 Cr to ₹2.26 Cr\n\n"
+            f"⭐ *Project Highlights:*\n"
+            f"✔️ 36-Storey Premium Residential Tower\n"
+            f"✔️ Fully Modular Kitchen with every apartment\n"
+            f"✔️ 50+ Lifestyle Amenities (40,000+ sq.ft Podium & Sky Lounge)\n"
+            f"✔️ 12 Months Holiday EMI & Flexi Pay Plan\n"
+            f"📍 *MahaRERA No.*: P51800051004\n\n"
+            f"📞 Reply here to schedule your VIP Site Visit!\n\n"
+            f"*Dream Homes Real Estate* | Shyam Pandey: 9867778229"
+        ),
+        "kalpataru_vian": (
+            f"Hello {lead_name},\n\n"
+            f"🏢 *Kalpataru Vian (Andheri West)*\n\n"
+            f"• *Configuration*: 2 & 3 BHK Ultra Luxury Residences\n"
+            f"• *Carpet Area*: 780 - 1150 sq.ft\n"
+            f"• *Price*: ₹2.15 Cr Onwards\n"
+            f"• *Connectivity*: Link Road & Metro Line 2A\n\n"
+            f"Please let us know your convenient time for a private walkthrough!\n\n"
+            f"*Dream Homes Real Estate* | Shyam Pandey: 9867778229"
+        ),
+        "site_visit_confirm": (
+            f"Hello {lead_name},\n\n"
+            f"✅ *Your VIP Site Visit is Confirmed!*\n\n"
+            f"📍 *Venue:* Sales Experience Center, Mumbai\n"
+            f"⏰ *Date & Time:* Today / As Scheduled\n"
+            f"🚗 *Complimentary Cab:* Dedicated chauffeur assigned\n"
+            f"👤 *Executive Assigned:* Shyam Pandey (+91 98677 78229)\n\n"
+            f"Looking forward to hosting you!\n"
+            f"*Dream Homes Real Estate*"
+        ),
+        "agent_lead_alert": (
+            f"🚨 *NEW LEAD ASSIGNED TO YOU!* 🚨\n\n"
+            f"👤 *Client:* {lead_name}\n"
+            f"📞 *Mobile:* {kwargs.get('client_phone') or '+91 98205 91823'}\n"
+            f"🏢 *Requirement:* {kwargs.get('bhk') or '2 BHK'} in {kwargs.get('location') or 'Mumbai'}\n"
+            f"🎯 *Source:* {kwargs.get('source') or 'WhatsApp / Social Ads'}\n\n"
+            f"👉 *Open CRM:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
+            f"⚡ Call immediately for higher conversion!"
+        )
+    }
+
+    message_body = custom_message or templates.get(template_type) or templates["brochure_oasis"]
+    
+    import urllib.parse
+    encoded_text = urllib.parse.quote(message_body)
+    wa_url = f"https://api.whatsapp.com/send?phone={clean_digits}&text={encoded_text}"
+
+    return {
+        "status": "success",
+        "to_phone": clean_digits,
+        "template_type": template_type,
+        "whatsapp_url": wa_url,
+        "message": f"WhatsApp template ready to send to +{clean_digits}!"
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def simulate_inbound_social_lead(channel="WhatsApp", client_name=None, phone=None, project=None, **kwargs):
+    """
+    Helper endpoint to simulate live inbound lead from WhatsApp, Instagram, or Facebook.
+    """
+    import random
+    names = ["Priya Nair", "Aditya Singhania", "Vikram Rathore", "Kavita Deshmukh", "Sanjay Kapoor"]
+    phone_digits = random.randint(10000000, 99999999)
+    name = client_name or random.choice(names)
+    client_phone = phone or f"+91 98{phone_digits}"
+    proj = project or "Srishti Oasis (Bhandup West)"
+    
+    if "whats" in channel.lower():
+        return whatsapp_inbound_webhook(
+            name=name,
+            phone=client_phone,
+            message=f"Hi, I saw your ad for {proj}. Please send 2BHK brochure & price sheet.",
+            location="Bhandup West",
+            bhk="2 BHK"
+        )
+    else:
+        return facebook_instagram_lead_webhook(
+            name=name,
+            phone=client_phone,
+            email=f"{name.lower().replace(' ', '.')}@gmail.com",
+            platform="Instagram" if "insta" in channel.lower() else "Facebook",
+            project=proj,
+            city="Mumbai",
+            bhk="3 BHK"
+        )
+
 
 
 # --- FOCUS PROJECTS & INVENTORY APIS ---

@@ -1,26 +1,44 @@
 import React, { useState, useEffect } from "react";
-import { X, Globe, Key, Link2, Sparkles, CheckCircle2, Save, Send, Building, Image, Award, PhoneCall, Mail, PhoneIncoming, Copy, Radio } from "lucide-react";
-import { fetchIntegrationSettings, saveIntegrationSettings, testInboundWebhookLead, fetchOrgProfile, saveOrgProfile } from "../services/apiService";
+import { 
+  X, Globe, Key, Link2, Sparkles, CheckCircle2, Save, Send, Building, 
+  Image, Award, PhoneCall, Mail, PhoneIncoming, Copy, Radio, MessageSquare, 
+  Camera, Users, ExternalLink, ShieldCheck, Check
+} from "lucide-react";
+import { 
+  fetchIntegrationSettings, saveIntegrationSettings, testInboundWebhookLead, 
+  fetchOrgProfile, saveOrgProfile, sendWhatsAppTemplateApi 
+} from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, onOrgProfileUpdated }) {
-  const [activeTab, setActiveTab] = useState("virtual_number"); // 'virtual_number' | 'org' | 'website' | 'instagram' | 'facebook' | 'youtube'
+  const [activeTab, setActiveTab] = useState("whatsapp"); // 'whatsapp' | 'instagram' | 'facebook' | 'virtual_number' | 'website' | 'org'
   const [alertConfig, setAlertConfig] = useState(null);
-  const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(null);
 
-  // Virtual Cloud Number States (Free Virtual IVR & Call Webhook)
-  const [virtualNumber, setVirtualNumber] = useState("+91 022 6985 4120");
-  const [forwardingPhone, setForwardingPhone] = useState("+91 98677 78229");
-  const [telephonyProvider, setTelephonyProvider] = useState("Exotel / Cloud IVR (Free Virtual)");
-  const [inboundWebhookUrl, setInboundWebhookUrl] = useState("http://127.0.0.1:8000/api/method/real_state_crm.api.inbound_call_webhook");
+  // Agent Alert Phone
+  const agentAlertPhone = "+91 98677 78229";
+  const ngrokBase = "https://allodially-goodish-lydia.ngrok-free.dev";
+  const currentOrigin = typeof window !== "undefined" && window.location.origin ? window.location.origin : ngrokBase;
 
-  const [websiteUrl, setWebsiteUrl] = useState("https://dreamhomes42.com");
-  const [websiteWebhook, setWebsiteWebhook] = useState("http://127.0.0.1:8000/api/method/real_state_crm.api.website_lead_webhook");
-  
+  // WhatsApp Business Integration
+  const [waPhoneNumber, setWaPhoneNumber] = useState("+91 98677 78229");
+  const [waVerifyToken, setWaVerifyToken] = useState("dreamhome_secret");
+  const waWebhookUrl = `${ngrokBase}/api/method/real_state_crm.api.whatsapp_inbound_webhook`;
+
+  // Meta Facebook & Instagram
   const [instaPageId, setInstaPageId] = useState("dreamhomes_official");
   const [instaToken, setInstaToken] = useState("EAAB123456789_INSTA_TOKEN");
-  
   const [fbFormId, setFbFormId] = useState("FB_LEADGEN_FORM_99201");
+  const metaWebhookUrl = `${ngrokBase}/api/method/real_state_crm.api.facebook_instagram_lead_webhook`;
+
+  // Virtual Cloud Number States
+  const [virtualNumber, setVirtualNumber] = useState("+91 022 6985 4120");
+  const [forwardingPhone, setForwardingPhone] = useState("+91 98677 78229");
+  const callWebhookUrl = `${ngrokBase}/api/method/real_state_crm.api.inbound_call_webhook`;
+
+  // Website Webhook
+  const [websiteUrl, setWebsiteUrl] = useState("https://dreamhomes42.com");
+  const websiteWebhookUrl = `${ngrokBase}/api/method/real_state_crm.api.website_lead_webhook`;
   const [ytChannelUrl, setYtChannelUrl] = useState("https://youtube.com/@dreamhomesmumbai");
 
   // Dynamic Organization Profile State
@@ -40,7 +58,6 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
       fetchIntegrationSettings().then(data => {
         if (data) {
           if (data.website_url) setWebsiteUrl(data.website_url);
-          if (data.website_webhook) setWebsiteWebhook(data.website_webhook);
           if (data.instagram_page_id) setInstaPageId(data.instagram_page_id);
           if (data.instagram_token) setInstaToken(data.instagram_token);
           if (data.facebook_form_id) setFbFormId(data.facebook_form_id);
@@ -63,17 +80,24 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
 
   if (!isOpen) return null;
 
+  const copyToClipboard = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2500);
+  };
+
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     setIsSaving(true);
 
     const payload = {
       website_url: websiteUrl,
-      website_webhook: websiteWebhook,
+      website_webhook: websiteWebhookUrl,
       instagram_page_id: instaPageId,
       instagram_token: instaToken,
       facebook_form_id: fbFormId,
-      youtube_channel_url: ytChannelUrl
+      youtube_channel_url: ytChannelUrl,
+      whatsapp_number: waPhoneNumber
     };
 
     const orgPayload = {
@@ -95,26 +119,53 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
     setIsSaving(false);
     setAlertConfig({
       title: "Settings Saved! 💾",
-      message: "Lead integration credentials & Organization Profile updated in CRM Database!",
+      message: "Lead integration credentials & Organization Profile updated in MariaDB!",
       type: "success"
     });
   };
 
-  const handleTestTrigger = async (channelName) => {
-    setTestingChannel(channelName);
-    const result = await testInboundWebhookLead(channelName);
+  const handleTestTrigger = async (channelKey, channelLabel) => {
+    setTestingChannel(channelKey);
+    const result = await testInboundWebhookLead(channelKey);
     setTestingChannel(null);
 
-    if (result && result.status === "success" && result.lead) {
+    if (result && (result.status === "success" || result.lead)) {
+      const leadData = result.lead || {
+        id: `LEAD-${Date.now().toString().slice(-4)}`,
+        name: `${channelLabel} Client`,
+        phone: "+91 98205 91823",
+        bhkType: "2 BHK Luxury",
+        location: "Mumbai",
+        source: channelLabel,
+        priority: "HOT",
+        status: "NEW"
+      };
+
       if (onTestLeadCreated) {
-        onTestLeadCreated(result.lead);
+        onTestLeadCreated(leadData);
       }
+
       setAlertConfig({
-        title: `${channelName} Test Lead Captured!`,
-        message: `Inbound lead from ${channelName} processed into CRM MariaDB!\nClient: ${result.lead.lead_name} (${result.lead.phone})`,
+        title: `⚡ ${channelLabel} Inbound Lead Captured!`,
+        message: `Lead from ${channelLabel} '${leadData.name}' (${leadData.phone}) captured in Fresh Leads!\n\nAlert forwarding link prepared for Agent (${agentAlertPhone}). Check ringing card on screen!`,
         type: "success"
       });
     }
+  };
+
+  const handleSendTestTemplateToAgent = () => {
+    const text = encodeURIComponent(
+      `🚨 *DREAM HOMES LEAD ALERT* 🚨\n\n` +
+      `👤 *Client Name:* Siddharth Malhotra\n` +
+      `📞 *Mobile:* +91 98205 91823\n` +
+      `🏢 *Interested In:* 2 BHK Sun-Deck (Srishti Oasis, Bhandup West)\n` +
+      `💰 *Budget:* ₹ 1.59 Cr\n` +
+      `🎯 *Lead Source:* WhatsApp Business Webhook\n` +
+      `📝 *Client Inquiry:* "Hi Shyam, please send me the brochure & payment plan for 2 BHK."\n\n` +
+      `👉 *Open CRM:* ${ngrokBase}/crm\n` +
+      `⚡ Tap to call client now!`
+    );
+    window.open(`https://api.whatsapp.com/send?phone=919867778229&text=${text}`, "_blank");
   };
 
   return (
@@ -122,17 +173,15 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
       className="modal-overlay" 
       onClick={onClose} 
       style={{
-        position: "absolute",
+        position: "fixed",
         inset: 0,
         background: "rgba(15, 23, 42, 0.85)",
         backdropFilter: "blur(8px)",
         zIndex: 99999,
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "center",
-        borderRadius: "inherit",
-        paddingTop: "2.75rem",
-        paddingBottom: "1rem"
+        padding: "1rem"
       }}
     >
       <div 
@@ -141,9 +190,9 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
         style={{
           background: "#ffffff",
           borderRadius: "1.5rem",
-          width: "92%",
-          maxWidth: "380px",
-          maxHeight: "calc(100% - 1rem)",
+          width: "100%",
+          maxWidth: "440px",
+          maxHeight: "92vh",
           overflowY: "auto",
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
           border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -169,11 +218,11 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
           zIndex: 10
         }}>
           <div>
-            <h3 style={{ fontSize: "0.95rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "0.4rem", color: "#ffffff" }}>
-              🔌 Multi-Channel Lead Integrations
+            <h3 style={{ fontSize: "0.95rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "0.45rem", color: "#ffffff" }}>
+              <Sparkles size={16} color="#fbbf24" /> Multi-Channel Lead Integrations
             </h3>
-            <p style={{ fontSize: "0.6875rem", color: "#94a3b8", margin: "0.15rem 0 0 0" }}>
-              Auto-capture leads from Website, Instagram, Facebook & YouTube
+            <p style={{ fontSize: "0.7rem", color: "#94a3b8", margin: "0.2rem 0 0 0" }}>
+              WhatsApp, Instagram, Facebook, Call IVR & Website Webhooks
             </p>
           </div>
 
@@ -198,11 +247,22 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
         </div>
 
         {/* Integration Pill Sub-Tabs */}
-        <div style={{ display: "flex", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", padding: "0.6rem 0.75rem", gap: "0.4rem", overflowX: "auto", scrollbarWidth: "none" }}>
+        <div style={{ 
+          display: "flex", 
+          borderBottom: "1px solid #e2e8f0", 
+          background: "#f8fafc", 
+          padding: "0.6rem 0.75rem", 
+          gap: "0.4rem", 
+          overflowX: "auto", 
+          scrollbarWidth: "none" 
+        }}>
           {[
-            { id: "virtual_number", label: "Virtual Number (IVR)", icon: <PhoneIncoming size={14} color="#16a34a" /> },
-            { id: "org", label: "Branding", icon: <Building size={14} color="#2563eb" /> },
-            { id: "website", label: "Website", icon: <Globe size={14} color="#2563eb" /> }
+            { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare size={13} color="#16a34a" /> },
+            { id: "instagram", label: "Instagram", icon: <Camera size={13} color="#db2777" /> },
+            { id: "facebook", label: "Facebook", icon: <Users size={13} color="#2563eb" /> },
+            { id: "virtual_number", label: "Virtual (IVR)", icon: <PhoneIncoming size={13} color="#15803d" /> },
+            { id: "website", label: "Website", icon: <Globe size={13} color="#0284c7" /> },
+            { id: "org", label: "Branding", icon: <Building size={13} color="#4f46e5" /> }
           ].map(tab => (
             <button
               key={tab.id}
@@ -212,13 +272,13 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                 display: "flex",
                 alignItems: "center",
                 gap: "0.35rem",
-                padding: "0.45rem 0.75rem",
+                padding: "0.4rem 0.7rem",
                 border: activeTab === tab.id ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
                 borderRadius: "9999px",
                 background: activeTab === tab.id ? "#eff6ff" : "#ffffff",
                 color: activeTab === tab.id ? "#2563eb" : "#64748b",
                 fontWeight: activeTab === tab.id ? 800 : 600,
-                fontSize: "0.75rem",
+                fontSize: "0.725rem",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
                 boxShadow: activeTab === tab.id ? "0 2px 6px rgba(37,99,235,0.12)" : "none"
@@ -232,7 +292,296 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
         {/* Modal Form */}
         <form onSubmit={handleSaveSettings} style={{ padding: "1.1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
           
-          {/* TAB: VIRTUAL NUMBER & CLOUD IVR (Option B - Auto Inbound Ringing) */}
+          {/* TAB 1: WHATSAPP BUSINESS & DIRECT TEMPLATES */}
+          {activeTab === "whatsapp" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+              <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", padding: "0.85rem", borderRadius: "0.85rem", fontSize: "0.75rem", color: "#166534" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 800, fontSize: "0.8125rem", color: "#15803d", marginBottom: "0.3rem" }}>
+                  <MessageSquare size={16} color="#16a34a" /> 
+                  <span>WhatsApp Lead Ingestion & Agent Alerts Active</span>
+                </div>
+                <span>WhatsApp par aane wali har inquiry/message automatically <strong>Fresh Leads</strong> mein capture hogi, <strong>Screen par live ring karegi</strong>, aur directly aapke phone (<strong>{agentAlertPhone}</strong>) par alert message bhejegi!</span>
+              </div>
+
+              {/* Agent Alert Phone */}
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                  📱 Agent WhatsApp Alert Phone Number
+                </label>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  value={waPhoneNumber}
+                  onChange={e => setWaPhoneNumber(e.target.value)}
+                  style={{ fontWeight: 800, color: "#15803d" }}
+                />
+                <span style={{ fontSize: "0.6875rem", color: "#64748b" }}>
+                  All incoming inquiries and new leads forward an instant alert to this number.
+                </span>
+              </div>
+
+              {/* Live Webhook URL */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                    ⚡ Inbound Webhook URL (Meta Cloud API / Twilio / GreenAPI)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(waWebhookUrl, "wa_url")}
+                    style={{ background: "none", border: "none", color: "#2563eb", fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
+                  >
+                    {copiedKey === "wa_url" ? <Check size={12} color="#16a34a" /> : <Copy size={11} />} 
+                    {copiedKey === "wa_url" ? "Copied!" : "Copy URL"}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  readOnly
+                  value={waWebhookUrl}
+                  style={{ fontSize: "0.6875rem", background: "#f8fafc", color: "#2563eb", fontWeight: 700, fontFamily: "monospace" }}
+                />
+              </div>
+
+              {/* Verify Token */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                    🔑 Webhook Verify Token
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(waVerifyToken, "wa_token")}
+                    style={{ background: "none", border: "none", color: "#2563eb", fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
+                  >
+                    {copiedKey === "wa_token" ? <Check size={12} color="#16a34a" /> : <Copy size={11} />} 
+                    {copiedKey === "wa_token" ? "Copied!" : "Copy Token"}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  value={waVerifyToken}
+                  onChange={e => setWaVerifyToken(e.target.value)}
+                  style={{ fontSize: "0.75rem", fontWeight: 700, color: "#0f172a", fontFamily: "monospace" }}
+                />
+              </div>
+
+              {/* Test Action Buttons */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.25rem" }}>
+                <button
+                  type="button"
+                  disabled={testingChannel === "whatsapp"}
+                  onClick={() => handleTestTrigger("whatsapp", "WhatsApp Business")}
+                  style={{
+                    background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                    border: "none",
+                    color: "#ffffff",
+                    borderRadius: "0.625rem",
+                    padding: "0.65rem",
+                    fontSize: "0.8125rem",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.4rem",
+                    boxShadow: "0 4px 12px rgba(22,163,74,0.3)"
+                  }}
+                >
+                  <MessageSquare size={16} /> 
+                  {testingChannel === "whatsapp" ? "Capturing Inbound Lead..." : "⚡ Simulate Inbound WhatsApp Lead"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSendTestTemplateToAgent}
+                  style={{
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    color: "#166534",
+                    borderRadius: "0.625rem",
+                    padding: "0.6rem",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.4rem"
+                  }}
+                >
+                  <Send size={14} color="#16a34a" /> 📲 Send Lead Template to My Phone ({agentAlertPhone})
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: INSTAGRAM LEAD ADS */}
+          {activeTab === "instagram" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+              <div style={{ background: "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)", border: "1px solid #fbcfe8", padding: "0.85rem", borderRadius: "0.85rem", fontSize: "0.75rem", color: "#9d174d" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 800, fontSize: "0.8125rem", color: "#be185d", marginBottom: "0.3rem" }}>
+                  <Camera size={16} color="#db2777" /> 
+                  <span>Instagram Graph API & Lead Ads Integration</span>
+                </div>
+                <span>Connect your Instagram Business handle (<strong>@{instaPageId}</strong>) to sync Instant Lead Ads & Direct Messages straight into Fresh Leads and send immediate WhatsApp alerts to agent!</span>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                  Instagram Business Handle / Page ID
+                </label>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  placeholder="e.g. dreamhomes_official"
+                  value={instaPageId}
+                  onChange={e => setInstaPageId(e.target.value)}
+                  style={{ fontWeight: 700 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                  Meta Access Token
+                </label>
+                <input
+                  type="password"
+                  className="modern-search-input"
+                  placeholder="EAAB..."
+                  value={instaToken}
+                  onChange={e => setInstaToken(e.target.value)}
+                />
+              </div>
+
+              {/* Webhook Endpoint */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                    ⚡ Instagram Webhook URL
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(metaWebhookUrl, "insta_url")}
+                    style={{ background: "none", border: "none", color: "#2563eb", fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
+                  >
+                    {copiedKey === "insta_url" ? <Check size={12} color="#16a34a" /> : <Copy size={11} />} 
+                    {copiedKey === "insta_url" ? "Copied!" : "Copy URL"}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  readOnly
+                  value={metaWebhookUrl}
+                  style={{ fontSize: "0.6875rem", background: "#f8fafc", color: "#db2777", fontWeight: 700, fontFamily: "monospace" }}
+                />
+              </div>
+
+              <button
+                type="button"
+                disabled={testingChannel === "instagram"}
+                onClick={() => handleTestTrigger("instagram", "Instagram Ads")}
+                style={{
+                  background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)",
+                  border: "none",
+                  color: "#ffffff",
+                  borderRadius: "0.625rem",
+                  padding: "0.65rem",
+                  fontSize: "0.8125rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.4rem",
+                  boxShadow: "0 4px 12px rgba(219,39,119,0.3)"
+                }}
+              >
+                <Camera size={16} /> 
+                {testingChannel === "instagram" ? "Capturing Lead..." : "⚡ Simulate Inbound Instagram Lead"}
+              </button>
+            </div>
+          )}
+
+          {/* TAB 3: FACEBOOK LEAD ADS */}
+          {activeTab === "facebook" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+              <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", padding: "0.85rem", borderRadius: "0.85rem", fontSize: "0.75rem", color: "#1e40af" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 800, fontSize: "0.8125rem", color: "#1d4ed8", marginBottom: "0.3rem" }}>
+                  <Users size={16} color="#2563eb" /> 
+                  <span>Meta Facebook Lead Ads Instant Forms</span>
+                </div>
+                <span>Sync instant lead ads from Facebook Ads Manager in real time. All leads are stored in MariaDB and alert is pushed immediately to your phone (<strong>{agentAlertPhone}</strong>).</span>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                  Facebook Lead Form ID
+                </label>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  placeholder="FB_LEADGEN_FORM_99201"
+                  value={fbFormId}
+                  onChange={e => setFbFormId(e.target.value)}
+                  style={{ fontWeight: 700 }}
+                />
+              </div>
+
+              {/* Webhook Endpoint */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                    ⚡ Facebook Webhook URL
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(metaWebhookUrl, "fb_url")}
+                    style={{ background: "none", border: "none", color: "#2563eb", fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
+                  >
+                    {copiedKey === "fb_url" ? <Check size={12} color="#16a34a" /> : <Copy size={11} />} 
+                    {copiedKey === "fb_url" ? "Copied!" : "Copy URL"}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  readOnly
+                  value={metaWebhookUrl}
+                  style={{ fontSize: "0.6875rem", background: "#f8fafc", color: "#2563eb", fontWeight: 700, fontFamily: "monospace" }}
+                />
+              </div>
+
+              <button
+                type="button"
+                disabled={testingChannel === "facebook"}
+                onClick={() => handleTestTrigger("facebook", "Facebook Lead Ads")}
+                style={{
+                  background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                  border: "none",
+                  color: "#ffffff",
+                  borderRadius: "0.625rem",
+                  padding: "0.65rem",
+                  fontSize: "0.8125rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.4rem",
+                  boxShadow: "0 4px 12px rgba(37,99,235,0.3)"
+                }}
+              >
+                <Users size={16} /> 
+                {testingChannel === "facebook" ? "Capturing Lead..." : "⚡ Simulate Inbound Facebook Lead"}
+              </button>
+            </div>
+          )}
+
+          {/* TAB 4: VIRTUAL NUMBER & CLOUD IVR */}
           {activeTab === "virtual_number" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
               <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", padding: "0.85rem", borderRadius: "0.85rem", fontSize: "0.75rem", color: "#166534" }}>
@@ -240,7 +589,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                   <Radio size={16} className="animate-pulse" color="#16a34a" /> 
                   <span>Direct SIM & Cloud Inbound Call Sync Active</span>
                 </div>
-                <span>Phone par aane wali har direct SIM call (Android/iPhone) ya Virtual Number call automatically <strong>CRM Screen par ring karegi</strong> aur <strong>Fresh Leads mein capture hogi!</strong></span>
+                <span>Phone par aane wali direct SIM call (Android/iPhone) ya Virtual Number call automatically <strong>CRM Screen par ring karegi</strong> aur <strong>Fresh Leads mein capture hogi!</strong></span>
               </div>
 
               <div>
@@ -250,23 +599,19 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                   </label>
                   <button
                     type="button"
-                    onClick={() => {
-                      const urlToCopy = (typeof window !== "undefined" ? window.location.origin : "") + "/api/method/real_state_crm.api.inbound_call_webhook";
-                      navigator.clipboard.writeText(urlToCopy);
-                      setCopiedWebhook(true);
-                      setTimeout(() => setCopiedWebhook(false), 2500);
-                    }}
+                    onClick={() => copyToClipboard(callWebhookUrl, "call_url")}
                     style={{ background: "none", border: "none", color: "#2563eb", fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
                   >
-                    <Copy size={11} /> {copiedWebhook ? "Copied!" : "Copy URL"}
+                    {copiedKey === "call_url" ? <Check size={12} color="#16a34a" /> : <Copy size={11} />} 
+                    {copiedKey === "call_url" ? "Copied!" : "Copy URL"}
                   </button>
                 </div>
                 <input
                   type="text"
                   className="modern-search-input"
                   readOnly
-                  style={{ fontSize: "0.6875rem", background: "#f8fafc", color: "#2563eb", fontWeight: 700 }}
-                  value={(typeof window !== "undefined" ? window.location.origin : "") + "/api/method/real_state_crm.api.inbound_call_webhook"}
+                  style={{ fontSize: "0.6875rem", background: "#f8fafc", color: "#15803d", fontWeight: 700, fontFamily: "monospace" }}
+                  value={callWebhookUrl}
                 />
               </div>
 
@@ -287,7 +632,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                 </div>
                 <ol style={{ margin: "0 0 0 1.1rem", padding: 0, color: "#475569", lineHeight: 1.4 }}>
                   <li>Use Cloud IVR / Virtual Number (Exotel / Twilio / Airtel IQ).</li>
-                  <li>Forward client calls to your iPhone SIM (<strong>+91 98677 78229</strong>).</li>
+                  <li>Forward client calls to your iPhone SIM (<strong>{agentAlertPhone}</strong>).</li>
                   <li>Set Inbound Webhook URL in cloud dashboard.</li>
                 </ol>
               </div>
@@ -295,48 +640,8 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
               {/* Instant Live Test Caller Trigger */}
               <button
                 type="button"
-                onClick={async () => {
-                  const testNumber = `+91 98205 ${Math.floor(10000 + Math.random() * 89999)}`;
-                  const testName = `Live Inbound Caller (${testNumber.slice(-4)})`;
-                  
-                  if (onTestLeadCreated) {
-                    onTestLeadCreated({
-                      id: `LEAD-INB-${Date.now()}`,
-                      name: testName,
-                      phone: testNumber,
-                      priority: "HOT",
-                      status: "NEW",
-                      service: "Direct Inbound Phone Call",
-                      bhkType: "2 BHK Luxury",
-                      location: "Mumbai",
-                      source: "Direct SIM / Cloud Inbound Call",
-                      timeAgo: "Just now",
-                      createdAt: new Date().toISOString(),
-                      callCount: 0,
-                      notes: `Customer called agent on +91 98677 78229.`,
-                      history: []
-                    });
-                  }
-
-                  try {
-                    await fetch("/api/method/real_state_crm.api.inbound_call_webhook", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        caller_number: testNumber,
-                        caller_name: testName,
-                        source: "Direct Inbound Call",
-                        notes: "Direct phone call received on agent SIM 9867778229"
-                      })
-                    });
-                  } catch (e) {}
-
-                  setAlertConfig({
-                    title: "📞 Incoming Call Ringing on Screen!",
-                    message: `Incoming call from '${testName}' (${testNumber}) triggered! Check your screen—ringing modal is active and will save to Fresh Leads!`,
-                    type: "success"
-                  });
-                }}
+                disabled={testingChannel === "call"}
+                onClick={() => handleTestTrigger("call", "Direct Phone Call")}
                 style={{
                   background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
                   border: "none",
@@ -353,16 +658,83 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                   boxShadow: "0 4px 12px rgba(22,163,74,0.3)"
                 }}
               >
-                <PhoneIncoming size={16} /> ⚡ Test Incoming Call to Agent (9867778229)
+                <PhoneIncoming size={16} /> ⚡ Test Incoming Call to Agent ({agentAlertPhone})
               </button>
             </div>
           )}
 
-          {/* TAB 0: ORGANIZATION BRANDING */}
+          {/* TAB 5: WEBSITE WEBHOOK */}
+          {activeTab === "website" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+              <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", padding: "0.75rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#1e40af" }}>
+                🌐 <strong>Website Contact Form API Webhook:</strong> Incoming leads submitted on your website form will automatically post to this REST endpoint and assign to your active telecallers!
+              </div>
+
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
+                  Website Base Domain URL
+                </label>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  placeholder="https://dreamhomes42.com"
+                  value={websiteUrl}
+                  onChange={e => setWebsiteUrl(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                    CRM REST Webhook Endpoint
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(websiteWebhookUrl, "web_url")}
+                    style={{ background: "none", border: "none", color: "#2563eb", fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.2rem" }}
+                  >
+                    {copiedKey === "web_url" ? <Check size={12} color="#16a34a" /> : <Copy size={11} />} 
+                    {copiedKey === "web_url" ? "Copied!" : "Copy URL"}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="modern-search-input"
+                  readOnly
+                  value={websiteWebhookUrl}
+                  style={{ fontFamily: "monospace", fontSize: "0.7rem", color: "#2563eb", background: "#f8fafc" }}
+                />
+              </div>
+
+              <button
+                type="button"
+                disabled={testingChannel === "website"}
+                onClick={() => handleTestTrigger("website", "Website Form")}
+                style={{
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  color: "#2563eb",
+                  borderRadius: "0.625rem",
+                  padding: "0.6rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.4rem"
+                }}
+              >
+                {testingChannel === "website" ? "⚡ Simulating Test Lead..." : "⚡ Simulate Inbound Website Lead"}
+              </button>
+            </div>
+          )}
+
+          {/* TAB 6: BRANDING */}
           {activeTab === "org" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
               <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", padding: "0.75rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#166534" }}>
-                🏢 <strong>Dynamic Company Profile & Logo Settings:</strong> Changes saved here directly update your CRM header logo, company name, and official MahaRERA credentials in CRM Database!
+                🏢 <strong>Dynamic Company Profile & Logo Settings:</strong> Changes saved here directly update your CRM header logo, company name, and official MahaRERA credentials in MariaDB!
               </div>
 
               <div>
@@ -446,204 +818,6 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
             </div>
           )}
 
-          {/* TAB 1: WEBSITE WEBHOOK */}
-          {activeTab === "website" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-              <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", padding: "0.75rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#1e40af" }}>
-                🌐 <strong>Website Contact Form API Webhook:</strong> Incoming leads submitted on your website form will automatically post to this REST endpoint and assign to your active telecallers!
-              </div>
-
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-                  Website Base Domain URL
-                </label>
-                <input
-                  type="text"
-                  className="modern-search-input"
-                  placeholder="https://dreamhomes42.com"
-                  value={websiteUrl}
-                  onChange={e => setWebsiteUrl(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-                  CRM REST Webhook Endpoint
-                </label>
-                <input
-                  type="text"
-                  className="modern-search-input"
-                  value={websiteWebhook}
-                  onChange={e => setWebsiteWebhook(e.target.value)}
-                  style={{ fontFamily: "monospace", fontSize: "0.7rem" }}
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleTestTrigger("Website Form")}
-                style={{
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
-                  color: "#2563eb",
-                  borderRadius: "0.625rem",
-                  padding: "0.6rem",
-                  fontSize: "0.75rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.4rem"
-                }}
-              >
-                {testingChannel === "Website Form" ? "⚡ Simulating Test Lead..." : "⚡ Simulate Inbound Website Lead"}
-              </button>
-            </div>
-          )}
-
-          {/* TAB 2: INSTAGRAM API */}
-          {activeTab === "instagram" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-              <div style={{ background: "#fdf2f8", border: "1px solid #fbcfe8", padding: "0.75rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#9d174d" }}>
-                📸 <strong>Instagram Graph API Direct Lead Ads Integration:</strong> Connect your Instagram Business account to receive DM inquiries and Lead Ad submissions instantly!
-              </div>
-
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-                  Instagram Business Handle / Page ID
-                </label>
-                <input
-                  type="text"
-                  className="modern-search-input"
-                  placeholder="e.g. dreamhomes_official"
-                  value={instaPageId}
-                  onChange={e => setInstaPageId(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-                  Instagram Access Token
-                </label>
-                <input
-                  type="password"
-                  className="modern-search-input"
-                  placeholder="EAAB..."
-                  value={instaToken}
-                  onChange={e => setInstaToken(e.target.value)}
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleTestTrigger("Instagram Ad")}
-                style={{
-                  background: "#fdf2f8",
-                  border: "1px solid #fbcfe8",
-                  color: "#db2777",
-                  borderRadius: "0.625rem",
-                  padding: "0.6rem",
-                  fontSize: "0.75rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.4rem"
-                }}
-              >
-                {testingChannel === "Instagram Ad" ? "⚡ Simulating Test Lead..." : "⚡ Simulate Inbound Instagram Lead"}
-              </button>
-            </div>
-          )}
-
-          {/* TAB 3: FACEBOOK LEAD ADS */}
-          {activeTab === "facebook" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "0.75rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#166534" }}>
-                👥 <strong>Meta Facebook Lead Ads Webhook:</strong> Real-time synchronization for Instant Lead Forms from Facebook Ads Manager!
-              </div>
-
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-                  Facebook Lead Form ID
-                </label>
-                <input
-                  type="text"
-                  className="modern-search-input"
-                  placeholder="FB_LEADGEN_FORM_99201"
-                  value={fbFormId}
-                  onChange={e => setFbFormId(e.target.value)}
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleTestTrigger("Facebook Lead Ad")}
-                style={{
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
-                  color: "#1d4ed8",
-                  borderRadius: "0.625rem",
-                  padding: "0.6rem",
-                  fontSize: "0.75rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.4rem"
-                }}
-              >
-                {testingChannel === "Facebook Lead Ad" ? "⚡ Simulating Test Lead..." : "⚡ Simulate Inbound Facebook Lead"}
-              </button>
-            </div>
-          )}
-
-          {/* TAB 4: YOUTUBE LEAD GEN */}
-          {activeTab === "youtube" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-              <div style={{ background: "#fef2f2", border: "1px solid #fecaca", padding: "0.75rem", borderRadius: "0.75rem", fontSize: "0.75rem", color: "#991b1b" }}>
-                ▶️ <strong>YouTube Video Leads & Extension Integration:</strong> Capture leads directly from your YouTube video descriptions and site walkthrough videos!
-              </div>
-
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", marginBottom: "0.25rem", display: "block" }}>
-                  YouTube Channel URL
-                </label>
-                <input
-                  type="text"
-                  className="modern-search-input"
-                  placeholder="https://youtube.com/@dreamhomesmumbai"
-                  value={ytChannelUrl}
-                  onChange={e => setYtChannelUrl(e.target.value)}
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleTestTrigger("YouTube Video")}
-                style={{
-                  background: "#fef2f2",
-                  border: "1px solid #fecaca",
-                  color: "#dc2626",
-                  borderRadius: "0.625rem",
-                  padding: "0.6rem",
-                  fontSize: "0.75rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.4rem"
-                }}
-              >
-                {testingChannel === "YouTube Video" ? "⚡ Simulating Test Lead..." : "⚡ Simulate Inbound YouTube Lead"}
-              </button>
-            </div>
-          )}
-
           {/* Save Button */}
           <button
             type="submit"
@@ -665,7 +839,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
               marginTop: "0.5rem"
             }}
           >
-            <Save size={16} /> {isSaving ? "Saving Credentials..." : "Save Integration Credentials to CRM Database"}
+            <Save size={16} /> {isSaving ? "Saving Credentials..." : "Save Integration Credentials to MariaDB"}
           </button>
         </form>
 

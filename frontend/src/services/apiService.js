@@ -682,20 +682,56 @@ export const saveIntegrationSettings = async (settings) => {
 };
 
 export const testInboundWebhookLead = async (channel) => {
-  let endpoint = "website_lead_webhook";
+  let endpoint = "whatsapp_inbound_webhook";
   let payload = {};
 
-  if (channel === "instagram") {
-    endpoint = "instagram_lead_webhook";
-    payload = { instagram_handle: "kavita_mumbai", location: "Lokhandwala, Mumbai" };
+  if (channel === "whatsapp") {
+    endpoint = "whatsapp_inbound_webhook";
+    payload = {
+      name: "Siddharth Malhotra",
+      phone: "+91 98205 91823",
+      message: "Hi Shyam, I saw your ad for Srishti Oasis. Please send 2BHK cost sheet & brochure.",
+      location: "Bhandup West",
+      bhk: "2 BHK"
+    };
+  } else if (channel === "instagram") {
+    endpoint = "facebook_instagram_lead_webhook";
+    payload = {
+      platform: "Instagram",
+      name: "Kavita Deshmukh",
+      phone: "+91 98334 11223",
+      email: "kavita.deshmukh@gmail.com",
+      project: "Kalpataru Vian (Andheri West)",
+      bhk: "3 BHK",
+      location: "Andheri West"
+    };
   } else if (channel === "facebook") {
-    endpoint = "facebook_lead_webhook";
-    payload = { name: "Manish Malhotra (FB Ad)", location: "Bandra West, Mumbai" };
-  } else if (channel === "youtube") {
-    endpoint = "youtube_lead_webhook";
-    payload = { name: "Aarav Sharma (YouTube)", video_title: "Kalpataru Vian 3D Tour", location: "Worli Sea Face" };
+    endpoint = "facebook_instagram_lead_webhook";
+    payload = {
+      platform: "Facebook",
+      name: "Manish Malhotra",
+      phone: "+91 98199 88776",
+      email: "manish.malhotra@gmail.com",
+      project: "Godrej Horizon (Wadala)",
+      bhk: "2 BHK",
+      location: "Wadala"
+    };
+  } else if (channel === "virtual_number" || channel === "call") {
+    endpoint = "inbound_call_webhook";
+    payload = {
+      caller_name: "Aditya Singhania",
+      caller_number: "+91 98765 43210",
+      source: "Direct Inbound Call",
+      location: "Worli, Mumbai",
+      bhk: "3 BHK"
+    };
   } else {
-    payload = { name: "Rohan Varma (Website Form)", location: "Andheri West, Mumbai" };
+    endpoint = "whatsapp_inbound_webhook";
+    payload = {
+      name: "Rohan Varma",
+      phone: "+91 98201 55443",
+      message: "Need 2 BHK in Andheri West under 2 Cr"
+    };
   }
 
   try {
@@ -704,19 +740,15 @@ export const testInboundWebhookLead = async (channel) => {
       headers: getApiHeaders(),
       body: JSON.stringify(payload)
     });
-    if (!res.ok) {
-      res = await fetch(`${FRAPPE_DIRECT_URL}.${endpoint}`, {
-        method: "POST",
-        headers: getApiHeaders(),
-        body: JSON.stringify(payload)
-      });
-    }
     if (res.ok) {
       const json = await res.json();
-      return json.message || json;
+      const result = json.message || json;
+      await fetchCrmLeads();
+      await fetchCrmNotifications();
+      return result;
     }
   } catch (e) {
-    console.log("[Webhook Test Notice] Offline mode active.");
+    console.log("[Webhook Test Notice]", e);
   }
 
   return {
@@ -724,20 +756,48 @@ export const testInboundWebhookLead = async (channel) => {
     message: `Test ${channel.toUpperCase()} Lead ingested successfully!`,
     lead: {
       id: `${channel.toUpperCase()}-${Date.now().toString().slice(-4)}`,
-      name: payload.name || `New ${channel.toUpperCase()} Lead`,
-      phone: "+91 98765 43210",
-      email: `${channel}@dreamhomes.in`,
-      source: channel === "instagram" ? "Instagram DM" : channel === "facebook" ? "Facebook Ads" : channel === "youtube" ? "YouTube Channel" : "Website Webhook",
+      name: payload.name || payload.caller_name || `New ${channel.toUpperCase()} Lead`,
+      phone: payload.phone || payload.caller_number || "+91 98765 43210",
+      email: payload.email || `${channel}@dreamhomes.in`,
+      source: channel === "whatsapp" ? "WhatsApp Business" : channel === "instagram" ? "Instagram Ads" : channel === "facebook" ? "Facebook Lead Ads" : "Direct Inbound Call",
       service: "Home Buying",
-      bhkType: "2 & 3 BHK",
+      bhkType: payload.bhk || "2 BHK",
       location: payload.location || "Mumbai",
       priority: "HOT",
       status: "NEW",
       timeAgo: "Just Now",
       callCount: 0,
-      notes: `Inbound lead captured via ${channel.toUpperCase()} Webhook Integration`
+      notes: payload.message || `Inbound lead captured via ${channel.toUpperCase()} Webhook Integration`
     }
   };
+};
+
+export const sendWhatsAppTemplateApi = async ({ toPhone, templateType, leadName, projectName, sendToAgent, customMessage, clientPhone, bhk, location, source }) => {
+  try {
+    const res = await fetch(`${FRAPPE_API_URL}.send_whatsapp_template`, {
+      method: "POST",
+      headers: getApiHeaders(),
+      body: JSON.stringify({
+        to_phone: toPhone,
+        template_type: templateType,
+        lead_name: leadName,
+        project_name: projectName,
+        send_to_agent: sendToAgent ? 1 : 0,
+        custom_message: customMessage,
+        client_phone: clientPhone,
+        bhk,
+        location,
+        source
+      })
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return json.message || json;
+    }
+  } catch (e) {
+    console.log("[sendWhatsAppTemplateApi Error]", e);
+  }
+  return null;
 };
 
 export const fetchCrmMetrics = async () => {

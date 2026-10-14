@@ -175,12 +175,21 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
       onLeadCreated(leadObj);
     }
 
+    const agentWaUrl = res?.agent_whatsapp_url || res?.message?.agent_whatsapp_url;
     setAlertConfig({
-      title: isEditing ? "Lead Updated!" : "Lead Created!",
+      title: isEditing ? "Lead Updated!" : "Lead Created & Logged!",
       message: isEditing
         ? `✅ Lead '${name}' has been updated successfully!`
-        : `🎉 Fresh Lead '${name}' saved to Database! (Lead ID: ${assignedId || leadObj.id})`,
-      type: "success"
+        : `🎉 Fresh Lead '${name}' saved to Database! (Lead ID: ${assignedId || leadObj.id})\n\nAlert generated for Agent Phone (+91 98677 78229).`,
+      type: "success",
+      actionBtn: (!isEditing && agentWaUrl) ? {
+        label: "📲 Open WhatsApp Alert (My Phone)",
+        onClick: () => {
+          window.open(agentWaUrl, "_blank");
+          setAlertConfig(null);
+          onClose();
+        }
+      } : null
     });
   };
 
@@ -552,6 +561,7 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
             title={alertConfig.title}
             message={alertConfig.message}
             type={alertConfig.type}
+            actionBtn={alertConfig.actionBtn}
           />
         )}
       </div>

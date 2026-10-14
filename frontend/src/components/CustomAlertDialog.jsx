@@ -1,7 +1,7 @@
 import React from "react";
 import { CheckCircle2, AlertTriangle, Info, XCircle, X } from "lucide-react";
 
-export default function CustomAlertDialog({ isOpen, onClose, title, message, type = "success" }) {
+export default function CustomAlertDialog({ isOpen, onClose, title, message, type = "success", actionBtn = null }) {
   if (!isOpen) return null;
 
   const getIcon = () => {
@@ -124,24 +124,47 @@ export default function CustomAlertDialog({ isOpen, onClose, title, message, typ
         </div>
 
         {/* Footer Action Button */}
-        <div style={{ padding: "0 1.25rem 1.25rem 1.25rem" }}>
+        <div style={{ padding: "0 1.25rem 1.25rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {actionBtn && (
+            <button
+              onClick={actionBtn.onClick}
+              style={{
+                width: "100%",
+                background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "0.75rem",
+                padding: "0.75rem",
+                fontSize: "0.875rem",
+                fontWeight: "800",
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(22, 163, 74, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.4rem"
+              }}
+            >
+              {actionBtn.label}
+            </button>
+          )}
           <button
             onClick={onClose}
             style={{
               width: "100%",
-              background: getBtnBg(),
-              color: "#ffffff",
-              border: "none",
+              background: actionBtn ? "#f1f5f9" : getBtnBg(),
+              color: actionBtn ? "#475569" : "#ffffff",
+              border: actionBtn ? "1px solid #cbd5e1" : "none",
               borderRadius: "0.75rem",
               padding: "0.75rem",
               fontSize: "0.875rem",
               fontWeight: "800",
               cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              boxShadow: actionBtn ? "none" : "0 4px 12px rgba(0, 0, 0, 0.15)",
               transition: "transform 0.1s ease"
             }}
           >
-            OK, Understood
+            {actionBtn ? "Close" : "OK, Understood"}
           </button>
         </div>
       </div>
