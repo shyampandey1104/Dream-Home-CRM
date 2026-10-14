@@ -15,6 +15,7 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
   const [orderFilter, setOrderFilter] = useState("Freshest First");
   const [search, setSearch] = useState("");
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
+  const [isWhatsAppMode, setIsWhatsAppMode] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [alertConfig, setAlertConfig] = useState(null);
@@ -103,9 +104,11 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
         <AddLeadModal
           isOpen={isAddLeadOpen || !!editingLead}
           initialData={editingLead}
+          isWhatsAppMode={isWhatsAppMode}
           onClose={() => {
             setIsAddLeadOpen(false);
             setEditingLead(null);
+            setIsWhatsAppMode(false);
           }}
           existingLeads={leads}
           onLeadCreated={handleSaveLead}
@@ -198,9 +201,31 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+          {/* Quick WhatsApp Lead Auto-Fill */}
+          <button
+            onClick={() => { setEditingLead(null); setIsWhatsAppMode(true); setIsAddLeadOpen(true); }}
+            style={{
+              background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+              color: "#ffffff",
+              border: "none",
+              padding: "0.45rem 0.75rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.78125rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <MessageSquare size={14} /> 💬 WhatsApp Lead
+          </button>
+
           {/* Create Lead */}
           <button
-            onClick={() => { setEditingLead(null); setIsAddLeadOpen(true); }}
+            onClick={() => { setEditingLead(null); setIsWhatsAppMode(false); setIsAddLeadOpen(true); }}
             style={{
               background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
               color: "#ffffff",

@@ -4,7 +4,7 @@ import { saveLeadApi } from "../services/apiService";
 import { validateName, validatePhone, validateEmail, validateRequiredText, checkDuplicateLead } from "../utils/validators";
 import CustomAlertDialog from "./CustomAlertDialog";
 
-export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialData = null, existingLeads = [] }) {
+export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialData = null, existingLeads = [], isWhatsAppMode = false }) {
   const isEditing = !!initialData;
 
   const [name, setName] = useState("");
@@ -16,6 +16,11 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
   const [source, setSource] = useState("Direct Walk-in");
   const [priority, setPriority] = useState("HOT");
   const [notes, setNotes] = useState("");
+  
+  // WhatsApp 1-Click Parser state
+  const [showWhatsAppPaste, setShowWhatsAppPaste] = useState(isWhatsAppMode || false);
+  const [whatsAppText, setWhatsAppText] = useState("");
+  const [parseSuccessMsg, setParseSuccessMsg] = useState("");
   
   // Validation error states
   const [errors, setErrors] = useState({});
@@ -49,6 +54,90 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
     setTouched({});
     setDuplicateWarning("");
   }, [initialData, isOpen]);
+
+  useEffect(() => {
+    if (isWhatsAppMode) {
+      setShowWhatsAppPaste(true);
+    }
+  }, [isWhatsAppMode, isOpen]);
+
+  const handleParseWhatsAppText = () => {
+    if (!whatsAppText.trim()) return;
+
+    let parsedName = "";
+    let parsedPhone = "";
+    let parsedBhk = "";
+    let parsedLoc = "";
+
+    const lines = whatsAppText.split("\n");
+    for (const line of lines) {
+      const clean = line.trim();
+      const l = clean.toLowerCase();
+      if (l.includes("client name:") || l.startsWith("name:")) {
+        parsedName = clean.split(":")[1]?.trim() || "";
+      } else if (l.includes("client mobile:") || l.includes("mobile:") || l.includes("phone:") || l.includes("contact:")) {
+        parsedPhone = clean.split(":")[1]?.trim() || "";
+      } else if (l.includes("requirement:") || l.includes("bhk:") || l.includes("looking for:")) {
+        parsedBhk = clean.split(":")[1]?.trim() || "";
+      } else if (l.includes("location:") || l.includes("city:") || l.includes("area:")) {
+        parsedLoc = clean.split(":")[1]?.trim() || "";
+      }
+    }
+
+    // Fallback: extract 10-digit phone using regex if not explicitly tagged
+    if (!parsedPhone) {
+      const phoneMatch = whatsAppText.match(/(?:\+91[\-\s]?)?[6-9]\d{9}/);
+      if (phoneMatch) parsedPhone = phoneMatch[0].replace(/\D/g, "").slice(-10);
+    }
+
+    // Fallback: detect BHK keywords
+    const lowerAll = whatsAppText.toLowerCase();
+    if (!parsedBhk) {
+      if (lowerAll.includes("1 bhk") || lowerAll.includes("1bhk")) parsedBhk = "1 BHK";
+      else if (lowerAll.includes("2 bhk") || lowerAll.includes("2bhk")) parsedBhk = "2 BHK";
+      else if (lowerAll.includes("3 bhk") || lowerAll.includes("3bhk")) parsedBhk = "3 BHK";
+      else if (lowerAll.includes("4 bhk") || lowerAll.includes("4bhk")) parsedBhk = "4 BHK";
+      else if (lowerAll.includes("penthouse")) parsedBhk = "Penthouse";
+    }
+
+    // Fallback: detect popular Mumbai locations
+    if (!parsedLoc) {
+      const areas = ["Bandra", "Andheri", "Thane", "Worli", "Bhandup", "Powai", "Juhu", "Goregaon", "Malad", "Borivali", "Kandivali", "Dadar", "Colaba", "Navi Mumbai", "Vashi", "Kalyan"];
+      for (const a of areas) {
+        if (lowerAll.includes(a.toLowerCase())) {
+          parsedLoc = a;
+          break;
+        }
+      }
+    }
+
+    // Fallback name if none found: if first line is short and has no numbers or colons
+    if (!parsedName) {
+      const firstLine = lines[0]?.trim();
+      if (firstLine && firstLine.length < 30 && !firstLine.includes(":") && !firstLine.match(/\d/)) {
+        parsedName = firstLine;
+      }
+    }
+
+    if (parsedName) {
+      setName(parsedName);
+      validateField("name", parsedName);
+    }
+    if (parsedPhone) {
+      setPhone(parsedPhone);
+      validateField("phone", parsedPhone);
+    }
+    if (parsedBhk) setBhkType(parsedBhk);
+    if (parsedLoc) {
+      setLocation(parsedLoc);
+      validateField("location", parsedLoc);
+    }
+    setSource("WhatsApp Business");
+    setNotes(prev => prev ? prev + "\n[WhatsApp Msg]: " + whatsAppText : whatsAppText);
+
+    setParseSuccessMsg(`✨ Auto-Extracted: ${parsedName || "Client"} | ${parsedPhone || "Mobile"} | ${parsedBhk || "BHK"} | ${parsedLoc || "Mumbai"}`);
+    setTimeout(() => setParseSuccessMsg(""), 6000);
+  };
 
   if (!isOpen) return null;
 
@@ -291,6 +380,107 @@ export default function AddLeadModal({ isOpen, onClose, onLeadCreated, initialDa
         {/* Modal Body - Scrollable Mobile App Form */}
         <form onSubmit={handleSubmit} noValidate style={{ padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem", overflowY: "auto", flex: "1 1 auto" }}>
           
+          {/* Quick WhatsApp Lead Text Paste Box */}
+          <div style={{
+            background: showWhatsAppPaste ? "#f0fdf4" : "#f8fafc",
+            border: showWhatsAppPaste ? "1.5px solid #86efac" : "1px dashed #cbd5e1",
+            borderRadius: "0.75rem",
+            padding: "0.75rem",
+            transition: "all 0.2s ease"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => setShowWhatsAppPaste(!showWhatsAppPaste)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: showWhatsAppPaste ? "#15803d" : "#475569",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.35rem"
+                }}
+              >
+                <span>💬</span>
+                <span>{showWhatsAppPaste ? "Paste WhatsApp Lead Message" : "Paste WhatsApp Message (Auto-Fill)"}</span>
+                <span style={{ fontSize: "0.6875rem", color: "#16a34a", fontWeight: 700 }}>
+                  {showWhatsAppPaste ? "▲ Close" : "▼ Auto-Extract"}
+                </span>
+              </button>
+            </div>
+
+            {showWhatsAppPaste && (
+              <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <textarea
+                  rows={3}
+                  value={whatsAppText}
+                  onChange={e => setWhatsAppText(e.target.value)}
+                  placeholder="Paste WhatsApp chat or message here...&#10;e.g.&#10;Client Name: Rohan Kaka&#10;Mobile: 9867778229&#10;Requirement: 3 BHK&#10;Location: Andheri West"
+                  style={{
+                    width: "100%",
+                    fontSize: "0.75rem",
+                    padding: "0.5rem",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #bbf7d0",
+                    background: "#ffffff",
+                    fontFamily: "inherit",
+                    resize: "vertical"
+                  }}
+                />
+
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={handleParseWhatsAppText}
+                    style={{
+                      background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "0.45rem 0.75rem",
+                      borderRadius: "0.5rem",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.3rem",
+                      boxShadow: "0 2px 8px rgba(22,163,74,0.25)"
+                    }}
+                  >
+                    <Sparkles size={13} /> ⚡ Auto-Fill Fields
+                  </button>
+
+                  {whatsAppText && (
+                    <button
+                      type="button"
+                      onClick={() => setWhatsAppText("")}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#94a3b8",
+                        fontSize: "0.6875rem",
+                        cursor: "pointer",
+                        fontWeight: 600
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {parseSuccessMsg && (
+                  <div style={{ fontSize: "0.6875rem", color: "#15803d", fontWeight: 700, background: "#dcfce7", padding: "0.35rem 0.5rem", borderRadius: "0.35rem" }}>
+                    {parseSuccessMsg}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Full Name */}
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
