@@ -173,15 +173,18 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
       className="modal-overlay" 
       onClick={onClose} 
       style={{
-        position: "fixed",
+        position: "absolute",
         inset: 0,
-        background: "rgba(15, 23, 42, 0.85)",
-        backdropFilter: "blur(8px)",
+        background: "rgba(15, 23, 42, 0.75)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
         zIndex: 99999,
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-end",
         justifyContent: "center",
-        padding: "1rem"
+        borderRadius: "inherit",
+        overflow: "hidden",
+        padding: 0
       }}
     >
       <div 
@@ -189,25 +192,25 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
         onClick={(e) => e.stopPropagation()} 
         style={{
           background: "#ffffff",
-          borderRadius: "1.5rem",
+          borderTopLeftRadius: "1.5rem",
+          borderTopRightRadius: "1.5rem",
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
           width: "100%",
-          maxWidth: "440px",
-          maxHeight: "92vh",
+          maxWidth: "100%",
+          maxHeight: "92%",
           overflowY: "auto",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+          boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.4)",
           border: "1px solid rgba(255, 255, 255, 0.2)",
           position: "relative",
           display: "flex",
           flexDirection: "column",
-          animation: "scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)"
+          animation: "slideUpMobile 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
         }}
       >
-        {/* Luxury Top Header Banner */}
+        {/* Luxury Top Header Banner with Pull Indicator */}
         <div style={{
-          padding: "1rem 1.25rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          padding: "0.75rem 1.15rem 0.85rem 1.15rem",
           background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
           color: "#ffffff",
           borderTopLeftRadius: "1.5rem",
@@ -217,33 +220,36 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
           top: 0,
           zIndex: 10
         }}>
-          <div>
-            <h3 style={{ fontSize: "0.95rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "0.45rem", color: "#ffffff" }}>
-              <Sparkles size={16} color="#fbbf24" /> Multi-Channel Lead Integrations
-            </h3>
-            <p style={{ fontSize: "0.7rem", color: "#94a3b8", margin: "0.2rem 0 0 0" }}>
-              WhatsApp, Instagram, Facebook, Call IVR & Website Webhooks
-            </p>
-          </div>
+          <div style={{ width: "36px", height: "4px", background: "rgba(255,255,255,0.3)", borderRadius: "9999px", margin: "0 auto 0.5rem auto" }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <h3 style={{ fontSize: "0.925rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "0.45rem", color: "#ffffff" }}>
+                <Sparkles size={15} color="#fbbf24" /> Multi-Channel Integrations
+              </h3>
+              <p style={{ fontSize: "0.6875rem", color: "#94a3b8", margin: "0.15rem 0 0 0" }}>
+                WhatsApp, Instagram, Facebook & Webhooks
+              </p>
+            </div>
 
-          <button
-            onClick={onClose}
-            style={{
-              background: "rgba(255, 255, 255, 0.15)",
-              border: "none",
-              color: "#cbd5e1",
-              width: "30px",
-              height: "30px",
-              borderRadius: "50%",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0
-            }}
-          >
-            <X size={16} />
-          </button>
+            <button
+              onClick={onClose}
+              style={{
+                background: "rgba(255, 255, 255, 0.15)",
+                border: "none",
+                color: "#cbd5e1",
+                width: "28px",
+                height: "28px",
+                borderRadius: "50%",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0
+              }}
+            >
+              <X size={15} />
+            </button>
+          </div>
         </div>
 
         {/* Integration Pill Sub-Tabs */}
@@ -303,11 +309,11 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                 <span>WhatsApp par aane wali har inquiry/message automatically <strong>Fresh Leads</strong> mein capture hogi, <strong>Screen par live ring karegi</strong>, aur directly aapke phone (<strong>{agentAlertPhone}</strong>) par alert message bhejegi!</span>
               </div>
 
-              {/* WhatsApp Numbers Configuration */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+              {/* WhatsApp Numbers Configuration - Mobile Optimized Stack */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
                 <div>
-                  <label style={{ fontSize: "0.725rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
-                    🟢 WhatsApp Business SIM/No.
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    🟢 WhatsApp Business SIM / Number
                   </label>
                   <input
                     type="text"
@@ -315,16 +321,16 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                     value={waPhoneNumber}
                     onChange={e => setWaPhoneNumber(e.target.value)}
                     placeholder="+91 98677 78229"
-                    style={{ fontWeight: 800, color: "#15803d", fontSize: "0.75rem" }}
+                    style={{ fontWeight: 800, color: "#15803d", fontSize: "0.8125rem", width: "100%" }}
                   />
-                  <span style={{ fontSize: "0.625rem", color: "#64748b" }}>
-                    Client jis number par message karega
+                  <span style={{ fontSize: "0.6875rem", color: "#64748b" }}>
+                    Client jis number par message bhejega
                   </span>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: "0.725rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
-                    📱 Agent Alert Phone
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    📱 Agent Alert Mobile Number
                   </label>
                   <input
                     type="text"
@@ -332,10 +338,10 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                     value={contactPhone}
                     onChange={e => setContactPhone(e.target.value)}
                     placeholder="+91 98677 78229"
-                    style={{ fontWeight: 800, color: "#2563eb", fontSize: "0.75rem" }}
+                    style={{ fontWeight: 800, color: "#2563eb", fontSize: "0.8125rem", width: "100%" }}
                   />
-                  <span style={{ fontSize: "0.625rem", color: "#64748b" }}>
-                    Aapka number jahan alert aayega
+                  <span style={{ fontSize: "0.6875rem", color: "#64748b" }}>
+                    Aapka number jahan lead aane par instant alert aayega
                   </span>
                 </div>
               </div>
