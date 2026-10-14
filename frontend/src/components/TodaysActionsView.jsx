@@ -7,8 +7,8 @@ import {
 import CustomAlertDialog from "./CustomAlertDialog";
 
 export default function TodaysActionsView({ leads, onSelectAction, onOpenColdDialer }) {
-  const overdueCount = leads.filter(l => l.status === "OVERDUE").length || 78;
-  const todaysCount = leads.filter(l => l.status === "FOLLOWUP_TODAY").length || 18;
+  const overdueCount = leads.filter(l => l.status === "OVERDUE").length;
+  const todaysCount = leads.filter(l => l.status === "FOLLOWUP_TODAY").length;
   const [alertConfig, setAlertConfig] = useState(null);
 
   return (

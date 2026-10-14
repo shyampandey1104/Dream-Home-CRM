@@ -142,18 +142,7 @@ export default function App() {
       }
     } catch (e) {}
 
-    // Initial real scheduled disposition alerts based on actual follow-up leads
-    const initialFollowups = INITIAL_LEADS.filter(l => l.status === "FOLLOWUP_TODAY" || l.callbackTime);
-    return initialFollowups.map((l, idx) => ({
-      id: `notif-init-${l.id}-${idx}`,
-      title: `⏰ Follow-up Due: ${l.name}`,
-      message: `Follow-up scheduled via call disposition (${l.notes || "Callback Requested"}). Client interested in ${l.bhkType} (${l.location}).`,
-      source: "Scheduled Follow-up",
-      type: "followup",
-      timeAgo: l.callbackTime || "Today",
-      read: false,
-      lead: l
-    }));
+    return [];
   });
 
   useEffect(() => {
@@ -169,11 +158,11 @@ export default function App() {
       // Don't poll and trigger re-renders if user is currently on a call or filling disposition form
       if (activeCallLead) return;
       fetchCrmLeads(userEmail).then((data) => {
-        if (data && data.length > 0) setLeads(data);
+        if (Array.isArray(data)) setLeads(data);
       });
 
       fetchCrmNotifications().then((notifs) => {
-        if (notifs && notifs.length > 0) {
+        if (Array.isArray(notifs)) {
           setNotifications(notifs);
           // Check for fresh unhandled inbound call to ring the screen
           const latestInbound = notifs.find(n => 

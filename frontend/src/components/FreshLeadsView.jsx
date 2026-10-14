@@ -380,8 +380,31 @@ export default function FreshLeadsView({ leads, onCallLead, onSendReport, onLead
         ))}
 
         {filtered.length === 0 && (
-          <div style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>
-            No fresh leads match the selected BHK / Property filters.
+          <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#f8fafc", borderRadius: "1rem", border: "1.5px dashed #cbd5e1", margin: "1rem 0" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>📁</div>
+            <h4 style={{ fontSize: "1rem", fontWeight: 800, color: "#0f172a", marginBottom: "0.25rem" }}>No Leads in Queue</h4>
+            <p style={{ fontSize: "0.8125rem", color: "#64748b", maxWidth: "300px", margin: "0 auto 1.25rem" }}>
+              Import your client data from Excel (.xlsx) or add new leads to start calling immediately.
+            </p>
+            <button
+              onClick={() => setIsImportOpen(true)}
+              style={{
+                background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                color: "#ffffff",
+                border: "none",
+                padding: "0.6rem 1.25rem",
+                borderRadius: "0.625rem",
+                fontSize: "0.84375rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                boxShadow: "0 4px 14px rgba(22, 163, 74, 0.35)"
+              }}
+            >
+              <FileSpreadsheet size={16} /> Import Leads from Excel
+            </button>
           </div>
         )}
       </div>

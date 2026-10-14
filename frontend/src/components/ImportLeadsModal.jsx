@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { X, FileSpreadsheet, UploadCloud, CheckCircle2, Download, AlertCircle, Users, ArrowRight } from "lucide-react";
+import * as XLSX from "xlsx";
 import { saveLeadApi, bulkSaveLeadsApi } from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
@@ -14,23 +15,24 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported, exi
 
   if (!isOpen) return null;
 
-  const downloadSampleTemplate = () => {
-    const headers = "Name,Phone,Email,Location,BHK_Type,Service,Source,Priority,Notes";
-    const sampleRows = [
-      "Aarav Sharma,+91 98205 91823,aarav.sharma@gmail.com,Bandra West,3 BHK,Home Buying,Google Ads,HOT,Interested in Sea View 3BHK flat",
-      "Pooja Verma,+91 98334 11223,pooja.v@yahoo.com,Andheri West,2 BHK,Home Buying,Instagram Ads,WARM,Looking for ready-to-move apartment",
-      "Kavita Mehta,+91 98765 43210,kavita.m@outlook.com,Thane West,1 BHK,Site Visit Booking,MagicBricks,HOT,Wants weekend site visit"
-    ];
-    const csvContent = "\uFEFF" + [headers, ...sampleRows].join("\r\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
+  const downloadExcelTemplate = () => {
     const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "Sample_CRM_Leads_Template.csv");
+    const isFrappe = typeof window !== "undefined" && (window.location.pathname.includes("/crm") || window.location.pathname.startsWith("/assets/"));
+    link.href = isFrappe ? "/assets/real_state_crm/frontend/DreamHome_CRM_Leads_Import_Template.xlsx" : "/DreamHome_CRM_Leads_Import_Template.xlsx";
+    link.setAttribute("download", "DreamHome_CRM_Leads_Import_Template.xlsx");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  };
+
+  const downloadCsvTemplate = () => {
+    const link = document.createElement("a");
+    const isFrappe = typeof window !== "undefined" && (window.location.pathname.includes("/crm") || window.location.pathname.startsWith("/assets/"));
+    link.href = isFrappe ? "/assets/real_state_crm/frontend/DreamHome_CRM_Leads_Import_Template.csv" : "/DreamHome_CRM_Leads_Import_Template.csv";
+    link.setAttribute("download", "DreamHome_CRM_Leads_Import_Template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleFileChange = (e) => {
@@ -53,12 +55,34 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported, exi
 
     setFile(uploadedFile);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target.result;
-      parseCsvData(text, uploadedFile.name);
-    };
-    reader.readAsText(uploadedFile);
+    if (ext === ".xlsx" || ext === ".xls") {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const csvText = XLSX.utils.sheet_to_csv(worksheet);
+          parseCsvData(csvText, uploadedFile.name);
+        } catch (err) {
+          console.error("Excel parse error", err);
+          setAlertConfig({
+            title: "Excel Read Error",
+            message: "Unable to read Excel workbook. Please verify the file is not corrupted.",
+            type: "error"
+          });
+        }
+      };
+      reader.readAsArrayBuffer(uploadedFile);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        parseCsvData(text, uploadedFile.name);
+      };
+      reader.readAsText(uploadedFile);
+    }
   };
 
   const parseCsvData = (text, fileName) => {
@@ -77,11 +101,12 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported, exi
       const headerLine = lines[0];
       const headers = headerLine.split(",").map(h => h.trim().replace(/^["']|["']$/g, "").toLowerCase());
 
-      const nameIdx = headers.findIndex(h => h.includes("name") || h.includes("lead"));
+      const nameIdx = headers.findIndex(h => h.includes("name") || h.includes("lead") || h.includes("client"));
       const phoneIdx = headers.findIndex(h => h.includes("phone") || h.includes("mobile") || h.includes("contact") || h.includes("number"));
       const emailIdx = headers.findIndex(h => h.includes("email") || h.includes("mail"));
       const locIdx = headers.findIndex(h => h.includes("loc") || h.includes("city") || h.includes("area") || h.includes("address"));
       const bhkIdx = headers.findIndex(h => h.includes("bhk") || h.includes("config") || h.includes("type"));
+      const budgetIdx = headers.findIndex(h => h.includes("budget") || h.includes("price") || h.includes("amount") || h.includes("cost"));
       const serviceIdx = headers.findIndex(h => h.includes("service") || h.includes("requirement") || h.includes("category"));
       const sourceIdx = headers.findIndex(h => h.includes("source") || h.includes("channel") || h.includes("campaign"));
       const priorityIdx = headers.findIndex(h => h.includes("priority") || h.includes("stage"));
@@ -114,6 +139,10 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported, exi
           seenInThisFile.add(cleanDigits);
         }
 
+        const budgetVal = (budgetIdx >= 0 && row[budgetIdx]) ? row[budgetIdx] : "";
+        const rawNote = (notesIdx >= 0 && row[notesIdx]) ? row[notesIdx] : "";
+        const combinedNotes = budgetVal ? (rawNote ? `Budget: ${budgetVal} | ${rawNote}` : `Budget: ${budgetVal}`) : (rawNote || "Bulk imported from Excel file");
+
         if (nameVal && rawPhone) {
           leadsList.push({
             id: `LEAD-IMP-${Date.now().toString().slice(-4)}${i}`,
@@ -129,7 +158,7 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported, exi
             status: "NEW",
             timeAgo: "Just Imported",
             callCount: 0,
-            notes: (notesIdx >= 0 && row[notesIdx]) ? row[notesIdx] : "Bulk imported from Excel file"
+            notes: combinedNotes
           });
         }
       }
@@ -281,31 +310,60 @@ export default function ImportLeadsModal({ isOpen, onClose, onLeadsImported, exi
         {/* Body */}
         <div style={{ padding: "1.25rem", overflowY: "auto", flex: "1 1 auto", display: "flex", flexDirection: "column", gap: "1rem" }}>
           
-          {/* Sample Template Download Button */}
-          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "0.75rem", borderRadius: "0.625rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
-            <div>
-              <div style={{ fontSize: "0.8125rem", fontWeight: 800, color: "#166534" }}>Need standard Excel format?</div>
-              <div style={{ fontSize: "0.6875rem", color: "#15803d" }}>Download our ready-made CSV template</div>
+          {/* Sample Template Download Buttons */}
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "0.85rem", borderRadius: "0.75rem", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: "0.8125rem", fontWeight: 800, color: "#166534" }}>📥 Ready-to-Use Leads Templates</div>
+                <div style={{ fontSize: "0.6875rem", color: "#15803d" }}>Standard columns with instructions & sample data</div>
+              </div>
             </div>
-            <button
-              onClick={downloadSampleTemplate}
-              style={{
-                background: "#16a34a",
-                color: "#ffffff",
-                border: "none",
-                padding: "0.4rem 0.65rem",
-                borderRadius: "0.375rem",
-                fontSize: "0.75rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.25rem",
-                whiteSpace: "nowrap"
-              }}
-            >
-              <Download size={13} /> Sample CSV
-            </button>
+
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                type="button"
+                onClick={downloadExcelTemplate}
+                style={{
+                  flex: 1,
+                  background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "0.45rem 0.65rem",
+                  borderRadius: "0.45rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.35rem",
+                  boxShadow: "0 2px 6px rgba(22, 163, 74, 0.3)"
+                }}
+              >
+                <Download size={14} /> Download Excel (.xlsx)
+              </button>
+
+              <button
+                type="button"
+                onClick={downloadCsvTemplate}
+                style={{
+                  background: "#ffffff",
+                  color: "#166534",
+                  border: "1.5px solid #86efac",
+                  padding: "0.45rem 0.65rem",
+                  borderRadius: "0.45rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.35rem"
+                }}
+              >
+                <Download size={14} /> CSV (.csv)
+              </button>
+            </div>
           </div>
 
           {/* Drag & Drop Upload Zone */}

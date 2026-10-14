@@ -106,7 +106,11 @@ export const fetchCrmLeads = async (userEmail = null) => {
     if (res && res.ok) {
       const json = await res.json();
       const rawLeads = json?.message?.data || json?.data || [];
-      if (Array.isArray(rawLeads) && rawLeads.length > 0) {
+      if (Array.isArray(rawLeads)) {
+        if (rawLeads.length === 0) {
+          saveStoredLeads([]);
+          return [];
+        }
         const normalized = rawLeads.map(l => ({
           ...l,
           id: l.name,
@@ -820,13 +824,12 @@ export const saveStoredUsers = (users) => {
 export const getStoredLeads = () => {
   const local = localStorage.getItem(LEADS_STORAGE_KEY);
   if (!local) {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(INITIAL_LEADS));
-    return INITIAL_LEADS;
+    return [];
   }
   try {
-    return JSON.parse(local);
+    return JSON.parse(local) || [];
   } catch (e) {
-    return INITIAL_LEADS;
+    return [];
   }
 };
 
