@@ -123,6 +123,12 @@ export default function App() {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [showGptModal, setShowGptModal] = useState(false);
   const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
+  const [integrationsInitialTab, setIntegrationsInitialTab] = useState("whatsapp");
+
+  const handleOpenIntegrations = (tab = "whatsapp") => {
+    setIntegrationsInitialTab(tab || "whatsapp");
+    setShowIntegrationsModal(true);
+  };
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showStoriesModal, setShowStoriesModal] = useState(false);
   const [showCalculatorModal, setShowCalculatorModal] = useState(false);
@@ -869,6 +875,7 @@ export default function App() {
       {showIntegrationsModal && (
         <IntegrationsModal
           isOpen={showIntegrationsModal}
+          initialTab={integrationsInitialTab}
           onClose={() => setShowIntegrationsModal(false)}
           onTestLeadCreated={handleTestLeadCreated}
           onOrgProfileUpdated={(newProf) => setOrgProfile(prev => ({ ...prev, ...newProf }))}
@@ -927,7 +934,7 @@ export default function App() {
           userProfile={userProfile}
           onOpenProfile={() => setShowProfileModal(true)}
           onOpenSidebar={() => setShowSidebar(true)}
-          onOpenIntegrations={() => setShowIntegrationsModal(true)}
+          onOpenIntegrations={() => handleOpenIntegrations("whatsapp")}
           onOpenInstallApp={() => setShowInstallModal(true)}
           onSimulateInbound={simulateSocialInboundLead}
           orgProfile={orgProfile}
@@ -961,6 +968,7 @@ export default function App() {
           onOpenStories={() => setShowStoriesModal(true)}
           onOpenCalculator={() => setShowCalculatorModal(true)}
           onOpenInstallApp={() => setShowInstallModal(true)}
+          onOpenIntegrations={handleOpenIntegrations}
           onSimulateInbound={simulateSocialInboundLead}
         />
 
@@ -1120,7 +1128,7 @@ export default function App() {
           onOpenStories={() => setShowStoriesModal(true)}
           onOpenCalculator={() => setShowCalculatorModal(true)}
           onOpenInstallApp={() => setShowInstallModal(true)}
-          onOpenIntegrations={() => setShowIntegrationsModal(true)}
+          onOpenIntegrations={handleOpenIntegrations}
           onSimulateInbound={simulateSocialInboundLead}
         />
 

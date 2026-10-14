@@ -1,7 +1,7 @@
 import React from "react";
 import { 
   X, User, Share2, Clock, MapPin, Sparkles, FileText, List, 
-  PlusCircle, Megaphone, Settings, ChevronRight, ShieldCheck, HelpCircle, Bot, Calculator, Smartphone, PhoneIncoming, Zap, MessageSquare
+  PlusCircle, Megaphone, Settings, ChevronRight, ShieldCheck, HelpCircle, Bot, Calculator, Smartphone, PhoneIncoming, Zap, MessageSquare, PhoneCall
 } from "lucide-react";
 
 export default function SidebarDrawer({ 
@@ -113,10 +113,30 @@ export default function SidebarDrawer({
             </span>
           </button>
 
-          {/* WhatsApp & Multi-Channel Lead Integrations Button */}
+          {/* Exotel Cloud Telephony Button */}
           <button
             className="sidebar-menu-item"
-            onClick={() => { onClose(); if (onOpenIntegrations) onOpenIntegrations(); }}
+            onClick={() => { onClose(); if (onOpenIntegrations) onOpenIntegrations("virtual_number"); }}
+            style={{
+              background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+              border: "1px solid #bfdbfe",
+              color: "#1d4ed8",
+              borderRadius: "0.625rem",
+              fontWeight: 800,
+              margin: "0.15rem 0 0.35rem 0"
+            }}
+          >
+            <PhoneCall size={18} color="#2563eb" className="sidebar-menu-icon" />
+            <span>Exotel Telephony & Calling</span>
+            <span style={{ marginLeft: "auto", fontSize: "0.65rem", background: "#2563eb", color: "#ffffff", padding: "0.15rem 0.45rem", borderRadius: "9999px", fontWeight: 800 }}>
+              EXOTEL
+            </span>
+          </button>
+
+          {/* Multi-Channel & WhatsApp Lead Integrations Button */}
+          <button
+            className="sidebar-menu-item"
+            onClick={() => { onClose(); if (onOpenIntegrations) onOpenIntegrations("whatsapp"); }}
             style={{
               background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
               border: "1px solid #bbf7d0",
@@ -127,7 +147,7 @@ export default function SidebarDrawer({
             }}
           >
             <MessageSquare size={18} color="#16a34a" className="sidebar-menu-icon" />
-            <span>WhatsApp & Lead Integrations</span>
+            <span>Multi-Channel Integrations</span>
             <span style={{ marginLeft: "auto", fontSize: "0.65rem", background: "#16a34a", color: "#ffffff", padding: "0.15rem 0.45rem", borderRadius: "9999px", fontWeight: 800 }}>
               SETUP
             </span>

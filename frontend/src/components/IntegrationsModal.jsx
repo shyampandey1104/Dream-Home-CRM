@@ -10,8 +10,8 @@ import {
 } from "../services/apiService";
 import CustomAlertDialog from "./CustomAlertDialog";
 
-export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, onOrgProfileUpdated }) {
-  const [activeTab, setActiveTab] = useState("whatsapp"); // 'whatsapp' | 'instagram' | 'facebook' | 'virtual_number' | 'website' | 'org'
+export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, onOrgProfileUpdated, initialTab = "whatsapp" }) {
+  const [activeTab, setActiveTab] = useState(initialTab || "whatsapp");
   const [alertConfig, setAlertConfig] = useState(null);
   const [copiedKey, setCopiedKey] = useState(null);
 
@@ -64,6 +64,7 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
   useEffect(() => {
     if (isOpen) {
       setAlertConfig(null);
+      if (initialTab) setActiveTab(initialTab);
       fetchIntegrationSettings().then(data => {
         if (data) {
           if (data.website_url) setWebsiteUrl(data.website_url);
