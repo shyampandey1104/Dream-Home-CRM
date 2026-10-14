@@ -346,6 +346,52 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                 </div>
               </div>
 
+              {/* Local WhatsApp QR Link (100% Local / Zero Cloud) */}
+              <div style={{
+                background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+                border: "1.5px solid #86efac",
+                borderRadius: "0.85rem",
+                padding: "0.85rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <span style={{ fontSize: "1.2rem" }}>🟢</span>
+                  <div>
+                    <div style={{ fontSize: "0.8125rem", fontWeight: 800, color: "#166534" }}>
+                      WhatsApp Direct Link (100% Local Mac Sync)
+                    </div>
+                    <div style={{ fontSize: "0.6875rem", color: "#15803d" }}>
+                      Phone WhatsApp se QR Code scan karke connect karein
+                    </div>
+                  </div>
+                </div>
+
+                <a
+                  href="http://localhost:5005/qr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                    color: "#ffffff",
+                    textAlign: "center",
+                    textDecoration: "none",
+                    padding: "0.65rem",
+                    borderRadius: "0.5rem",
+                    fontSize: "0.8125rem",
+                    fontWeight: 800,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.4rem",
+                    boxShadow: "0 4px 12px rgba(22,163,74,0.3)"
+                  }}
+                >
+                  📱 Click Here to Open QR Code (Link WhatsApp Phone)
+                </a>
+              </div>
+
               {/* Live Webhook URL */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
