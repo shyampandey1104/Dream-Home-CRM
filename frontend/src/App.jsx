@@ -169,14 +169,12 @@ export default function App() {
       fetchCrmNotifications().then((notifs) => {
         if (Array.isArray(notifs)) {
           setNotifications(notifs);
-          // Check for fresh unhandled inbound call to ring the screen
+          // Check for fresh unhandled inbound call or WhatsApp lead to ring the screen
           const latestInbound = notifs.find(n => 
-            (n.type === "inbound" || n.type === "inbound_call" || n.source?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("inbound")) && 
+            (n.type === "inbound" || n.type === "inbound_call" || n.source?.toLowerCase().includes("inbound") || n.source?.toLowerCase().includes("whatsapp") || n.title?.toLowerCase().includes("inbound") || n.title?.toLowerCase().includes("whatsapp")) && 
             !n.read && 
             n.lead && 
-            !handledInboundCallsRef.current.has(String(n.id)) &&
-            !handledInboundCallsRef.current.has(String(n.lead?.id)) &&
-            !handledInboundCallsRef.current.has(String(n.lead?.phone))
+            !handledInboundCallsRef.current.has(String(n.id))
           );
           if (latestInbound && !activeCallLead && !incomingCallLead) {
             setIncomingCallNotifId(latestInbound.id);
@@ -464,12 +462,6 @@ export default function App() {
       markNotificationReadApi(incomingCallNotifId);
     }
     const currentLead = lead || incomingCallLead;
-    if (currentLead?.id) {
-      handledInboundCallsRef.current.add(String(currentLead.id));
-    }
-    if (currentLead?.phone) {
-      handledInboundCallsRef.current.add(String(currentLead.phone));
-    }
     setNotifications(prev => prev.map(n => n.id === incomingCallNotifId ? { ...n, read: true } : n));
     
     if (currentLead) {
@@ -498,12 +490,6 @@ export default function App() {
       markNotificationReadApi(incomingCallNotifId);
     }
     const currentLead = incomingCallLead;
-    if (currentLead?.id) {
-      handledInboundCallsRef.current.add(String(currentLead.id));
-    }
-    if (currentLead?.phone) {
-      handledInboundCallsRef.current.add(String(currentLead.phone));
-    }
     setNotifications(prev => prev.map(n => n.id === incomingCallNotifId ? { ...n, read: true } : n));
     setIncomingCallLead(null);
     setIncomingCallNotifId(null);
