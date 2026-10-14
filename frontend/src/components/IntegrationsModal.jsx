@@ -303,21 +303,41 @@ export default function IntegrationsModal({ isOpen, onClose, onTestLeadCreated, 
                 <span>WhatsApp par aane wali har inquiry/message automatically <strong>Fresh Leads</strong> mein capture hogi, <strong>Screen par live ring karegi</strong>, aur directly aapke phone (<strong>{agentAlertPhone}</strong>) par alert message bhejegi!</span>
               </div>
 
-              {/* Agent Alert Phone */}
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
-                  📱 Agent WhatsApp Alert Phone Number
-                </label>
-                <input
-                  type="text"
-                  className="modern-search-input"
-                  value={waPhoneNumber}
-                  onChange={e => setWaPhoneNumber(e.target.value)}
-                  style={{ fontWeight: 800, color: "#15803d" }}
-                />
-                <span style={{ fontSize: "0.6875rem", color: "#64748b" }}>
-                  All incoming inquiries and new leads forward an instant alert to this number.
-                </span>
+              {/* WhatsApp Numbers Configuration */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                <div>
+                  <label style={{ fontSize: "0.725rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    🟢 WhatsApp Business SIM/No.
+                  </label>
+                  <input
+                    type="text"
+                    className="modern-search-input"
+                    value={waPhoneNumber}
+                    onChange={e => setWaPhoneNumber(e.target.value)}
+                    placeholder="+91 98677 78229"
+                    style={{ fontWeight: 800, color: "#15803d", fontSize: "0.75rem" }}
+                  />
+                  <span style={{ fontSize: "0.625rem", color: "#64748b" }}>
+                    Client jis number par message karega
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "0.725rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "0.25rem" }}>
+                    📱 Agent Alert Phone
+                  </label>
+                  <input
+                    type="text"
+                    className="modern-search-input"
+                    value={contactPhone}
+                    onChange={e => setContactPhone(e.target.value)}
+                    placeholder="+91 98677 78229"
+                    style={{ fontWeight: 800, color: "#2563eb", fontSize: "0.75rem" }}
+                  />
+                  <span style={{ fontSize: "0.625rem", color: "#64748b" }}>
+                    Aapka number jahan alert aayega
+                  </span>
+                </div>
               </div>
 
               {/* Live Webhook URL */}
