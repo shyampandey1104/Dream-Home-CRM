@@ -6,18 +6,7 @@ import {
   BarChart3, Target, LayoutGrid, Layers
 } from "lucide-react";
 import FilterBar from "./FilterBar";
-
-const AVATAR_LIST = [
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80"
-];
+import { getLeadAvatar } from "../utils/avatarHelper";
 
 export default function PerformanceView({ 
   metrics, 
@@ -463,9 +452,9 @@ export default function PerformanceView({
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {[
               { name: "Shyam Pandey", role: "Senior Sales Consultant", calls: "54 Calls Logged", status: "🟢 Online", phone: "9867778229", avatar: "/profile.jpg" },
-              { name: "Priya Sharma", role: "Sales Manager", calls: "48 Calls Logged", status: "🟢 Online", phone: "9819922114", avatar: AVATAR_LIST[1] },
-              { name: "Rajesh Kumar", role: "Senior Telecaller", calls: "62 Calls Logged", status: "🟢 Online", phone: "9820033441", avatar: AVATAR_LIST[2] },
-              { name: "Karan Joshi", role: "Property Specialist", calls: "35 Calls Logged", status: "🟡 In Meeting", phone: "9833445566", avatar: AVATAR_LIST[6] }
+              { name: "Priya Sharma", role: "Sales Manager", calls: "48 Calls Logged", status: "🟢 Online", phone: "9819922114", avatar: getLeadAvatar("Priya Sharma") },
+              { name: "Rajesh Kumar", role: "Senior Telecaller", calls: "62 Calls Logged", status: "🟢 Online", phone: "9820033441", avatar: getLeadAvatar("Rajesh Kumar") },
+              { name: "Karan Joshi", role: "Property Specialist", calls: "35 Calls Logged", status: "🟡 In Meeting", phone: "9833445566", avatar: getLeadAvatar("Karan Joshi") }
             ].map((t, idx) => (
               <div key={idx} style={{
                 display: "flex",
@@ -480,7 +469,7 @@ export default function PerformanceView({
                   <img 
                     src={t.avatar} 
                     alt={t.name}
-                    onError={(e) => { e.target.src = AVATAR_LIST[idx % AVATAR_LIST.length]; }}
+                    onError={(e) => { e.target.src = getLeadAvatar(t.name); }}
                     style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover" }}
                   />
                   <div>
@@ -497,7 +486,7 @@ export default function PerformanceView({
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
             {activeDisplayLeads.slice(0, 6).map((lead, idx) => {
-              const avatarUrl = AVATAR_LIST[idx % AVATAR_LIST.length];
+              const avatarUrl = getLeadAvatar(lead, idx);
               const isHot = lead.priority === "HOT";
               return (
                 <div
