@@ -364,7 +364,9 @@ const GIRL_AVATARS = [
  * and strictly Girl/Woman vector avatar icon for female names.
  */
 export function getLeadAvatar(nameOrLead, index = 0) {
-  const name = typeof nameOrLead === "string" ? nameOrLead : (nameOrLead?.name || nameOrLead?.lead_name || "");
+  const name = typeof nameOrLead === "string" 
+    ? nameOrLead 
+    : (nameOrLead?.name || nameOrLead?.lead_name || nameOrLead?.client || nameOrLead?.name_client || nameOrLead?.name_lead || nameOrLead?.name_member || "");
   const gender = detectGender(name);
   
   const hash = Math.abs(

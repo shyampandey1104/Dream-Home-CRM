@@ -783,7 +783,7 @@ export default function App() {
         );
       case "activities":
         return (
-          <ActivitiesView showToast={showToast} />
+          <ActivitiesView showToast={showToast} onCallLead={handleStartCall} />
         );
       default:
         return (
