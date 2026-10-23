@@ -926,269 +926,87 @@ export default function App() {
     }
   };
 
-  if (isRealMobile) {
-    return (
-      <div className="native-mobile-app-shell">
-        <MobileHeader
-          currentTab={currentTab}
-          unreadCount={unreadCount}
-          onDirectCall={handleDirectCall}
-          onOpenNotifications={() => setShowNotificationsModal(true)}
-          userProfile={userProfile}
-          onOpenProfile={() => setShowProfileModal(true)}
-          onOpenSidebar={() => setShowSidebar(true)}
-          onOpenIntegrations={() => handleOpenIntegrations("whatsapp")}
-          onOpenInstallApp={() => setShowInstallModal(true)}
-          onSimulateInbound={simulateSocialInboundLead}
-          orgProfile={orgProfile}
-        />
+  return (
+    <div className="native-mobile-app-shell">
+      <MobileHeader
+        currentTab={currentTab}
+        unreadCount={unreadCount}
+        onDirectCall={handleDirectCall}
+        onOpenNotifications={() => setShowNotificationsModal(true)}
+        userProfile={userProfile}
+        onOpenProfile={() => setShowProfileModal(true)}
+        onOpenSidebar={() => setShowSidebar(true)}
+        onOpenIntegrations={() => handleOpenIntegrations("whatsapp")}
+        onOpenInstallApp={() => setShowInstallModal(true)}
+        onSimulateInbound={simulateSocialInboundLead}
+        orgProfile={orgProfile}
+      />
 
-        <div className="phone-screen-content">
+      <div className="phone-screen-content" style={{ flex: 1, overflowY: "auto", background: "#f8fafc" }}>
+        <div style={{ maxWidth: "860px", margin: "0 auto", width: "100%", minHeight: "100%", display: "flex", flexDirection: "column" }}>
           {renderContent()}
         </div>
-
-        <MobileBottomNav currentTab={currentTab} setTab={handleSetTab} />
-
-        {/* Slide-out Sidebar Drawer */}
-        <SidebarDrawer
-          isOpen={showSidebar}
-          onClose={() => setShowSidebar(false)}
-          currentUser={userProfile}
-          onNavigate={(tab) => {
-            if (tab === "tcf-list" || tab === "mcf-list" || tab === "announcements") {
-              handleSetTab("activities");
-            } else {
-              handleSetTab("properties");
-            }
-          }}
-          onOpenProfile={() => setShowProfileModal(true)}
-          onOpenAttendance={() => setShowAttendanceModal(true)}
-          onOpenBusinessCard={() => setShowBusinessCardModal(true)}
-          onOpenTCF={() => setShowTCFModal(true)}
-          onOpenMCF={() => setShowMCFModal(true)}
-          onOpenGpt={() => setShowGptModal(true)}
-          onOpenLocation={() => setShowLocationModal(true)}
-          onOpenStories={() => setShowStoriesModal(true)}
-          onOpenCalculator={() => setShowCalculatorModal(true)}
-          onOpenInstallApp={() => setShowInstallModal(true)}
-          onOpenIntegrations={handleOpenIntegrations}
-          onSimulateInbound={simulateSocialInboundLead}
-        />
-
-        {renderModals()}
-
-        {toastMsg && (
-          <div className="toast-notification">
-            <span>{toastMsg}</span>
-          </div>
-        )}
       </div>
-    );
-  }
 
-  return (
-    <div 
-      className={isRealMobile ? "native-mobile-app-shell" : "mobile-frame-wrapper"} 
-      style={{ 
-        minHeight: "100vh", 
-        display: "flex", 
-        alignItems: "center", 
-        justifyContent: "center", 
-        background: isDesktopExpanded ? "#090d16" : "#020617",
-        position: "relative"
-      }}
-    >
-      {/* Floating Desktop Controls when viewing on laptop/desktop */}
-      {!isRealMobile && (
-        <div style={{
-          position: "fixed",
-          top: "14px",
-          right: "20px",
-          zIndex: 99999,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          background: "rgba(15, 23, 42, 0.88)",
-          backdropFilter: "blur(10px)",
-          border: "1px solid rgba(255, 255, 255, 0.15)",
-          padding: "0.35rem 0.65rem",
-          borderRadius: "9999px",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
-        }}>
-          <button
-            type="button"
-            onClick={() => {
-              setIsDesktopExpanded(prev => {
-                const next = !prev;
-                try { localStorage.setItem("crm_desktop_expanded", String(next)); } catch (e) {}
-                return next;
-              });
-            }}
-            style={{
-              background: "rgba(245, 158, 11, 0.15)",
-              border: "1px solid rgba(245, 158, 11, 0.3)",
-              color: "#f59e0b",
-              fontSize: "0.75rem",
-              fontWeight: 700,
-              padding: "0.3rem 0.75rem",
-              borderRadius: "9999px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.35rem"
-            }}
-          >
-            {isDesktopExpanded ? "📱 Switch to Phone Frame" : "🖥️ Expand to Full Screen"}
-          </button>
+      <MobileBottomNav currentTab={currentTab} setTab={handleSetTab} />
 
-          <a
-            href="/app"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-              color: "#ffffff",
-              fontSize: "0.75rem",
-              fontWeight: 700,
-              padding: "0.3rem 0.75rem",
-              borderRadius: "9999px",
-              textDecoration: "none",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.35rem",
-              boxShadow: "0 2px 10px rgba(245, 158, 11, 0.3)"
-            }}
-          >
-            ⚙️ Frappe Desk (/app)
-          </a>
+      {/* Slide-out Sidebar Drawer */}
+      <SidebarDrawer
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        currentUser={userProfile}
+        onNavigate={(tab) => {
+          if (tab === "tcf-list" || tab === "mcf-list" || tab === "announcements") {
+            handleSetTab("activities");
+          } else {
+            handleSetTab("properties");
+          }
+        }}
+        onOpenProfile={() => setShowProfileModal(true)}
+        onOpenAttendance={() => setShowAttendanceModal(true)}
+        onOpenBusinessCard={() => setShowBusinessCardModal(true)}
+        onOpenTCF={() => setShowTCFModal(true)}
+        onOpenMCF={() => setShowMCFModal(true)}
+        onOpenGpt={() => setShowGptModal(true)}
+        onOpenLocation={() => setShowLocationModal(true)}
+        onOpenStories={() => setShowStoriesModal(true)}
+        onOpenCalculator={() => setShowCalculatorModal(true)}
+        onOpenInstallApp={() => setShowInstallModal(true)}
+        onOpenIntegrations={handleOpenIntegrations}
+        onSimulateInbound={simulateSocialInboundLead}
+      />
+
+      {renderModals()}
+
+      {toastMsg && (
+        <div 
+          style={{
+            position: "fixed",
+            top: "16px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 999999,
+            maxWidth: "340px",
+            width: "90%",
+            background: "rgba(15, 23, 42, 0.95)",
+            color: "#ffffff",
+            padding: "0.6rem 1rem",
+            borderRadius: "9999px",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+            backdropFilter: "blur(8px)",
+            fontSize: "0.8125rem",
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            border: "1px solid rgba(255,255,255,0.15)",
+            pointerEvents: "none"
+          }}
+        >
+          <span>{toastMsg}</span>
         </div>
       )}
-
-      <div 
-        className={isRealMobile ? "native-mobile-app-shell" : "phone-device-container"} 
-        style={{ 
-          width: isRealMobile ? "100%" : (isDesktopExpanded ? "100%" : "412px"), 
-          maxWidth: isRealMobile ? "100%" : (isDesktopExpanded ? "900px" : "412px"),
-          height: isRealMobile ? "100vh" : (isDesktopExpanded ? "100vh" : "890px"), 
-          maxHeight: isRealMobile ? "100vh" : (isDesktopExpanded ? "100vh" : "95vh"), 
-          background: "#f8fafc", 
-          borderRadius: (isRealMobile || isDesktopExpanded) ? "0" : "36px", 
-          overflow: "hidden", 
-          display: "flex", 
-          flexDirection: "column", 
-          position: "relative", 
-          border: (isRealMobile || isDesktopExpanded) ? "none" : "8px solid #1e293b",
-          boxShadow: (isRealMobile || isDesktopExpanded) ? "0 0 30px rgba(0,0,0,0.2)" : "0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)" 
-        }}
-      >
-        {!isRealMobile && !isDesktopExpanded && (
-          <div className="phone-status-bar" style={{ background: "#ffffff", color: "#0f172a", height: "38px", padding: "0 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: 700, borderBottom: "1px solid #f1f5f9", position: "relative" }}>
-            <span>9:41</span>
-            {/* Dynamic Island Capsule */}
-            <div style={{
-              position: "absolute",
-              top: "7px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "105px",
-              height: "24px",
-              background: "#000000",
-              borderRadius: "9999px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0 10px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.4)"
-            }}>
-              <div style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#1e293b" }} />
-              <div style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#111827" }} />
-            </div>
-            <div style={{ display: "flex", gap: "6px", alignItems: "center", color: "#0f172a" }}>
-              <Signal size={12} color="#0f172a" />
-              <Wifi size={12} color="#0f172a" />
-              <Battery size={14} color="#0f172a" />
-            </div>
-          </div>
-        )}
-
-        <MobileHeader
-          currentTab={currentTab}
-          unreadCount={unreadCount}
-          onDirectCall={handleDirectCall}
-          onOpenNotifications={() => setShowNotificationsModal(true)}
-          userProfile={userProfile}
-          onOpenProfile={() => setShowProfileModal(true)}
-          onOpenSidebar={() => setShowSidebar(true)}
-          onOpenIntegrations={() => setShowIntegrationsModal(true)}
-          onOpenInstallApp={() => setShowInstallModal(true)}
-          onSimulateInbound={simulateSocialInboundLead}
-          orgProfile={orgProfile}
-        />
-
-        <div className="phone-screen-content" style={{ flex: 1, overflowY: "auto" }}>
-          {renderContent()}
-        </div>
-
-        <MobileBottomNav currentTab={currentTab} setTab={handleSetTab} />
-
-        {/* Slide-out Sidebar Drawer */}
-        <SidebarDrawer
-          isOpen={showSidebar}
-          onClose={() => setShowSidebar(false)}
-          currentUser={userProfile}
-          onNavigate={(tab) => {
-            if (tab === "tcf-list" || tab === "mcf-list" || tab === "announcements") {
-              handleSetTab("activities");
-            } else {
-              handleSetTab("properties");
-            }
-          }}
-          onOpenProfile={() => setShowProfileModal(true)}
-          onOpenAttendance={() => setShowAttendanceModal(true)}
-          onOpenBusinessCard={() => setShowBusinessCardModal(true)}
-          onOpenTCF={() => setShowTCFModal(true)}
-          onOpenMCF={() => setShowMCFModal(true)}
-          onOpenGpt={() => setShowGptModal(true)}
-          onOpenLocation={() => setShowLocationModal(true)}
-          onOpenStories={() => setShowStoriesModal(true)}
-          onOpenCalculator={() => setShowCalculatorModal(true)}
-          onOpenInstallApp={() => setShowInstallModal(true)}
-          onOpenIntegrations={handleOpenIntegrations}
-          onSimulateInbound={simulateSocialInboundLead}
-        />
-
-        {renderModals()}
-
-        {toastMsg && (
-          <div 
-            style={{
-              position: "fixed",
-              top: "16px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 999999,
-              maxWidth: "340px",
-              width: "90%",
-              background: "rgba(15, 23, 42, 0.95)",
-              color: "#ffffff",
-              padding: "0.6rem 1rem",
-              borderRadius: "9999px",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-              backdropFilter: "blur(8px)",
-              fontSize: "0.8125rem",
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              border: "1px solid rgba(255,255,255,0.15)",
-              pointerEvents: "none"
-            }}
-          >
-            <span>{toastMsg}</span>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

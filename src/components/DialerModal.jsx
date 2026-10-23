@@ -396,18 +396,23 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
 
   return (
     <div 
-      className="modal-overlay dialer-screen-container" 
+      className="dialer-screen-container" 
       style={{ 
-        position: "absolute",
+        position: "fixed",
         inset: 0,
-        zIndex: 1000,
-        width: "100%",
-        height: "100%",
-        borderRadius: "inherit",
+        zIndex: 99999,
+        width: "100vw",
+        height: "100vh",
+        margin: 0,
+        padding: 0,
+        borderRadius: 0,
+        border: "none",
         overflow: "hidden",
         display: "flex", 
         flexDirection: "column",
-        background: callState === "CALLING" ? "#242d3d" : "rgba(15, 23, 42, 0.75)"
+        background: callState === "CALLING" ? "#242d3d" : "#f1f5f9",
+        alignItems: "center",
+        justifyContent: "center"
       }}
     >
       {/* Real HTML5 Audio Player Element for Real Voice Playback */}
@@ -428,15 +433,17 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
       {/* STAGE 1: ACTIVE CALLING SCREEN - AUTHENTIC iOS PHONE IN-CALL UI (MATCHING IMAGE 2) */}
       {callState === "CALLING" ? (
         <div 
-          className="dialer-modal-content active-call-screen" 
+          className="active-call-screen" 
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           style={{ 
             width: "100%", 
+            maxWidth: "500px",
             height: "100%", 
+            maxHeight: "100vh",
             background: "linear-gradient(180deg, #242d3d 0%, #1a2230 100%)", 
-            borderRadius: "inherit", 
+            borderRadius: 0, 
             padding: "0.75rem 1.25rem 1rem 1.25rem", 
             textAlign: "center", 
             color: "#ffffff",
@@ -961,19 +968,22 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
       ) : (
         /* STAGE 2: POST-CALL FEEDBACK & DISPOSITION FORM */
         <div 
-          className="dialer-modal-content disposition-screen" 
+          className="disposition-screen" 
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           style={{ 
             width: "100%", 
+            maxWidth: "680px",
             height: "100%",
+            maxHeight: "100vh",
             background: "#ffffff", 
-            borderRadius: "inherit", 
+            borderRadius: 0, 
             display: "flex",
             flexDirection: "column",
             position: "relative",
-            overflow: "hidden"
+            overflow: "hidden",
+            boxShadow: "0 0 40px rgba(0,0,0,0.08)"
           }}
         >
           {/* Header Summary */}

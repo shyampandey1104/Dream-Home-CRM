@@ -1198,41 +1198,31 @@ body {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
-/* Mobile Device Frame Simulator for Laptop */
-.mobile-frame-wrapper {
-  min-height: calc(100vh - 70px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem 1rem;
-  background: radial-gradient(circle at center, #1e293b, #0f172a);
+/* Full-Screen Mobile App Shell (Universal across all devices & desktop) */
+.mobile-frame-wrapper,
+.phone-device-container,
+.native-mobile-app-shell {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  position: relative !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-.phone-device-container {
-  width: 412px;
-  height: 840px;
-  background: #ffffff;
-  border-radius: 44px;
-  border: 10px solid #334155;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.phone-notch {
-  width: 110px;
-  height: 20px;
-  background: #0f172a;
-  border-radius: 0 0 14px 14px;
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 60;
+.phone-notch,
+.phone-status-bar,
+.phone-bottom-bar {
+  display: none !important;
 }
 
 .phone-status-bar {
@@ -2623,10 +2613,81 @@ body {
   }
 }
 
+/* Universal Full Screen Edge-to-Edge Dialer & Calling Views */
+.dialer-screen-container {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  z-index: 99999 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
 
+.dialer-screen-container .active-call-screen {
+  width: 100% !important;
+  max-width: 500px !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  overflow: hidden !important;
+  margin: 0 auto !important;
+}
 
+.dialer-screen-container .disposition-screen {
+  width: 100% !important;
+  max-width: 680px !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.08) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  margin: 0 auto !important;
+  background: #ffffff !important;
+}
 
+.inbound-screen-container {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  z-index: 999999 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
 
-
-
-
+@media (max-width: 768px) {
+  .dialer-screen-container .active-call-screen,
+  .dialer-screen-container .disposition-screen,
+  .inbound-screen-container .inbound-ring-card {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    box-shadow: none !important;
+  }
+}

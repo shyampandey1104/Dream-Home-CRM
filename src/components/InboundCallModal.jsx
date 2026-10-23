@@ -101,33 +101,38 @@ export default function InboundCallModal({ lead, incomingLead, onAccept, onRejec
 
   return (
     <div 
-      className="modal-overlay"
+      className="inbound-screen-container"
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15, 23, 42, 0.88)",
-        backdropFilter: "blur(10px)",
-        WebkitBackdropFilter: "blur(10px)",
+        background: "linear-gradient(180deg, #090d16 0%, #111827 50%, #1e293b 100%)",
         zIndex: 999999,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "1rem"
+        padding: 0,
+        margin: 0,
+        width: "100vw",
+        height: "100vh"
       }}
     >
       <div 
         className="inbound-ring-card"
         style={{
-          background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)",
-          border: "1px solid rgba(255, 255, 255, 0.15)",
-          borderRadius: "1.5rem",
-          padding: "2rem 1.5rem",
-          maxWidth: "380px",
+          background: "transparent",
+          border: "none",
+          borderRadius: 0,
+          padding: "2.5rem 1.5rem 3.5rem 1.5rem",
+          maxWidth: "480px",
           width: "100%",
+          height: "100%",
+          maxHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
           textAlign: "center",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(37, 99, 235, 0.3)",
           color: "#ffffff",
-          animation: "scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+          boxSizing: "border-box"
         }}
       >
         {/* Logged in Agent Route Banner */}
