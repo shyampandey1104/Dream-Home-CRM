@@ -1068,23 +1068,23 @@ export default function App() {
           maxWidth: isRealMobile ? "100%" : (isDesktopExpanded ? "900px" : "412px"),
           height: isRealMobile ? "100vh" : (isDesktopExpanded ? "100vh" : "890px"), 
           maxHeight: isRealMobile ? "100vh" : (isDesktopExpanded ? "100vh" : "95vh"), 
-          background: "#090d16", 
+          background: "#f8fafc", 
           borderRadius: (isRealMobile || isDesktopExpanded) ? "0" : "36px", 
           overflow: "hidden", 
           display: "flex", 
           flexDirection: "column", 
           position: "relative", 
-          border: (isRealMobile || isDesktopExpanded) ? "none" : "1.5px solid #1e293b",
-          boxShadow: (isRealMobile || isDesktopExpanded) ? "0 0 30px rgba(0,0,0,0.5)" : "0 25px 60px rgba(0,0,0,0.9), 0 0 40px rgba(245, 158, 11, 0.1)" 
+          border: (isRealMobile || isDesktopExpanded) ? "none" : "8px solid #1e293b",
+          boxShadow: (isRealMobile || isDesktopExpanded) ? "0 0 30px rgba(0,0,0,0.2)" : "0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)" 
         }}
       >
         {!isRealMobile && !isDesktopExpanded && (
-          <div className="phone-status-bar" style={{ background: "#0b0f19", color: "#f8fafc", height: "36px", padding: "0 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: 700, borderBottom: "1px solid #1e293b" }}>
+          <div className="phone-status-bar" style={{ background: "#ffffff", color: "#0f172a", height: "36px", padding: "0 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: 700, borderBottom: "1px solid #f1f5f9" }}>
             <span>9:41</span>
-            <div style={{ display: "flex", gap: "6px", alignItems: "center", color: "#f8fafc" }}>
-              <Signal size={12} color="#38bdf8" />
-              <Wifi size={12} color="#38bdf8" />
-              <Battery size={14} color="#10b981" />
+            <div style={{ display: "flex", gap: "6px", alignItems: "center", color: "#0f172a" }}>
+              <Signal size={12} color="#0f172a" />
+              <Wifi size={12} color="#0f172a" />
+              <Battery size={14} color="#0f172a" />
             </div>
           </div>
         )}

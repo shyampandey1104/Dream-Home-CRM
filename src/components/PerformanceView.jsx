@@ -149,10 +149,10 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
       </div>
 
       <div className="view-header">
-        <h1 className="view-title">
+        <h1 className="view-title" style={{ color: "#0f172a" }}>
           Good afternoon, {greetingName}! 👋
         </h1>
-        <p className="view-subtitle">Click any performance card to filter lead details</p>
+        <p className="view-subtitle" style={{ color: "#64748b" }}>Click any performance card to filter lead details</p>
       </div>
 
       {/* 9 Interactive Metric Cards Grid */}
@@ -162,20 +162,20 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
             key={cat.id}
             onClick={() => setActiveMetricFilter(cat.id)}
             style={{
-              background: activeMetricFilter === cat.id ? "rgba(245, 158, 11, 0.12)" : "#0f172a",
-              border: activeMetricFilter === cat.id ? "2px solid #f59e0b" : "1px solid #1e293b",
+              background: activeMetricFilter === cat.id ? cat.bg : "#ffffff",
+              border: activeMetricFilter === cat.id ? `2px solid ${cat.color}` : "1px solid #e2e8f0",
               borderRadius: "0.875rem",
               padding: "0.75rem 0.6rem",
               cursor: "pointer",
               transition: "all 0.2s ease",
-              boxShadow: activeMetricFilter === cat.id ? "0 0 16px rgba(245, 158, 11, 0.25)" : "0 2px 6px rgba(0,0,0,0.4)"
+              boxShadow: activeMetricFilter === cat.id ? `0 4px 14px ${cat.color}25` : "0 1px 3px rgba(0,0,0,0.05)"
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span style={{ fontSize: "1.125rem" }}>{cat.icon}</span>
-              <span style={{ fontSize: "1.125rem", fontWeight: 800, color: activeMetricFilter === cat.id ? "#f59e0b" : cat.color }}>{cat.count}</span>
+              <span style={{ fontSize: "1.125rem", fontWeight: 800, color: cat.color }}>{cat.count}</span>
             </div>
-            <div style={{ fontSize: "0.71875rem", fontWeight: 700, color: "#f8fafc", marginTop: "0.4rem", lineHeight: "1.2" }}>
+            <div style={{ fontSize: "0.71875rem", fontWeight: 700, color: "#0f172a", marginTop: "0.4rem", lineHeight: "1.2" }}>
               {cat.title}
             </div>
           </div>
@@ -183,12 +183,12 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
       </div>
 
       {/* Filtered Drilldown Leads List */}
-      <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: "0.875rem", padding: "1rem", marginBottom: "1.25rem" }}>
+      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.875rem", padding: "1rem", marginBottom: "1.25rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-          <h3 style={{ fontSize: "0.9375rem", fontWeight: 800, color: "#f8fafc" }}>
+          <h3 style={{ fontSize: "0.9375rem", fontWeight: 800, color: "#0f172a" }}>
             {activeCategoryObj.icon} {activeCategoryObj.title} ({activeDisplayLeads.length})
           </h3>
-          <span style={{ fontSize: "0.71875rem", color: "#f59e0b", fontWeight: 700, background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.3)", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>
+          <span style={{ fontSize: "0.71875rem", color: activeCategoryObj.color, fontWeight: 700, background: activeCategoryObj.bg, padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>
             Active Filter
           </span>
         </div>
@@ -201,22 +201,22 @@ export default function PerformanceView({ metrics, userProfile, onStartCalling, 
               { name: "Sunil Kapoor", role: "Telecaller", calls: "35 Calls Today", status: "Active" },
               { name: "Shyam Pandey", role: "Sales Executive", calls: "54 Calls Today", status: "Active" }
             ]).map((t, idx) => (
-              <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0.75rem", background: "#162032", borderRadius: "0.6rem", border: "1px solid #1e293b" }}>
+              <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0.75rem", background: "#f8fafc", borderRadius: "0.6rem", border: "1px solid #e2e8f0" }}>
                 <div>
-                  <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#f8fafc" }}>👤 {t.name}</div>
-                  <div style={{ fontSize: "0.6875rem", color: "#94a3b8" }}>{t.role} • {t.calls}</div>
+                  <div style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#0f172a" }}>👤 {t.name}</div>
+                  <div style={{ fontSize: "0.6875rem", color: "#64748b" }}>{t.role} • {t.calls}</div>
                 </div>
-                <span style={{ fontSize: "0.6875rem", color: "#34d399", fontWeight: 700, background: "rgba(16, 185, 129, 0.15)", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{t.status}</span>
+                <span style={{ fontSize: "0.6875rem", color: "#16a34a", fontWeight: 700, background: "#dcfce7", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{t.status}</span>
               </div>
             ))}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
             {activeDisplayLeads.slice(0, 5).map(lead => (
-              <div key={lead.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.65rem 0.75rem", background: "#162032", borderRadius: "0.6rem", border: "1px solid #1e293b" }}>
+              <div key={lead.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.65rem 0.75rem", background: "#f8fafc", borderRadius: "0.6rem", border: "1px solid #e2e8f0" }}>
                 <div>
-                  <div style={{ fontSize: "0.84375rem", fontWeight: 700, color: "#f8fafc" }}>{lead.name || lead.lead_name}</div>
-                  <div style={{ fontSize: "0.71875rem", color: "#94a3b8" }}>
+                  <div style={{ fontSize: "0.84375rem", fontWeight: 700, color: "#0f172a" }}>{lead.name || lead.lead_name}</div>
+                  <div style={{ fontSize: "0.71875rem", color: "#64748b" }}>
                     📍 {lead.location} • 🏢 {lead.bhkType || lead.bhk_type || "2 BHK"} • 📞 {lead.phone}
                   </div>
                 </div>

@@ -14,9 +14,9 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
         display: "flex", 
         alignItems: "center", 
         justifyContent: "space-between",
-        background: "#0b0f19",
-        borderBottom: "1px solid #1e293b",
-        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)"
+        background: "#ffffff",
+        borderBottom: "1px solid #f1f5f9",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)"
       }}
     >
       {/* Left Branding Group */}
@@ -24,9 +24,9 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
         <button 
           onClick={onOpenSidebar} 
           style={{
-            background: "rgba(14, 165, 233, 0.15)",
-            border: "1px solid rgba(14, 165, 233, 0.3)",
-            color: "#38bdf8",
+            background: "#eff6ff",
+            border: "1px solid #dbeafe",
+            color: "#2563eb",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
@@ -52,7 +52,7 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
               width: "32px",
               height: "32px",
               objectFit: "contain",
-              filter: "drop-shadow(0 2px 6px rgba(245, 158, 11, 0.4))",
+              filter: "drop-shadow(0 2px 4px rgba(217, 119, 6, 0.25))",
               flexShrink: 0,
               borderRadius: "6px"
             }}
@@ -61,14 +61,14 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
             <span style={{
               fontWeight: 900,
               fontSize: "0.95rem",
-              color: "#ffffff",
+              color: "#0f172a",
               whiteSpace: "nowrap",
               lineHeight: 1.15,
               letterSpacing: "-0.01em"
             }}>
               {companyName}
             </span>
-            <span style={{ fontSize: "0.625rem", color: "#f59e0b", fontWeight: 800, lineHeight: 1.1, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "0.625rem", color: "#16a34a", fontWeight: 800, lineHeight: 1.1, whiteSpace: "nowrap" }}>
               {orgProfile?.company_tagline || "CRM Sales Portal"}
             </span>
           </div>
@@ -82,7 +82,7 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
           onClick={onDirectCall}
           title="Direct Call Next Lead"
           style={{
-            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+            background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
             color: "#ffffff",
             border: "none",
             padding: "0.35rem 0.55rem",
@@ -93,7 +93,7 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
             alignItems: "center",
             gap: "0.25rem",
             cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(16, 185, 129, 0.4)"
+            boxShadow: "0 2px 6px rgba(22, 163, 74, 0.3)"
           }}
         >
           <Phone size={13} fill="#ffffff" />
@@ -105,9 +105,9 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
           onClick={onOpenIntegrations}
           title="WhatsApp, Instagram & Multi-Channel Integrations"
           style={{
-            background: "rgba(16, 185, 129, 0.15)",
-            border: "1px solid rgba(16, 185, 129, 0.35)",
-            color: "#34d399",
+            background: "#f0fdf4",
+            border: "1px solid #bbf7d0",
+            color: "#166534",
             height: "30px",
             padding: "0 0.5rem",
             borderRadius: "0.5rem",
@@ -115,13 +115,13 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
             alignItems: "center",
             gap: "0.25rem",
             cursor: "pointer",
-            boxShadow: "0 1px 4px rgba(16, 185, 129, 0.2)",
+            boxShadow: "0 1px 3px rgba(22, 163, 74, 0.15)",
             flexShrink: 0,
             fontSize: "0.725rem",
             fontWeight: 800
           }}
         >
-          <MessageSquare size={13} color="#34d399" />
+          <MessageSquare size={13} color="#16a34a" />
           <span>WhatsApp</span>
         </button>
 
@@ -129,9 +129,9 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
         <button
           onClick={onOpenNotifications}
           style={{
-            background: "rgba(255, 255, 255, 0.06)",
-            border: "1px solid #1e293b",
-            color: "#cbd5e1",
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            color: "#475569",
             padding: "0.35rem",
             borderRadius: "0.5rem",
             position: "relative",
@@ -168,7 +168,7 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
         <button
           onClick={onOpenProfile}
           style={{
-            background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+            background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
             color: "#ffffff",
             border: "none",
             borderRadius: "9999px",
@@ -180,7 +180,7 @@ export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifica
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 2px 10px rgba(245, 158, 11, 0.35)"
+            boxShadow: "0 2px 6px rgba(37, 99, 235, 0.3)"
           }}
           title="User Profile"
         >
