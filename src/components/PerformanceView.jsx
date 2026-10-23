@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { 
-  Phone, Users, Flame, Calendar, TrendingUp, ArrowRight, Award, 
+  Phone, Users, Flame, Calendar, TrendingUp, Award, 
   CheckCircle, CheckCircle2, ShieldAlert, Sparkles, MessageSquare, 
-  ShieldCheck, MapPin, Building, ChevronRight, RotateCcw, Clock, Check
+  ShieldCheck, MapPin, Building, ChevronRight, RotateCcw, Clock, Check,
+  BarChart3, Target, LayoutGrid, Layers
 } from "lucide-react";
 import FilterBar from "./FilterBar";
 
@@ -28,6 +29,7 @@ export default function PerformanceView({
   onCallLead,
   showToast 
 }) {
+  const [activeSection, setActiveSection] = useState("overview"); // "overview" | "pipeline" | "analytics" | "all"
   const [dateFilter, setDateFilter] = useState("This Month");
   const [orderFilter, setOrderFilter] = useState("Calls Made");
   const [priorityFilter, setPriorityFilter] = useState(null);
@@ -42,7 +44,6 @@ export default function PerformanceView({
   const [verifiedTimestamp, setVerifiedTimestamp] = useState(() => {
     return localStorage.getItem("crm_meeting_verified_time") || "Today, 11:45 AM";
   });
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
 
   const greetingName = userProfile?.name ? userProfile.name.split(" ")[0] : "Shyam";
 
@@ -87,20 +88,20 @@ export default function PerformanceView({
 
   const closedDeals = leads.filter(l => l.status === "CLOSED" || (l.history && l.history.some(h => (h.outcome || '').includes("Closed") || (h.outcome || '').includes("Won"))));
   const closedCount = metrics?.conversionsCount !== undefined ? metrics.conversionsCount : (closedDeals.length || 4);
-  const conversionAmountStr = metrics?.conversionsAmount || `₹ 1.20 Cr`;
+  const conversionAmountStr = metrics?.conversionsAmount || `₹ 245K`;
 
   const unverifiedCount = isMeetingVerified ? 0 : (metrics?.unverifiedCount ?? 1);
 
   const metricCategories = [
-    { id: "My Visits", title: "My Visits", count: metrics?.myVisitsCount ?? (myVisitsLeads.length || 4), icon: "🚗", color: "#2563eb", bg: "#eff6ff", leads: myVisitsLeads.length ? myVisitsLeads : leads.slice(0, 4) },
-    { id: "Qualified Leads", title: "Qualified Leads", count: metrics?.qualifiedLeadsCount ?? (qualifiedLeads.length || 8), icon: "🔥", color: "#dc2626", bg: "#fef2f2", leads: qualifiedLeads.length ? qualifiedLeads : leads.filter(l => l.priority === "HOT") },
+    { id: "My Visits", title: "My Visits", count: metrics?.myVisitsCount ?? (myVisitsLeads.length || 2), icon: "🚗", color: "#2563eb", bg: "#eff6ff", leads: myVisitsLeads.length ? myVisitsLeads : leads.slice(0, 4) },
+    { id: "Qualified Leads", title: "Qualified Leads", count: metrics?.qualifiedLeadsCount ?? (qualifiedLeads.length || 4), icon: "🔥", color: "#dc2626", bg: "#fef2f2", leads: qualifiedLeads.length ? qualifiedLeads : leads.filter(l => l.priority === "HOT") },
     { id: "Leads Claimed", title: "Leads Claimed", count: metrics?.leadsClaimedCount ?? (leadsClaimed.length || 14), icon: "🎯", color: "#16a34a", bg: "#f0fdf4", leads: leadsClaimed.length ? leadsClaimed : leads },
-    { id: "Unique Leads Created", title: "Unique Leads", count: metrics?.uniqueLeadsCount ?? leads.length, icon: "✨", color: "#9333ea", bg: "#faf5ff", leads: leads },
-    { id: "Site Visit Schedule", title: "Site Visits", count: metrics?.siteVisitScheduleCount ?? (siteVisitLeads.length || 3), icon: "📅", color: "#ea580c", bg: "#fff7ed", leads: siteVisitLeads.length ? siteVisitLeads : leads.slice(0, 3) },
+    { id: "Unique Leads Created", title: "Unique Leads", count: metrics?.uniqueLeadsCount ?? (leads.length || 10), icon: "✨", color: "#9333ea", bg: "#faf5ff", leads: leads },
+    { id: "Site Visit Schedule", title: "Site Visits", count: metrics?.siteVisitScheduleCount ?? (siteVisitLeads.length || 2), icon: "📅", color: "#ea580c", bg: "#fff7ed", leads: siteVisitLeads.length ? siteVisitLeads : leads.slice(0, 3) },
     { id: "Meeting Schedule", title: "Meetings", count: metrics?.meetingScheduleCount ?? (meetingLeads.length || 5), icon: "🤝", color: "#0284c7", bg: "#f0f9ff", leads: meetingLeads.length ? meetingLeads : leads.slice(1, 4) },
-    { id: "Video Call Schedule", title: "Video Calls", count: metrics?.videoCallScheduleCount ?? (videoCallLeads.length || 2), icon: "🎥", color: "#4f46e5", bg: "#eef2ff", leads: videoCallLeads.length ? videoCallLeads : leads.slice(2, 4) },
+    { id: "Video Call Schedule", title: "Video Calls", count: metrics?.videoCallScheduleCount ?? (videoCallLeads.length || 4), icon: "🎥", color: "#4f46e5", bg: "#eef2ff", leads: videoCallLeads.length ? videoCallLeads : leads.slice(2, 4) },
     { id: "My Team", title: "My Team", count: metrics?.myTeamCount ?? (metrics?.teamMembers?.length || 6), icon: "👥", color: "#0891b2", bg: "#ecfeff", leads: [] },
-    { id: "Three Minute Calls", title: "3-Min Calls", count: metrics?.threeMinCallsCount ?? (threeMinCallLeads.length || 12), icon: "⏱️", color: "#d97706", bg: "#fffbeb", leads: threeMinCallLeads.length ? threeMinCallLeads : leads.slice(0, 5) }
+    { id: "Three Minute Calls", title: "3-Min Calls", count: metrics?.threeMinCallsCount ?? (threeMinCallLeads.length || 4), icon: "⏱️", color: "#d97706", bg: "#fffbeb", leads: threeMinCallLeads.length ? threeMinCallLeads : leads.slice(0, 5) }
   ];
 
   const activeCategoryObj = metricCategories.find(c => c.id === activeMetricFilter) || metricCategories[1];
@@ -127,159 +128,46 @@ export default function PerformanceView({
     window.open(`https://wa.me/${cleanPhone}?text=${text}`, "_blank");
   };
 
-  return (
-    <div className="view-container" style={{ padding: "0.75rem 0.65rem 5.5rem 0.65rem" }}>
-      {/* 1. Unclaimed Fresh Leads Card */}
+  // Helper render for Section 1: Overview & Daily Actions
+  const renderOverviewSection = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+      {/* Unverified Meetings Alert */}
       <div style={{
-        background: "#ffffff",
-        border: "1px solid #e2e8f0",
-        borderRadius: "0.875rem",
-        padding: "0.85rem 1rem",
-        marginBottom: "0.75rem",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between"
-      }}>
-        <div>
-          <div style={{ fontSize: "0.9375rem", fontWeight: 800, color: "#0f172a" }}>
-            Unclaimed Fresh Leads ({metrics?.unclaimedCount ?? 5})
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.3rem" }}>
-            <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Lead Flag is On</span>
-            <input 
-              type="checkbox" 
-              checked={leadFlag} 
-              onChange={() => setLeadFlag(!leadFlag)}
-              style={{ cursor: "pointer", accentColor: "#2563eb", width: "15px", height: "15px" }} 
-            />
-          </div>
-        </div>
-
-        <button
-          onClick={onClaimLeads}
-          style={{
-            background: "#2563eb",
-            color: "#ffffff",
-            border: "none",
-            padding: "0.5rem 0.9rem",
-            borderRadius: "0.5rem",
-            fontSize: "0.78125rem",
-            fontWeight: 800,
-            cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.35)",
-            whiteSpace: "nowrap"
-          }}
-        >
-          Claim Leads Now &gt;&gt;
-        </button>
-      </div>
-
-      {/* 2. Reward Points Dark Card */}
-      <div style={{
-        background: "#1e293b",
-        borderRadius: "0.875rem",
-        padding: "0.85rem 1rem",
-        marginBottom: "0.75rem",
-        color: "#ffffff",
-        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.15)"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-          <span style={{ fontSize: "0.875rem", fontWeight: 800, color: "#ffffff" }}>
-            Reward Points
-          </span>
-          <div style={{
-            background: "#0f172a",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
-            borderRadius: "9999px",
-            padding: "0.2rem 0.65rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.35rem"
-          }}>
-            <span>🪙</span>
-            <span style={{ fontSize: "0.8125rem", fontWeight: 800, color: "#ffffff" }}>
-              {metrics?.rewardPoints ?? 2400}
-            </span>
-          </div>
-        </div>
-
-        <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginBottom: "0.6rem" }}>
-          Used Points
-          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.15rem" }}>
-            <span>🪙</span>
-            <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#ffffff" }}>
-              {metrics?.usedPoints ?? 0}
-            </span>
-          </div>
-        </div>
-
-        <div 
-          onClick={onClaimLeads}
-          style={{ fontSize: "0.75rem", fontWeight: 700, color: "#38bdf8", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.2rem" }}
-        >
-          Claim Leads Now. &gt;&gt;
-        </div>
-      </div>
-
-      {/* 3. Training Modules (1) Card */}
-      <div style={{ marginBottom: "0.75rem" }}>
-        <div style={{ fontSize: "0.8125rem", fontWeight: 800, color: "#0f172a", marginBottom: "0.35rem" }}>
-          Training Modules (1)
-        </div>
-        <div style={{
-          background: "#059669",
-          borderRadius: "0.625rem",
-          padding: "0.75rem 0.85rem",
-          color: "#ffffff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(5, 150, 105, 0.25)"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.55rem" }}>
-            <Calendar size={18} color="#ffffff" style={{ flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: "0.78125rem", fontWeight: 800, color: "#ffffff" }}>
-                SY Circle - Cross-Referral Program
-              </div>
-              <div style={{ fontSize: "0.6875rem", color: "#a7f3d0", marginTop: "0.1rem" }}>
-                Due Date : 30 Jun 2026
-              </div>
-            </div>
-          </div>
-          <span style={{
-            background: "rgba(255, 255, 255, 0.2)",
-            color: "#ffffff",
-            fontSize: "0.6875rem",
-            fontWeight: 800,
-            padding: "0.2rem 0.5rem",
-            borderRadius: "0.35rem"
-          }}>
-            Completed
-          </span>
-        </div>
-      </div>
-
-      {/* 4. Unverified Meetings (1) Card */}
-      <div style={{
-        background: isMeetingVerified ? "#f0fdf4" : "#ffffff",
-        border: isMeetingVerified ? "1px solid #86efac" : "1px solid #e2e8f0",
+        background: isMeetingVerified ? "#f0fdf4" : "#fffbeb",
+        border: isMeetingVerified ? "1px solid #86efac" : "1.5px solid #fde68a",
         borderRadius: "0.875rem",
         padding: "0.75rem 0.85rem",
-        marginBottom: "0.85rem",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between"
+        justifyContent: "space-between",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.03)"
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.55rem" }}>
-          <Clock size={18} color={isMeetingVerified ? "#16a34a" : "#64748b"} style={{ flexShrink: 0 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          <div style={{
+            width: "34px",
+            height: "34px",
+            borderRadius: "50%",
+            background: isMeetingVerified ? "#dcfce7" : "#fef3c7",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0
+          }}>
+            <Clock size={18} color={isMeetingVerified ? "#16a34a" : "#d97706"} />
+          </div>
           <div>
-            <div style={{ fontSize: "0.8125rem", fontWeight: 800, color: isMeetingVerified ? "#15803d" : "#0f172a" }}>
-              {isMeetingVerified ? "Verified Meetings" : `Unverified Meetings (${unverifiedCount})`}
+            <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+              <span style={{ fontSize: "0.84375rem", fontWeight: 800, color: isMeetingVerified ? "#15803d" : "#92400e" }}>
+                {isMeetingVerified ? "Verified Meetings" : `Unverified Meetings (${unverifiedCount})`}
+              </span>
+              {!isMeetingVerified && (
+                <span style={{ fontSize: "0.625rem", background: "#fee2e2", color: "#dc2626", fontWeight: 800, padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
+                  PENDING KYC
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: "0.6875rem", color: "#64748b", marginTop: "0.1rem" }}>
-              Lead Id: 4230005 | Pravin Ladkat
+            <div style={{ fontSize: "0.71875rem", color: "#64748b", marginTop: "0.15rem" }}>
+              Lead #4230005: Pravin Ladkat • Site Visit Oberoi Sky City
             </div>
           </div>
         </div>
@@ -287,33 +175,204 @@ export default function PerformanceView({
         <button
           onClick={handleToggleVerification}
           style={{
-            background: isMeetingVerified ? "#dcfce7" : "#ffffff",
-            color: isMeetingVerified ? "#15803d" : "#0f172a",
-            border: isMeetingVerified ? "1px solid #86efac" : "1px solid #cbd5e1",
-            padding: "0.3rem 0.75rem",
-            borderRadius: "0.45rem",
+            background: isMeetingVerified ? "#dcfce7" : "#059669",
+            color: isMeetingVerified ? "#15803d" : "#ffffff",
+            border: isMeetingVerified ? "1px solid #86efac" : "none",
+            padding: "0.4rem 0.8rem",
+            borderRadius: "0.5rem",
             fontSize: "0.75rem",
             fontWeight: 800,
-            cursor: "pointer"
+            cursor: "pointer",
+            boxShadow: isMeetingVerified ? "none" : "0 2px 6px rgba(5, 150, 105, 0.3)",
+            whiteSpace: "nowrap"
           }}
         >
-          {isMeetingVerified ? "Verified ✓" : "Verify"}
+          {isMeetingVerified ? "Verified ✓" : "Verify Now"}
         </button>
       </div>
 
-      {/* 5. Good afternoon greeting */}
-      <div style={{ marginBottom: "0.75rem" }}>
-        <h2 style={{ fontSize: "1.125rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.15rem 0" }}>
-          Good afternoon, {greetingName}! 👋
-        </h2>
-        <p style={{ fontSize: "0.75rem", color: "#64748b", margin: 0 }}>
-          Click any performance card to filter lead details
-        </p>
+      {/* Agent Rewards & Unclaimed Pool Card */}
+      <div style={{
+        background: "#1e293b",
+        borderRadius: "0.875rem",
+        padding: "0.85rem 1rem",
+        color: "#ffffff",
+        boxShadow: "0 4px 14px rgba(15, 23, 42, 0.15)"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+          <div>
+            <div style={{ fontSize: "0.6875rem", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Agent Rewards & Fresh Pool
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.2rem" }}>
+              <span style={{ fontSize: "1.1rem" }}>🪙</span>
+              <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "#ffffff" }}>
+                {metrics?.rewardPoints ?? 2400}
+              </span>
+              <span style={{ fontSize: "0.71875rem", color: "#cbd5e1" }}>Points Earned</span>
+            </div>
+          </div>
+
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "0.6875rem", color: "#94a3b8" }}>Used Points</div>
+            <div style={{ fontSize: "0.875rem", fontWeight: 800, color: "#ffffff", marginTop: "0.15rem" }}>
+              🪙 {metrics?.usedPoints ?? 0}
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          background: "rgba(255, 255, 255, 0.08)",
+          borderRadius: "0.5rem",
+          padding: "0.5rem 0.75rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+            <span style={{ fontSize: "0.75rem", color: "#f1f5f9" }}>
+              ⚡ Unclaimed Fresh Pool: <strong style={{ color: "#38bdf8" }}>{metrics?.unclaimedCount ?? 5} Leads</strong>
+            </span>
+            <span style={{ fontSize: "0.65rem", background: "#16a34a", color: "#ffffff", padding: "0.1rem 0.35rem", borderRadius: "4px", fontWeight: 700 }}>
+              ACTIVE ON
+            </span>
+          </div>
+
+          <button
+            onClick={onClaimLeads}
+            style={{
+              background: "#f59e0b",
+              color: "#0f172a",
+              border: "none",
+              padding: "0.25rem 0.65rem",
+              borderRadius: "0.35rem",
+              fontSize: "0.71875rem",
+              fontWeight: 800,
+              cursor: "pointer"
+            }}
+          >
+            Claim Leads &gt;&gt;
+          </button>
+        </div>
       </div>
 
-      {/* 3x3 Interactive Metric Categories Grid */}
-      <div style={{ marginBottom: "0.875rem" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.45rem", padding: "0 0.1rem" }}>
+      {/* Training Module Card */}
+      <div style={{
+        background: "#0284c7",
+        borderRadius: "0.75rem",
+        padding: "0.7rem 0.85rem",
+        color: "#ffffff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        boxShadow: "0 2px 8px rgba(2, 132, 199, 0.25)"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.55rem" }}>
+          <Calendar size={18} color="#ffffff" style={{ flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: "0.78125rem", fontWeight: 800, color: "#ffffff" }}>
+              SY Circle - Cross-Referral Program
+            </div>
+            <div style={{ fontSize: "0.6875rem", color: "#bae6fd", marginTop: "0.1rem" }}>
+              Due Date: 30 Jun 2026
+            </div>
+          </div>
+        </div>
+        <span style={{
+          background: "rgba(255, 255, 255, 0.2)",
+          color: "#ffffff",
+          fontSize: "0.6875rem",
+          fontWeight: 800,
+          padding: "0.2rem 0.5rem",
+          borderRadius: "0.35rem"
+        }}>
+          Completed ✓
+        </span>
+      </div>
+
+      {/* Daily High-Impact Metric Cards (2x2 Grid) */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.55rem", marginTop: "0.25rem" }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.75rem 0.85rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "0.71875rem", fontWeight: 700 }}>
+            <span>MTD Calls Made</span>
+            <Phone size={15} color="#2563eb" />
+          </div>
+          <div style={{ fontSize: "1.35rem", fontWeight: 900, color: "#0f172a", marginTop: "0.2rem" }}>
+            {displayCallsCount}
+          </div>
+          <div style={{ fontSize: "0.6875rem", color: "#16a34a", fontWeight: 700, marginTop: "0.2rem" }}>
+            +{metrics?.callsMomPercent || "16.4"}% MOM
+          </div>
+        </div>
+
+        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.75rem 0.85rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "0.71875rem", fontWeight: 700 }}>
+            <span>Follow-ups Done</span>
+            <Users size={15} color="#16a34a" />
+          </div>
+          <div style={{ fontSize: "1.35rem", fontWeight: 900, color: "#0f172a", marginTop: "0.2rem" }}>
+            {displayFollowups}
+          </div>
+          <div style={{ fontSize: "0.6875rem", color: "#16a34a", fontWeight: 700, marginTop: "0.2rem" }}>
+            +{metrics?.followupsMomPercent || "10.5"}% MOM
+          </div>
+        </div>
+
+        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.75rem 0.85rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "0.71875rem", fontWeight: 700 }}>
+            <span>Hot Leads Passed</span>
+            <Flame size={15} color="#dc2626" />
+          </div>
+          <div style={{ fontSize: "1.35rem", fontWeight: 900, color: "#0f172a", marginTop: "0.2rem" }}>
+            {displayHotLeads}
+          </div>
+          <div style={{ fontSize: "0.6875rem", color: "#16a34a", fontWeight: 700, marginTop: "0.2rem" }}>
+            +{metrics?.hotLeadsMomPercent || "28.5"}% MOM
+          </div>
+        </div>
+
+        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.75rem 0.85rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "0.71875rem", fontWeight: 700 }}>
+            <span>Visits Booked</span>
+            <Calendar size={15} color="#ea580c" />
+          </div>
+          <div style={{ fontSize: "1.35rem", fontWeight: 900, color: "#0f172a", marginTop: "0.2rem" }}>
+            {displayVisits}
+          </div>
+          <div style={{ fontSize: "0.6875rem", color: "#16a34a", fontWeight: 700, marginTop: "0.2rem" }}>
+            +{metrics?.visitsMomPercent || "33.3"}% MOM
+          </div>
+        </div>
+      </div>
+
+      {/* Direct Calling Quick CTAs */}
+      <div style={{ display: "flex", gap: "0.55rem", marginTop: "0.25rem" }}>
+        <button 
+          className="start-calling-btn" 
+          style={{ flex: 1, background: "linear-gradient(135deg, #0284c7 0%, #2563eb 100%)", padding: "0.7rem", borderRadius: "0.65rem", fontSize: "0.8125rem" }} 
+          onClick={onStartCalling}
+        >
+          <Phone size={16} />
+          <span>Start Calling Pipeline</span>
+        </button>
+        <button 
+          className="start-calling-btn" 
+          style={{ flex: 1, background: "linear-gradient(135deg, #059669 0%, #10b981 100%)", padding: "0.7rem", borderRadius: "0.65rem", fontSize: "0.8125rem" }} 
+          onClick={onOpenColdDialer}
+        >
+          <Sparkles size={16} />
+          <span>Cold Meeting Logger</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  // Helper render for Section 2: Pipeline 3x3 & Drilldown
+  const renderPipelineSection = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      {/* 3x3 Operational Metric Categories Grid */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.45rem" }}>
           <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Operational Pipeline Categories
           </span>
@@ -335,9 +394,9 @@ export default function PerformanceView({
                   borderRadius: "0.875rem",
                   padding: "0.7rem 0.55rem",
                   cursor: "pointer",
-                  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-                  boxShadow: isSelected ? `0 6px 18px ${cat.color}30` : "0 1px 3px rgba(0,0,0,0.03)",
-                  transform: isSelected ? "translateY(-1.5px)" : "none"
+                  transition: "all 0.18s ease",
+                  boxShadow: isSelected ? `0 4px 12px ${cat.color}25` : "0 1px 3px rgba(0,0,0,0.03)",
+                  transform: isSelected ? "translateY(-1px)" : "none"
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -364,18 +423,26 @@ export default function PerformanceView({
         </div>
       </div>
 
-      {/* Filtered Drilldown Leads List (Luxury iOS Style) */}
+      {/* Filter Bar for Drilldown Leads */}
+      <FilterBar
+        dateFilter={dateFilter} setDateFilter={setDateFilter}
+        orderFilter={orderFilter} setOrderFilter={setOrderFilter}
+        search={search} setSearch={setSearch}
+        showPriorityPills={true}
+        priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter}
+      />
+
+      {/* Drilldown Leads List */}
       <div style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
         borderRadius: "1rem",
-        padding: "0.875rem",
-        marginBottom: "1rem",
+        padding: "0.85rem",
         boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
       }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem", paddingBottom: "0.5rem", borderBottom: "1px solid #f1f5f9" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.65rem", paddingBottom: "0.45rem", borderBottom: "1px solid #f1f5f9" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <span style={{ fontSize: "1rem" }}>{activeCategoryObj.icon}</span>
+            <span style={{ fontSize: "1.1rem" }}>{activeCategoryObj.icon}</span>
             <h3 style={{ fontSize: "0.9375rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>
               {activeCategoryObj.title} ({activeCategoryObj.id === "My Team" ? 4 : activeDisplayLeads.length})
             </h3>
@@ -442,8 +509,7 @@ export default function PerformanceView({
                     padding: "0.65rem 0.75rem",
                     background: "#f8fafc",
                     borderRadius: "0.75rem",
-                    border: "1px solid #e2e8f0",
-                    transition: "all 0.15s ease"
+                    border: "1px solid #e2e8f0"
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", flex: 1, minWidth: 0 }}>
@@ -528,157 +594,303 @@ export default function PerformanceView({
           </div>
         )}
       </div>
+    </div>
+  );
 
-      {/* Modern Filter Toolbar */}
-      <FilterBar
-        dateFilter={dateFilter} setDateFilter={setDateFilter}
-        orderFilter={orderFilter} setOrderFilter={setOrderFilter}
-        search={search} setSearch={setSearch}
-        showPriorityPills={true}
-        priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter}
-      />
-
-      {/* 5 High-Impact Metric Cards Grid */}
-      <div className="metrics-grid">
-        <div className="metric-card">
-          <div className="metric-card-top">
-            <span className="metric-title">MTD Calls Made</span>
-            <Phone size={16} className="metric-icon" />
+  // Helper render for Section 3: Goals, Conversions & Analytics
+  const renderAnalyticsSection = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      {/* Total Conversions Card */}
+      <div style={{
+        background: "#f0fdf4",
+        border: "1.5px solid #bbf7d0",
+        borderRadius: "0.875rem",
+        padding: "0.9rem 1rem",
+        boxShadow: "0 2px 8px rgba(22, 163, 74, 0.08)"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Total Conversions
+            </div>
+            <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "#15803d", marginTop: "0.2rem" }}>
+              {conversionAmountStr}
+            </div>
           </div>
-          <div className="metric-value">{displayCallsCount}</div>
-          <div className="metric-trend">
-            <TrendingUp size={14} /> +{metrics?.callsMomPercent || "16.4"}% MOM
+          <div style={{
+            width: "42px",
+            height: "42px",
+            borderRadius: "50%",
+            background: "#dcfce7",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}>
+            <TrendingUp size={22} color="#16a34a" />
           </div>
         </div>
-
-        <div className="metric-card">
-          <div className="metric-card-top">
-            <span className="metric-title">Follow-ups Done</span>
-            <Users size={16} className="metric-icon" />
-          </div>
-          <div className="metric-value">{displayFollowups}</div>
-          <div className="metric-trend">
-            <TrendingUp size={14} /> +{metrics?.followupsMomPercent || "10.5"}% MOM
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-card-top">
-            <span className="metric-title">Hot Leads Passed</span>
-            <Flame size={16} className="metric-icon" />
-          </div>
-          <div className="metric-value">{displayHotLeads}</div>
-          <div className="metric-trend">
-            <TrendingUp size={14} /> +{metrics?.hotLeadsMomPercent || "28.5"}% MOM
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-card-top">
-            <span className="metric-title">Visits Booked</span>
-            <Calendar size={16} className="metric-icon" />
-          </div>
-          <div className="metric-value">{displayVisits}</div>
-          <div className="metric-trend">
-            <TrendingUp size={14} /> +{metrics?.visitsMomPercent || "33.3"}% MOM
-          </div>
-        </div>
-
-        <div className="metric-card" style={{ background: "#f0fdf4", borderColor: "#bbf7d0", gridColumn: "span 2" }}>
-          <div className="metric-card-top">
-            <span className="metric-title" style={{ color: "#15803d" }}>Total Conversions</span>
-            <TrendingUp size={18} style={{ color: "#16a34a" }} />
-          </div>
-          <div className="metric-value" style={{ color: "#15803d" }}>{conversionAmountStr}</div>
-          <div style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 700, marginTop: "0.4rem" }}>
-            {closedCount} deals closed | +{metrics?.conversionsMomPercent || "40"}% MOM
-          </div>
+        <div style={{ fontSize: "0.75rem", color: "#15803d", fontWeight: 700, marginTop: "0.45rem" }}>
+          {closedCount} deals closed | +{metrics?.conversionsMomPercent || "40"}% MOM
         </div>
       </div>
 
-      {/* Target Progress & MoM Chart Grid */}
-      <div className="charts-grid">
-        <div className="chart-card">
-          <div className="chart-title-row">
-            <span className="chart-title">🌀 Monthly Call Target</span>
-            <span className="chart-target-value">{displayCallsCount} / {metrics?.mtdCallsTarget || 80}</span>
-          </div>
-          <div className="progress-bar-track">
-            <div
-              className="progress-bar-fill"
-              style={{ width: `${Math.min(100, Math.round((displayCallsCount / (metrics?.mtdCallsTarget || 80)) * 100))}%` }}
-            ></div>
-          </div>
-          <div className="progress-labels">
-            <span>{Math.round((displayCallsCount / (metrics?.mtdCallsTarget || 80)) * 100)}% Achieved</span>
-            <span>Target: 100%</span>
-          </div>
+      {/* Monthly Call Target Progress */}
+      <div style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: "0.875rem",
+        padding: "0.9rem 1rem"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+          <span style={{ fontSize: "0.84375rem", fontWeight: 800, color: "#0f172a" }}>🌀 Monthly Call Target</span>
+          <span style={{ fontSize: "0.875rem", fontWeight: 900, color: "#2563eb" }}>{displayCallsCount} / {metrics?.mtdCallsTarget || 80}</span>
         </div>
-
-        <div className="chart-card">
-          <div className="chart-title-row">
-            <span className="chart-title">📊 Month-over-Month Comparison</span>
-            <div style={{ display: "flex", gap: "0.75rem", fontSize: "0.7rem", fontWeight: 600 }}>
-              <span style={{ color: "#2563eb" }}>■ This Month</span>
-              <span style={{ color: "#94a3b8" }}>■ Last Month</span>
-            </div>
-          </div>
-
-          <div className="mom-bar-chart">
-            <div className="bar-group">
-              <div className="bars-pair">
-                <div className="bar this-month" style={{ height: `${Math.min(120, Math.max(30, displayCallsCount * 0.6))}px` }} title={`Calls: ${displayCallsCount}`}></div>
-                <div className="bar last-month" style={{ height: "90px" }} title="Last Month: 120"></div>
-              </div>
-              <span className="bar-label">Calls</span>
-            </div>
-
-            <div className="bar-group">
-              <div className="bars-pair">
-                <div className="bar this-month" style={{ height: `${Math.min(120, Math.max(20, displayHotLeads * 3))}px` }} title={`Hot Leads: ${displayHotLeads}`}></div>
-                <div className="bar last-month" style={{ height: "30px" }} title="Last Month: 14"></div>
-              </div>
-              <span className="bar-label">Hot Leads</span>
-            </div>
-
-            <div className="bar-group">
-              <div className="bars-pair">
-                <div className="bar this-month" style={{ height: `${Math.min(120, Math.max(20, displayVisits * 4))}px` }} title={`Visits: ${displayVisits}`}></div>
-                <div className="bar last-month" style={{ height: "25px" }} title="Last Month: 9"></div>
-              </div>
-              <span className="bar-label">Visits</span>
-            </div>
-
-            <div className="bar-group">
-              <div className="bars-pair">
-                <div className="bar this-month" style={{ height: `${Math.min(120, Math.max(20, closedCount * 6))}px` }} title={`Conversions: ${closedCount}`}></div>
-                <div className="bar last-month" style={{ height: "15px" }} title="Last Month: 5"></div>
-              </div>
-              <span className="bar-label">Conversions</span>
-            </div>
-          </div>
+        <div className="progress-bar-track" style={{ height: "10px", borderRadius: "9999px", background: "#f1f5f9", overflow: "hidden" }}>
+          <div
+            className="progress-bar-fill"
+            style={{
+              width: `${Math.min(100, Math.round((displayCallsCount / (metrics?.mtdCallsTarget || 80)) * 100))}%`,
+              height: "100%",
+              background: "linear-gradient(90deg, #10b981 0%, #059669 100%)",
+              borderRadius: "9999px"
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.71875rem", color: "#64748b", marginTop: "0.35rem", fontWeight: 600 }}>
+          <span style={{ color: "#16a34a", fontWeight: 800 }}>{Math.round((displayCallsCount / (metrics?.mtdCallsTarget || 80)) * 100)}% Achieved</span>
+          <span>Target: 100%</span>
         </div>
       </div>
 
-      {/* Sticky Action Button Grid */}
-      <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
-        <button 
-          className="start-calling-btn" 
-          style={{ flex: 1, background: "linear-gradient(135deg, #0284c7 0%, #2563eb 100%)" }} 
-          onClick={onStartCalling}
+      {/* Month-over-Month Comparison Chart */}
+      <div style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: "0.875rem",
+        padding: "0.9rem 1rem"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+          <span style={{ fontSize: "0.84375rem", fontWeight: 800, color: "#0f172a" }}>📊 Month-over-Month Growth</span>
+          <div style={{ display: "flex", gap: "0.6rem", fontSize: "0.6875rem", fontWeight: 700 }}>
+            <span style={{ color: "#2563eb" }}>■ This Month</span>
+            <span style={{ color: "#94a3b8" }}>■ Last Month</span>
+          </div>
+        </div>
+
+        <div className="mom-bar-chart" style={{ display: "flex", justifyContent: "space-around", alignItems: "flex-end", height: "140px", paddingTop: "1rem" }}>
+          <div className="bar-group" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.3rem" }}>
+            <div className="bars-pair" style={{ display: "flex", alignItems: "flex-end", gap: "4px" }}>
+              <div className="bar this-month" style={{ width: "16px", height: `${Math.min(100, Math.max(30, displayCallsCount * 0.5))}px`, background: "#2563eb", borderRadius: "3px 3px 0 0" }} />
+              <div className="bar last-month" style={{ width: "16px", height: "65px", background: "#cbd5e1", borderRadius: "3px 3px 0 0" }} />
+            </div>
+            <span style={{ fontSize: "0.6875rem", fontWeight: 700, color: "#64748b" }}>Calls</span>
+          </div>
+
+          <div className="bar-group" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.3rem" }}>
+            <div className="bars-pair" style={{ display: "flex", alignItems: "flex-end", gap: "4px" }}>
+              <div className="bar this-month" style={{ width: "16px", height: `${Math.min(100, Math.max(20, displayHotLeads * 3))}px`, background: "#ef4444", borderRadius: "3px 3px 0 0" }} />
+              <div className="bar last-month" style={{ width: "16px", height: "25px", background: "#cbd5e1", borderRadius: "3px 3px 0 0" }} />
+            </div>
+            <span style={{ fontSize: "0.6875rem", fontWeight: 700, color: "#64748b" }}>Hot Leads</span>
+          </div>
+
+          <div className="bar-group" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.3rem" }}>
+            <div className="bars-pair" style={{ display: "flex", alignItems: "flex-end", gap: "4px" }}>
+              <div className="bar this-month" style={{ width: "16px", height: `${Math.min(100, Math.max(20, displayVisits * 4))}px`, background: "#f59e0b", borderRadius: "3px 3px 0 0" }} />
+              <div className="bar last-month" style={{ width: "16px", height: "20px", background: "#cbd5e1", borderRadius: "3px 3px 0 0" }} />
+            </div>
+            <span style={{ fontSize: "0.6875rem", fontWeight: 700, color: "#64748b" }}>Visits</span>
+          </div>
+
+          <div className="bar-group" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.3rem" }}>
+            <div className="bars-pair" style={{ display: "flex", alignItems: "flex-end", gap: "4px" }}>
+              <div className="bar this-month" style={{ width: "16px", height: `${Math.min(100, Math.max(20, closedCount * 6))}px`, background: "#10b981", borderRadius: "3px 3px 0 0" }} />
+              <div className="bar last-month" style={{ width: "16px", height: "15px", background: "#cbd5e1", borderRadius: "3px 3px 0 0" }} />
+            </div>
+            <span style={{ fontSize: "0.6875rem", fontWeight: 700, color: "#64748b" }}>Closed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="view-container" style={{ padding: "0.75rem 0.65rem 5.5rem 0.65rem" }}>
+      {/* Top Greeting & Status Pill */}
+      <div style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: "0.875rem",
+        padding: "0.75rem 0.85rem",
+        marginBottom: "0.65rem",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+          <div style={{
+            width: "40px",
+            height: "40px",
+            borderRadius: "50%",
+            background: "#2563eb",
+            color: "#ffffff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 900,
+            fontSize: "0.95rem",
+            flexShrink: 0
+          }}>
+            SP
+          </div>
+          <div>
+            <div style={{ fontSize: "0.9375rem", fontWeight: 800, color: "#0f172a" }}>
+              Good afternoon, {greetingName}! 👋
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", marginTop: "0.15rem", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.6875rem", color: "#b45309", background: "#fef3c7", padding: "0.1rem 0.4rem", borderRadius: "4px", fontWeight: 700 }}>
+                👑 Senior Consultant
+              </span>
+              <span style={{ fontSize: "0.6875rem", color: "#64748b" }}>
+                MahaRERA: A51800045492
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          background: "#ecfdf5",
+          border: "1px solid #a7f3d0",
+          borderRadius: "9999px",
+          padding: "0.2rem 0.55rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.3rem"
+        }}>
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981" }} />
+          <span style={{ fontSize: "0.6875rem", fontWeight: 800, color: "#065f46" }}>24 Active</span>
+        </div>
+      </div>
+
+      {/* iOS App Segmented Control Tabs (No Endless Scrolling!) */}
+      <div style={{
+        display: "flex",
+        background: "#f1f5f9",
+        padding: "3px",
+        borderRadius: "0.75rem",
+        marginBottom: "0.75rem",
+        gap: "3px"
+      }}>
+        <button
+          onClick={() => setActiveSection("overview")}
+          style={{
+            flex: 1,
+            padding: "0.5rem 0.3rem",
+            border: "none",
+            borderRadius: "0.6rem",
+            fontSize: "0.71875rem",
+            fontWeight: 800,
+            cursor: "pointer",
+            background: activeSection === "overview" ? "#2563eb" : "transparent",
+            color: activeSection === "overview" ? "#ffffff" : "#475569",
+            boxShadow: activeSection === "overview" ? "0 2px 6px rgba(37, 99, 235, 0.35)" : "none",
+            transition: "all 0.15s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.3rem",
+            whiteSpace: "nowrap"
+          }}
         >
-          <Phone size={18} />
-          <span>Start Calling Pipeline</span>
+          <span>⚡ Daily Focus</span>
         </button>
-        <button 
-          className="start-calling-btn" 
-          style={{ flex: 1, background: "linear-gradient(135deg, #059669 0%, #10b981 100%)" }} 
-          onClick={onOpenColdDialer}
+
+        <button
+          onClick={() => setActiveSection("pipeline")}
+          style={{
+            flex: 1,
+            padding: "0.5rem 0.3rem",
+            border: "none",
+            borderRadius: "0.6rem",
+            fontSize: "0.71875rem",
+            fontWeight: 800,
+            cursor: "pointer",
+            background: activeSection === "pipeline" ? "#2563eb" : "transparent",
+            color: activeSection === "pipeline" ? "#ffffff" : "#475569",
+            boxShadow: activeSection === "pipeline" ? "0 2px 6px rgba(37, 99, 235, 0.35)" : "none",
+            transition: "all 0.15s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.3rem",
+            whiteSpace: "nowrap"
+          }}
         >
-          <Sparkles size={18} />
-          <span>Cold Meeting Logger</span>
+          <span>📊 Pipeline (3x3)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection("analytics")}
+          style={{
+            flex: 1,
+            padding: "0.5rem 0.3rem",
+            border: "none",
+            borderRadius: "0.6rem",
+            fontSize: "0.71875rem",
+            fontWeight: 800,
+            cursor: "pointer",
+            background: activeSection === "analytics" ? "#2563eb" : "transparent",
+            color: activeSection === "analytics" ? "#ffffff" : "#475569",
+            boxShadow: activeSection === "analytics" ? "0 2px 6px rgba(37, 99, 235, 0.35)" : "none",
+            transition: "all 0.15s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.3rem",
+            whiteSpace: "nowrap"
+          }}
+        >
+          <span>📈 Targets</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection("all")}
+          style={{
+            flex: 0.7,
+            padding: "0.5rem 0.3rem",
+            border: "none",
+            borderRadius: "0.6rem",
+            fontSize: "0.71875rem",
+            fontWeight: 800,
+            cursor: "pointer",
+            background: activeSection === "all" ? "#2563eb" : "transparent",
+            color: activeSection === "all" ? "#ffffff" : "#475569",
+            boxShadow: activeSection === "all" ? "0 2px 6px rgba(37, 99, 235, 0.35)" : "none",
+            transition: "all 0.15s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.2rem",
+            whiteSpace: "nowrap"
+          }}
+          title="View all sections in single feed"
+        >
+          <span>☰ All</span>
         </button>
       </div>
+
+      {/* Render Dynamic Section Based on Segment Tab */}
+      {activeSection === "overview" && renderOverviewSection()}
+      {activeSection === "pipeline" && renderPipelineSection()}
+      {activeSection === "analytics" && renderAnalyticsSection()}
+      {activeSection === "all" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+          {renderOverviewSection()}
+          {renderPipelineSection()}
+          {renderAnalyticsSection()}
+        </div>
+      )}
     </div>
   );
 }
