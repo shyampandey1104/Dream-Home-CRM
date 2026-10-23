@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import { 
   Building2, MapPin, Share2, Info, AlertTriangle, FileText, 
   Video, Layers, Calculator, ClipboardList, CheckCircle, Search, Filter,
-  Phone, UserCheck, CheckSquare, Download, Play, Shield, Upload, Plus, Trash2, FileUp, Eye, Edit3, ArrowUpDown, Sparkles
+  Phone, UserCheck, CheckSquare, Download, Play, Shield, Upload, Plus, Trash2, 
+  FileUp, Eye, Edit3, ArrowUpDown, Sparkles, MessageSquare, FileDown, X, ChevronRight,
+  ShieldCheck, ExternalLink, Compass, Home
 } from "lucide-react";
 import { 
   fetchCrmInventory, 
@@ -35,16 +37,18 @@ import VideoPlayerModal from "./VideoPlayerModal";
 import EditRecordModal from "./EditRecordModal";
 import CustomAlertDialog from "./CustomAlertDialog";
 import { INITIAL_INVENTORY } from "../services/mockData";
+import { exportLeadsToExcel } from "../utils/excelExport";
 
 export default function PropertiesView({ onShareProperty, showToast }) {
-  const [activeMainTab, setActiveMainTab] = useState("properties");
-  const [selectedSubTab, setSelectedSubTab] = useState("Focus Projects");
+  // Navigation: "projects", "documents", "plans", "videos", "listings", "valuation"
+  const [activeTabNav, setActiveTabNav] = useState("projects");
   
-  // Filter & Search states
+  // Dynamic filter states
+  const [bhkFilter, setBhkFilter] = useState("ALL");
+  const [localityFilter, setLocalityFilter] = useState("ALL");
+  const [docCategoryFilter, setDocCategoryFilter] = useState("ALL");
+  const [listingCategoryFilter, setListingCategoryFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [localityFilter, setLocalityFilter] = useState("All Localities");
-  const [bhkFilter, setBhkFilter] = useState("All BHK Types");
-  const [sortOrder, setSortOrder] = useState("Newest First");
 
   // CMA State
   const [cmaLocation, setCmaLocation] = useState("");
@@ -57,6 +61,7 @@ export default function PropertiesView({ onShareProperty, showToast }) {
   const [isDocModalOpen, setIsDocModalOpen] = useState(false);
   const [selectedViewDoc, setSelectedViewDoc] = useState(null);
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [selectedPropertyDrawer, setSelectedPropertyDrawer] = useState(null);
   const [editingRecord, setEditingRecord] = useState(null);
   const [editingType, setEditingType] = useState("");
   const [alertConfig, setAlertConfig] = useState(null);
@@ -67,7 +72,7 @@ export default function PropertiesView({ onShareProperty, showToast }) {
   const [itemModalMode, setItemModalMode] = useState("unit_plan");
   const [itemListingCategory, setItemListingCategory] = useState("My Listing");
 
-  // Editable lists synced with Frappe Backend (initialized with high-end showcase inventory)
+  // Editable lists synced with Frappe Backend
   const [propertiesList, setPropertiesList] = useState(INITIAL_INVENTORY?.focusProjects || []);
   const [documentsList, setDocumentsList] = useState(INITIAL_INVENTORY?.documents || []);
   const [unitPlansList, setUnitPlansList] = useState(INITIAL_INVENTORY?.unitPlans || []);
@@ -158,7 +163,7 @@ export default function PropertiesView({ onShareProperty, showToast }) {
     const updated = [newDoc, ...documentsList];
     setDocumentsList(updated);
     try { localStorage.setItem("crm_property_docs", JSON.stringify(updated)); } catch (e) {}
-    setSelectedSubTab("Documents");
+    setActiveTabNav("documents");
     if (showToast) showToast(`📁 Document '${newDoc.name || newDoc.document_name}' uploaded successfully!`);
   };
 
@@ -191,7 +196,6 @@ export default function PropertiesView({ onShareProperty, showToast }) {
     }
   };
 
-  // Universal Edit Record Handler
   const handleEditRecord = (record, type) => {
     setEditingRecord(record);
     setEditingType(type);
@@ -230,7 +234,7 @@ export default function PropertiesView({ onShareProperty, showToast }) {
         video_url: updatedRecord.video_url || updatedRecord.url,
         thumbnail: updatedRecord.thumbnail || updatedRecord.img
       });
-    } else if (editingType === "My Listing" || editingType === "Employee Listing" || editingType === "Owner Lead" || editingType === "CP Listing" || editingType === "Owner Listing") {
+    } else if (editingType.includes("Listing") || editingType === "Owner Lead") {
       if (editingType === "My Listing") setMyListingData(prev => prev.map(l => (l.name === updatedRecord.name || l.id === updatedRecord.id) ? updatedRecord : l));
       if (editingType === "Employee Listing") setEmployeeListingData(prev => prev.map(l => (l.name === updatedRecord.name || l.id === updatedRecord.id) ? updatedRecord : l));
       if (editingType === "Owner Lead") setOwnerLeadsData(prev => prev.map(l => (l.name === updatedRecord.name || l.id === updatedRecord.id) ? updatedRecord : l));
@@ -255,13 +259,10 @@ export default function PropertiesView({ onShareProperty, showToast }) {
     setEditingType("");
   };
 
-  // Universal Delete Handler connected to Backend APIs
   const confirmDeleteRecord = (item, type, onDeleteCallback) => {
     const itemName = item.title || item.name || item.document_name || item.property || item.project || item.builder || "this item";
     setDeleteAction(() => async () => {
       if (onDeleteCallback) onDeleteCallback();
-      
-      // Call backend delete API
       try {
         if (type === "Property") {
           await deletePropertyApi(item.name || item.title);
@@ -293,7 +294,6 @@ export default function PropertiesView({ onShareProperty, showToast }) {
     });
   };
 
-  // CMA Calculation & DB Save
   const handleCalculateCMA = async (e) => {
     e.preventDefault();
     const res = await calculateCmaApi(cmaLocation, cmaArea);
@@ -304,7 +304,6 @@ export default function PropertiesView({ onShareProperty, showToast }) {
     }
   };
 
-  // Survey Submission & DB Save
   const handleSurveySubmit = async (e) => {
     e.preventDefault();
     if (!surveyBuilder.trim()) {
@@ -339,54 +338,67 @@ export default function PropertiesView({ onShareProperty, showToast }) {
 
   // Universal Filter Predicate
   const matchFilter = (item, fieldsToSearch = []) => {
-    // 1. Search Query Match
     if (searchQuery.trim() !== "") {
       const q = searchQuery.toLowerCase();
       const matched = fieldsToSearch.some(fieldVal => fieldVal && String(fieldVal).toLowerCase().includes(q));
       if (!matched) return false;
     }
-
-    // 2. Locality Filter Match
-    if (localityFilter !== "All Localities") {
+    if (localityFilter !== "ALL") {
       const locKey = (item.location || item.locality || item.project || item.name || "").toLowerCase();
       if (!locKey.includes(localityFilter.toLowerCase())) return false;
     }
-
-    // 3. BHK Filter Match
-    if (bhkFilter !== "All BHK Types") {
+    if (bhkFilter !== "ALL") {
       const bhkKey = (item.bhk || item.bhk_type || item.bhkType || item.title || item.property || "").toLowerCase();
       if (!bhkKey.includes(bhkFilter.toLowerCase().replace(" types", ""))) return false;
     }
-
     return true;
   };
 
   // Filtered Lists
   const filteredProperties = propertiesList.filter(p => matchFilter(p, [p.title, p.builder, p.location, p.bhk, p.price_range, p.tag]));
-  const filteredDocs = documentsList.filter(d => matchFilter(d, [d.name, d.document_name, d.project, d.category, d.file_type]));
+  const filteredDocs = documentsList.filter(d => {
+    if (docCategoryFilter !== "ALL" && !String(d.category || "").toLowerCase().includes(docCategoryFilter.toLowerCase())) return false;
+    return matchFilter(d, [d.name, d.document_name, d.project, d.category, d.file_type]);
+  });
   const filteredPlans = unitPlansList.filter(u => matchFilter(u, [u.project, u.bhk_type, u.area, u.notes]));
   const filteredVideos = videosList.filter(v => matchFilter(v, [v.title, v.project, v.duration]));
-  const filteredMyListings = myListingData.filter(l => matchFilter(l, [l.title, l.property, l.locality, l.price, l.owner, l.owner_or_agent]));
-  const filteredEmpListings = employeeListingData.filter(l => matchFilter(l, [l.title, l.property, l.locality, l.price, l.agent, l.owner_or_agent]));
-  const filteredOwnerLeads = ownerLeadsData.filter(l => matchFilter(l, [l.name, l.title, l.property, l.locality, l.phone, l.owner_or_agent]));
-  const filteredCpListings = cpListingData.filter(l => matchFilter(l, [l.broker, l.title, l.property, l.locality, l.commission, l.owner_or_agent]));
-  const filteredOwnerListings = ownerListingData.filter(l => matchFilter(l, [l.title, l.property, l.locality, l.price, l.phone, l.owner_or_agent]));
-  const filteredSurveys = surveysList.filter(s => matchFilter(s, [s.builder, s.location, s.price_range, s.rera_no, s.survey_notes]));
-  const filteredCma = cmaHistory.filter(c => matchFilter(c, [c.locality, c.rate_per_sqft, c.estimated_price, c.confidence]));
+  
+  const allListings = [
+    ...myListingData.map(l => ({ ...l, category: "My Listing" })),
+    ...employeeListingData.map(l => ({ ...l, category: "Employee Listing" })),
+    ...ownerLeadsData.map(l => ({ ...l, category: "Owner Lead" })),
+    ...cpListingData.map(l => ({ ...l, category: "CP Listing" })),
+    ...ownerListingData.map(l => ({ ...l, category: "Owner Listing" }))
+  ];
+  const filteredListings = allListings.filter(l => {
+    if (listingCategoryFilter !== "ALL" && l.category !== listingCategoryFilter) return false;
+    return matchFilter(l, [l.title, l.property, l.locality, l.price, l.owner, l.owner_or_agent]);
+  });
 
   return (
-    <div style={{ padding: "0.875rem 0.75rem", paddingBottom: "5rem" }}>
+    <div className="view-container" style={{ padding: "0.65rem 0.85rem 5rem 0.85rem", background: "#f8fafc", minHeight: "100%" }}>
+      {/* Upload Property Modal */}
       <UploadPropertyModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onPropertyUploaded={handlePropertyUploaded}
       />
 
+      {/* Doc Upload Modal */}
       <DocUploadModal
         isOpen={isDocModalOpen}
         onClose={() => setIsDocModalOpen(false)}
         onDocumentUploaded={handleDocumentUploaded}
         categoryTitle="Property & Inventory Documents"
+      />
+
+      {/* Item Modal (Unit Plan, Video, Listing) */}
+      <UploadInventoryModal
+        isOpen={isItemModalOpen}
+        onClose={() => setIsItemModalOpen(false)}
+        onItemUploaded={handleItemUploaded}
+        initialMode={itemModalMode}
+        initialCategory={itemListingCategory}
       />
 
       {/* In-App Document Viewer Dialog */}
@@ -403,897 +415,543 @@ export default function PropertiesView({ onShareProperty, showToast }) {
         video={selectedVideo}
       />
 
-      {/* In-App Universal Edit Record Modal */}
-      <EditRecordModal
-        isOpen={!!editingRecord}
-        onClose={() => { setEditingRecord(null); setEditingType(""); }}
-        record={editingRecord}
-        recordType={editingType}
-        onSave={handleSaveEditedRecord}
-      />
+      {/* Edit Record Modal */}
+      {editingRecord && (
+        <EditRecordModal
+          isOpen={!!editingRecord}
+          onClose={() => { setEditingRecord(null); setEditingType(""); }}
+          record={editingRecord}
+          type={editingType}
+          onSave={handleSaveEditedRecord}
+        />
+      )}
 
-      <UploadInventoryModal
-        isOpen={isItemModalOpen}
-        onClose={() => setIsItemModalOpen(false)}
-        mode={itemModalMode}
-        defaultListingType={itemListingCategory}
-        onItemUploaded={handleItemUploaded}
-      />
-
-      {/* Header Bar with Action Buttons */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.875rem", flexWrap: "wrap", gap: "0.5rem" }}>
-        <div>
-          <h2 style={{ fontSize: "1.0625rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>🏢 Property & Focus Inventory</h2>
-          <p style={{ fontSize: "0.75rem", color: "#64748b", margin: "0.1rem 0 0 0" }}>Manage inventory, floor plans, RERA brochures & valuation</p>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
-          {/* Direct PDF / DOC Upload Button */}
-          <button
-            onClick={() => setIsDocModalOpen(true)}
-            style={{
-              background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-              color: "#ffffff",
-              border: "none",
-              padding: "0.45rem 0.75rem",
-              borderRadius: "0.5rem",
-              fontSize: "0.78125rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.35rem",
-              boxShadow: "0 4px 12px rgba(2,132,199,0.3)",
-              whiteSpace: "nowrap"
-            }}
-          >
-            <FileUp size={15} /> + Upload PDF / DOC
-          </button>
-
-          {/* Direct Video Tour Upload Button */}
-          <button
-            onClick={() => { setItemModalMode("video"); setIsItemModalOpen(true); }}
-            style={{
-              background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-              color: "#ffffff",
-              border: "none",
-              padding: "0.45rem 0.75rem",
-              borderRadius: "0.5rem",
-              fontSize: "0.78125rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.35rem",
-              boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
-              whiteSpace: "nowrap"
-            }}
-          >
-            <Video size={15} /> + Upload Video
-          </button>
-
-          {/* Upload Property Button */}
-          <button
-            onClick={() => setIsUploadModalOpen(true)}
-            style={{
-              background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
-              color: "#ffffff",
-              border: "none",
-              padding: "0.45rem 0.75rem",
-              borderRadius: "0.5rem",
-              fontSize: "0.78125rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.35rem",
-              boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
-              whiteSpace: "nowrap"
-            }}
-          >
-            <Upload size={15} /> + Property
-          </button>
-        </div>
-      </div>
-
-      {/* Main Tab Toggle: Properties vs Listing */}
-      <div style={{ display: "flex", background: "#f1f5f9", padding: "0.25rem", borderRadius: "0.75rem", marginBottom: "0.875rem" }}>
-        <button
-          className={`tab-btn ${activeMainTab === "properties" ? "active" : ""}`}
-          onClick={() => { setActiveMainTab("properties"); setSelectedSubTab("Focus Projects"); }}
-          style={{ flex: 1, padding: "0.5rem", borderRadius: "0.5rem", fontSize: "0.8125rem", fontWeight: "700", border: "none", cursor: "pointer", background: activeMainTab === "properties" ? "#2563eb" : "transparent", color: activeMainTab === "properties" ? "#fff" : "#64748b" }}
-        >
-          🏢 Properties & Focus
-        </button>
-        <button
-          className={`tab-btn ${activeMainTab === "listing" ? "active" : ""}`}
-          onClick={() => { setActiveMainTab("listing"); setSelectedSubTab("My Listing"); }}
-          style={{ flex: 1, padding: "0.5rem", borderRadius: "0.5rem", fontSize: "0.8125rem", fontWeight: "700", border: "none", cursor: "pointer", background: activeMainTab === "listing" ? "#2563eb" : "transparent", color: activeMainTab === "listing" ? "#fff" : "#64748b" }}
-        >
-          📋 Property Listings
-        </button>
-      </div>
-
-      {/* Sub Tabs Scroll */}
-      <div className="sub-tabs-scroll" style={{ marginBottom: "0.75rem" }}>
-        {activeMainTab === "properties" ? (
-          <>
-            {["Focus Projects", "Documents", "Unit Plans", "CMA Analysis", "Project Survey", "Videos"].map(tab => (
-              <button 
-                key={tab}
-                className={`sub-tab-chip ${selectedSubTab === tab ? "active" : ""}`}
-                onClick={() => setSelectedSubTab(tab)}
-              >
-                {tab === "Focus Projects" && "⭐ "}
-                {tab === "Documents" && "📁 "}
-                {tab === "Unit Plans" && "📐 "}
-                {tab === "CMA Analysis" && "📊 "}
-                {tab === "Project Survey" && "📝 "}
-                {tab === "Videos" && "🎥 "}
-                {tab}
-              </button>
-            ))}
-          </>
-        ) : (
-          <>
-            {["My Listing", "Employee Listing", "Check Demand", "Owner Leads", "Owner Listing", "CP Listing"].map(tab => (
-              <button 
-                key={tab}
-                className={`sub-tab-chip ${selectedSubTab === tab ? "active" : ""}`}
-                onClick={() => setSelectedSubTab(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </>
-        )}
-      </div>
-
-      {/* Universal Responsive Search & Filter Bar */}
-      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.6rem 0.75rem", marginBottom: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-        {/* Search Input */}
-        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-          <Search size={15} color="#94a3b8" style={{ position: "absolute", left: "10px" }} />
-          <input
-            type="text"
-            className="modern-search-input"
-            placeholder={`Search in ${selectedSubTab} (Title, Location, Builder, BHK, Name)...`}
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            style={{ width: "100%", paddingLeft: "32px", paddingRight: "30px", fontSize: "0.8125rem", height: "36px", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
-          />
-          {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery("")}
-              style={{ position: "absolute", right: "8px", background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontWeight: 700, fontSize: "14px" }}
-            >
-              ×
-            </button>
-          )}
-        </div>
-
-        {/* Filter Pills Row */}
-        <div style={{ display: "flex", gap: "0.4rem", overflowX: "auto", paddingBottom: "2px" }} className="horizontal-filter-scroll">
-          {/* Locality Filter */}
-          <select
-            value={localityFilter}
-            onChange={e => setLocalityFilter(e.target.value)}
-            style={{
-              padding: "0.3rem 0.6rem",
-              borderRadius: "0.45rem",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              border: localityFilter !== "All Localities" ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
-              background: localityFilter !== "All Localities" ? "#eff6ff" : "#f8fafc",
-              color: localityFilter !== "All Localities" ? "#1d4ed8" : "#475569",
-              cursor: "pointer"
-            }}
-          >
-            <option value="All Localities">📍 All Localities</option>
-            <option value="Andheri">Andheri West</option>
-            <option value="Bandra">Bandra West</option>
-            <option value="Borivali">Borivali East</option>
-            <option value="Wadala">Wadala</option>
-            <option value="Bhandup">Bhandup West</option>
-            <option value="Worli">Worli Sea Face</option>
-            <option value="Lokhandwala">Lokhandwala</option>
-            <option value="Khar">Khar West</option>
-            <option value="Juhu">Juhu Scheme</option>
-            <option value="Thane">Thane</option>
-          </select>
-
-          {/* BHK Filter */}
-          <select
-            value={bhkFilter}
-            onChange={e => setBhkFilter(e.target.value)}
-            style={{
-              padding: "0.3rem 0.6rem",
-              borderRadius: "0.45rem",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              border: bhkFilter !== "All BHK Types" ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
-              background: bhkFilter !== "All BHK Types" ? "#eff6ff" : "#f8fafc",
-              color: bhkFilter !== "All BHK Types" ? "#1d4ed8" : "#475569",
-              cursor: "pointer"
-            }}
-          >
-            <option value="All BHK Types">🏢 All BHK Types</option>
-            <option value="1 BHK">1 BHK</option>
-            <option value="2 BHK">2 BHK</option>
-            <option value="3 BHK">3 BHK</option>
-            <option value="4 BHK">4 BHK</option>
-            <option value="Penthouse">Penthouse / Villa</option>
-          </select>
-
-          {/* Reset Filters Button if any active */}
-          {(localityFilter !== "All Localities" || bhkFilter !== "All BHK Types" || searchQuery !== "") && (
+      {/* 1. SUB-HEADER TAB NAVIGATION (MATCHING FRESH LEADS / FOLLOW-UPS SPEC) */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        borderBottom: "1.5px solid #e2e8f0",
+        padding: "0 0.25rem",
+        marginBottom: "0.65rem",
+        background: "#ffffff",
+        borderRadius: "12px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+      }}>
+        {[
+          { id: "projects", label: "Projects" },
+          { id: "documents", label: "Brochures" },
+          { id: "plans", label: "Unit Plans" },
+          { id: "videos", label: "3D Tours" },
+          { id: "listings", label: "Listings" },
+          { id: "valuation", label: "Valuation" }
+        ].map((tab) => {
+          const isActive = activeTabNav === tab.id;
+          return (
             <button
-              onClick={() => { setLocalityFilter("All Localities"); setBhkFilter("All BHK Types"); setSearchQuery(""); }}
+              key={tab.id}
+              onClick={() => {
+                setActiveTabNav(tab.id);
+                setBhkFilter("ALL");
+                setLocalityFilter("ALL");
+                setDocCategoryFilter("ALL");
+                setListingCategoryFilter("ALL");
+              }}
               style={{
-                padding: "0.3rem 0.6rem",
-                borderRadius: "0.45rem",
-                fontSize: "0.71875rem",
+                flex: 1,
+                background: "none",
+                border: "none",
+                padding: "0.65rem 0.15rem",
+                fontSize: "0.78125rem",
+                fontWeight: isActive ? 800 : 600,
+                color: isActive ? "#0f172a" : "#64748b",
+                borderBottom: isActive ? "2.5px solid #0f172a" : "2.5px solid transparent",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                marginBottom: "-1.5px",
+                textAlign: "center",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 2. DYNAMIC FILTER PILLS BASED ON ACTIVE TAB */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        overflowX: "auto",
+        paddingBottom: "0.65rem",
+        marginBottom: "0.5rem",
+        scrollbarWidth: "none"
+      }}>
+        {activeTabNav === "projects" && (
+          <>
+            <button
+              onClick={() => { setBhkFilter("ALL"); setLocalityFilter("ALL"); }}
+              style={{
+                padding: "4px 12px",
+                borderRadius: "9999px",
+                fontSize: "0.75rem",
                 fontWeight: 700,
-                border: "1px solid #fecaca",
-                background: "#fef2f2",
-                color: "#dc2626",
+                border: "none",
+                background: (bhkFilter === "ALL" && localityFilter === "ALL") ? "#0f172a" : "#ffffff",
+                color: (bhkFilter === "ALL" && localityFilter === "ALL") ? "#ffffff" : "#475569",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                 cursor: "pointer",
                 whiteSpace: "nowrap"
               }}
             >
-              Reset Filters ✕
+              All ({propertiesList.length})
+            </button>
+            {["1 BHK", "2 BHK", "3 BHK", "4 BHK", "Penthouse"].map(bhk => (
+              <button
+                key={bhk}
+                onClick={() => setBhkFilter(bhkFilter === bhk ? "ALL" : bhk)}
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  border: "none",
+                  background: bhkFilter === bhk ? "#2563eb" : "#ffffff",
+                  color: bhkFilter === bhk ? "#ffffff" : "#475569",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                🏠 {bhk}
+              </button>
+            ))}
+            {["Bhandup", "Andheri", "Worli", "Thane", "Borivali"].map(loc => (
+              <button
+                key={loc}
+                onClick={() => setLocalityFilter(localityFilter === loc ? "ALL" : loc)}
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  border: "none",
+                  background: localityFilter === loc ? "#0f172a" : "#ffffff",
+                  color: localityFilter === loc ? "#ffffff" : "#475569",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                📍 {loc}
+              </button>
+            ))}
+          </>
+        )}
+
+        {activeTabNav === "documents" && (
+          <>
+            <button
+              onClick={() => setDocCategoryFilter("ALL")}
+              style={{
+                padding: "4px 12px",
+                borderRadius: "9999px",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                border: "none",
+                background: docCategoryFilter === "ALL" ? "#0f172a" : "#ffffff",
+                color: docCategoryFilter === "ALL" ? "#ffffff" : "#475569",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                cursor: "pointer",
+                whiteSpace: "nowrap"
+              }}
+            >
+              All Docs ({documentsList.length})
+            </button>
+            {["Brochure", "Price Sheet", "RERA Approval", "Floor Plan"].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setDocCategoryFilter(docCategoryFilter === cat ? "ALL" : cat)}
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  border: "none",
+                  background: docCategoryFilter === cat ? "#2563eb" : "#ffffff",
+                  color: docCategoryFilter === cat ? "#ffffff" : "#475569",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                📄 {cat}
+              </button>
+            ))}
+          </>
+        )}
+
+        {activeTabNav === "plans" && (
+          <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600, padding: "4px 8px" }}>
+            Showing {filteredPlans.length} verified 2D/3D Unit Layout Plans
+          </span>
+        )}
+
+        {activeTabNav === "videos" && (
+          <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600, padding: "4px 8px" }}>
+            Showing {filteredVideos.length} Ultra-HD 4K Virtual Walkthrough Tours
+          </span>
+        )}
+
+        {activeTabNav === "listings" && (
+          <>
+            {["ALL", "My Listing", "Employee Listing", "Owner Lead", "CP Listing"].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setListingCategoryFilter(cat)}
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  border: "none",
+                  background: listingCategoryFilter === cat ? "#0f172a" : "#ffffff",
+                  color: listingCategoryFilter === cat ? "#ffffff" : "#475569",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {cat === "ALL" ? `All Listings (${allListings.length})` : cat}
+              </button>
+            ))}
+          </>
+        )}
+
+        {activeTabNav === "valuation" && (
+          <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600, padding: "4px 8px" }}>
+            CMA Rate Calculator & Field Survey Engine
+          </span>
+        )}
+      </div>
+
+      {/* 3. SLEEK UTILITY BAR (SEARCH + COMPACT CRM ACTION PILLS) */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        marginBottom: "0.85rem",
+        background: "#ffffff",
+        padding: "0.4rem 0.6rem",
+        borderRadius: "12px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+      }}>
+        {/* Search input */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "6px" }}>
+          <Search size={15} color="#94a3b8" />
+          <input
+            type="text"
+            placeholder={`Search ${activeTabNav} (Project, builder, locality, price)...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              border: "none",
+              outline: "none",
+              fontSize: "0.8125rem",
+              color: "#0f172a",
+              width: "100%",
+              background: "transparent"
+            }}
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery("")} 
+              style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", padding: "2px" }}
+            >
+              <X size={14} />
             </button>
           )}
+        </div>
+
+        {/* Compact Action Pills */}
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <button
+            onClick={() => setIsUploadModalOpen(true)}
+            style={{
+              background: "#0f172a",
+              color: "#ffffff",
+              border: "none",
+              padding: "4px 8px",
+              borderRadius: "8px",
+              fontSize: "0.6875rem",
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "3px"
+            }}
+            title="Add Focus Property"
+          >
+            <Plus size={11} /> +Property
+          </button>
+
+          <button
+            onClick={() => setIsDocModalOpen(true)}
+            style={{
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#1d4ed8",
+              padding: "4px 7px",
+              borderRadius: "8px",
+              fontSize: "0.6875rem",
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "3px"
+            }}
+            title="Upload RERA Brochure PDF"
+          >
+            <FileUp size={11} /> +Doc
+          </button>
+
+          <button
+            onClick={() => { setItemModalMode("video"); setIsItemModalOpen(true); }}
+            style={{
+              background: "#f5f3ff",
+              border: "1px solid #ddd6fe",
+              color: "#6d28d9",
+              padding: "4px 7px",
+              borderRadius: "8px",
+              fontSize: "0.6875rem",
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "3px"
+            }}
+            title="Upload 3D Virtual Tour"
+          >
+            <Video size={11} /> +Tour
+          </button>
+
+          <button
+            onClick={() => exportLeadsToExcel(filteredProperties, "Inventory_Report")}
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              color: "#475569",
+              padding: "4px 7px",
+              borderRadius: "8px",
+              fontSize: "0.6875rem",
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "3px"
+            }}
+            title="Download Inventory Excel Report"
+          >
+            <FileDown size={11} />
+          </button>
         </div>
       </div>
 
-      {/* Dynamic Content Rendering based on Selected SubTab */}
-      {selectedSubTab === "Documents" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-          {/* Quick PDF/DOC Upload Banner */}
-          <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", padding: "0.85rem", borderRadius: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
-            <div>
-              <div style={{ fontSize: "0.84375rem", fontWeight: 800, color: "#1e40af" }}>📁 Project Documents & PDF Brochures</div>
-              <div style={{ fontSize: "0.71875rem", color: "#3b82f6" }}>Upload, view & share verified RERA PDFs, brochures, cost sheets (.pdf, .doc, .docx)</div>
-            </div>
-            <button
-              onClick={() => setIsDocModalOpen(true)}
-              style={{ background: "#2563eb", color: "#ffffff", border: "none", padding: "0.45rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.25rem", whiteSpace: "nowrap" }}
-            >
-              <FileUp size={14} /> + Upload
-            </button>
-          </div>
+      {/* 4. MAIN BODY RENDERER BY ACTIVE TAB */}
 
-          {filteredDocs.map((doc, idx) => (
-            <div 
-              key={doc.name || doc.id || idx} 
-              style={{ 
-                background: "#ffffff", 
-                border: "1px solid #e2e8f0", 
-                borderRadius: "0.625rem", 
-                padding: "0.75rem", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "space-between", 
-                gap: "0.5rem",
-                transition: "all 0.15s ease"
+      {/* TAB A: FOCUS PROJECTS */}
+      {activeTabNav === "projects" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {filteredProperties.map((prop) => (
+            <div
+              key={prop.name || prop.id || prop.title}
+              onClick={() => setSelectedPropertyDrawer(prop)}
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                border: "1px solid #f1f5f9",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.03)",
+                overflow: "hidden",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                position: "relative"
               }}
+              onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,0,0,0.06)"}
+              onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.03)"}
             >
-              <div 
-                onClick={() => setSelectedViewDoc(doc)}
-                style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, minWidth: 0, cursor: "pointer" }}
-              >
-                <div style={{ width: "36px", height: "36px", borderRadius: "0.5rem", background: (doc.file_type === "PDF" || (doc.document_name || doc.name || "").endsWith(".pdf")) ? "#fee2e2" : "#e0e7ff", color: (doc.file_type === "PDF" || (doc.document_name || doc.name || "").endsWith(".pdf")) ? "#dc2626" : "#4338ca", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.6875rem", flexShrink: 0 }}>
-                  {doc.file_type || "PDF"}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: "0.8125rem", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {doc.document_name || doc.name}
-                  </div>
-                  <div style={{ fontSize: "0.6875rem", color: "#64748b" }}>
-                    {doc.category || "Brochure"} • {doc.file_size || doc.size || "1.5 MB"} • {doc.upload_date || doc.date || "Today"}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", flexShrink: 0 }}>
-                {/* View Document Dialog Button */}
-                <button 
-                  style={{ 
-                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)", 
-                    color: "#ffffff", 
-                    border: "none", 
-                    padding: "0.35rem 0.65rem", 
-                    borderRadius: "0.375rem", 
-                    fontSize: "0.75rem", 
-                    fontWeight: "700", 
-                    cursor: "pointer", 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "0.25rem",
-                    boxShadow: "0 2px 6px rgba(37,99,235,0.25)"
-                  }} 
-                  onClick={() => setSelectedViewDoc(doc)}
-                  title="View Document Details & Preview"
-                >
-                  <Eye size={13} /> View
-                </button>
-
-                {/* Edit Button */}
-                <button
-                  type="button"
-                  onClick={() => handleEditRecord(doc, "Document")}
-                  style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                  title="Edit Document Details"
-                >
-                  <Edit3 size={13} />
-                </button>
-
-                {/* Delete button */}
-                <button 
-                  style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} 
-                  onClick={() => confirmDeleteRecord(doc, "Document", () => {
-                    setDocumentsList(prev => prev.filter(d => (d.name || d.id) !== (doc.name || doc.id)));
-                  })}
-                  title="Delete Document"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {filteredDocs.length === 0 && (
-            <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "0.75rem", border: "1px solid #e2e8f0", color: "#64748b" }}>
-              No documents match your search filters.
-            </div>
-          )}
-        </div>
-      ) : selectedSubTab === "CMA Analysis" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* CMA Calculator Card */}
-          <div style={{ background: "#ffffff", padding: "1.25rem", borderRadius: "0.875rem", border: "1px solid #e2e8f0" }}>
-            <h4 style={{ fontSize: "0.9375rem", fontWeight: "700", marginBottom: "0.3rem" }}>📊 Comparative Market Analysis (CMA)</h4>
-            <p style={{ fontSize: "0.8125rem", color: "#64748b", marginBottom: "1rem" }}>Calculate fair market value & price trends in Bandra, Andheri, Lokhandwala & Thane (Saved to Frappe DB).</p>
-
-            <form onSubmit={handleCalculateCMA} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: "700", color: "#475569" }}>Property Locality</label>
-                <input type="text" className="modern-search-input" placeholder="e.g. Lokhandwala, Andheri West" value={cmaLocation} onChange={e => setCmaLocation(e.target.value)} required />
-              </div>
-              <div>
-                <label style={{ fontSize: "0.75rem", fontWeight: "700", color: "#475569" }}>Carpet Area (sq.ft)</label>
-                <input type="number" className="modern-search-input" placeholder="e.g. 1150" value={cmaArea} onChange={e => setCmaArea(e.target.value)} required />
-              </div>
-              <button type="submit" className="admin-action-btn" style={{ justifyContent: "center" }}>
-                Calculate Market Value & Save to DB
-              </button>
-            </form>
-
-            {cmaResult && (
-              <div style={{ marginTop: "1rem", background: "#f0f9ff", border: "1px solid #bae6fd", padding: "0.875rem", borderRadius: "0.625rem" }}>
-                <div style={{ fontSize: "0.75rem", color: "#0369a1", fontWeight: "700" }}>CMA Estimation Result:</div>
-                <div style={{ fontSize: "1.25rem", fontWeight: "800", color: "#0284c7", margin: "0.2rem 0" }}>Estimated Price: {cmaResult.estVal || cmaResult.estimated_price}</div>
-                <div style={{ fontSize: "0.78125rem", color: "#475569" }}>Average Rate: <strong>{cmaResult.rate || cmaResult.rate_per_sqft}</strong></div>
-                <div style={{ fontSize: "0.71875rem", color: "#16a34a", fontWeight: "700", marginTop: "0.3rem" }}>✓ {cmaResult.confidence}</div>
-              </div>
-            )}
-          </div>
-
-          {/* Saved CMA Analyses List */}
-          {filteredCma.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-              <h4 style={{ fontSize: "0.875rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>📑 Past CMA Reports ({filteredCma.length})</h4>
-              {filteredCma.map((cma, idx) => (
-                <div key={cma.name || idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.625rem", padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div>
-                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "#0f172a" }}>📍 {cma.locality} ({cma.carpet_area || 1000} sq.ft)</div>
-                    <div style={{ fontSize: "0.75rem", color: "#2563eb", fontWeight: 600 }}>{cma.estimated_price || cma.estVal} • Rate: {cma.rate_per_sqft || cma.rate}</div>
-                  </div>
-                  <button
-                    onClick={() => confirmDeleteRecord(cma, "CMA Analysis", () => {
-                      setCmaHistory(prev => prev.filter(c => c.name !== cma.name));
-                    })}
-                    style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer" }}
-                    title="Delete CMA Record"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : selectedSubTab === "Project Survey" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div style={{ background: "#ffffff", padding: "1.25rem", borderRadius: "0.875rem", border: "1px solid #e2e8f0" }}>
-            <h4 style={{ fontSize: "0.9375rem", fontWeight: "700", marginBottom: "0.3rem" }}>📝 Builder Field Project Survey</h4>
-            <p style={{ fontSize: "0.8125rem", color: "#64748b", marginBottom: "1rem" }}>Submit survey report for new upcoming builder projects directly to Frappe MariaDB.</p>
-            <form onSubmit={handleSurveySubmit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              <input 
-                type="text" 
-                className="modern-search-input" 
-                placeholder="Builder / Developer Name (e.g. Oberoi Realty) *" 
-                value={surveyBuilder}
-                onChange={e => setSurveyBuilder(e.target.value)}
-                required
-              />
-              <input 
-                type="text" 
-                className="modern-search-input" 
-                placeholder="Land Parcel Location (e.g. Goregaon East)" 
-                value={surveyLocation}
-                onChange={e => setSurveyLocation(e.target.value)}
-              />
-              <input 
-                type="text" 
-                className="modern-search-input" 
-                placeholder="Expected Launch Price Range (e.g. ₹ 2.5 Cr+)" 
-                value={surveyPrice}
-                onChange={e => setSurveyPrice(e.target.value)}
-              />
-              <input 
-                type="text" 
-                className="modern-search-input" 
-                placeholder="RERA Registration / Application No (Optional)" 
-                value={surveyRera}
-                onChange={e => setSurveyRera(e.target.value)}
-              />
-              <textarea
-                className="modern-search-input"
-                rows={2}
-                placeholder="Survey Insights, Proposed Amenities & Landmark..."
-                value={surveyNotes}
-                onChange={e => setSurveyNotes(e.target.value)}
-                style={{ resize: "vertical" }}
-              />
-              <button type="submit" className="admin-action-btn" style={{ justifyContent: "center" }}>
-                Submit Survey Form to CRM Database
-              </button>
-            </form>
-          </div>
-
-          {/* List of Submitted Project Surveys */}
-          {filteredSurveys.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-              <h4 style={{ fontSize: "0.875rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>📋 Field Project Surveys ({filteredSurveys.length})</h4>
-              {filteredSurveys.map((surv, idx) => (
-                <div key={surv.name || idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.625rem", padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div>
-                    <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "#0f172a" }}>🏗️ {surv.builder}</div>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>Location: {surv.location} • Price: <strong style={{ color: "#2563eb" }}>{surv.price_range}</strong></div>
-                    {surv.survey_notes && <div style={{ fontSize: "0.71875rem", color: "#475569", marginTop: "2px" }}>{surv.survey_notes}</div>}
-                  </div>
-                  <button
-                    onClick={() => confirmDeleteRecord(surv, "Project Survey", () => {
-                      setSurveysList(prev => prev.filter(s => s.name !== surv.name));
-                    })}
-                    style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer" }}
-                    title="Delete Survey"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : selectedSubTab === "Unit Plans" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-          <button
-            onClick={() => { setItemModalMode("unit_plan"); setIsItemModalOpen(true); }}
-            style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "0.6rem", fontSize: "0.8125rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
-          >
-            <Plus size={16} /> + Add Unit Floor Plan
-          </button>
-          {filteredPlans.map((plan, idx) => (
-            <div key={plan.name || plan.id || idx} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", overflow: "hidden", padding: "0.875rem" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.3rem" }}>
-                <h4 style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a", margin: 0 }}>📐 {plan.project}</h4>
-                <div style={{ display: "flex", gap: "0.3rem" }}>
-                  <button
-                    onClick={() => handleEditRecord(plan, "Unit Plan")}
-                    style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem 0.45rem", borderRadius: "0.375rem", cursor: "pointer" }}
-                    title="Edit Unit Plan"
-                  >
-                    <Edit3 size={13} />
-                  </button>
-                  <button
-                    onClick={() => confirmDeleteRecord(plan, "Unit Plan", () => {
-                      setUnitPlansList(prev => prev.filter(u => (u.name || u.id) !== (plan.name || plan.id)));
-                    })}
-                    style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem 0.45rem", borderRadius: "0.375rem", cursor: "pointer" }}
-                    title="Delete Unit Plan"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-              <p style={{ fontSize: "0.75rem", color: "#64748b", marginBottom: "0.5rem" }}>Area: {plan.area || "750 sq.ft Carpet"} {plan.bhk_type ? `• ${plan.bhk_type}` : ""}</p>
-              <img 
-                src={plan.plan_img || plan.planImg || "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80"} 
-                alt={plan.project} 
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80";
-                }}
-                style={{ width: "100%", height: "160px", objectFit: "cover", borderRadius: "0.5rem" }} 
-              />
-              <button style={{ width: "100%", marginTop: "0.6rem", background: "#2563eb", color: "#ffffff", border: "none", padding: "0.4rem", borderRadius: "0.375rem", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }} onClick={() => setAlertConfig({ title: "Downloading Layout", message: `Downloading High-Res 2D/3D Floor Plan PDF for ${plan.project}...`, type: "info" })}>
-                <Download size={13} style={{ verticalAlign: "middle", marginRight: "4px" }} /> Download Floor Layout PDF
-              </button>
-            </div>
-          ))}
-
-          {filteredPlans.length === 0 && (
-            <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "0.75rem", border: "1px solid #e2e8f0", color: "#64748b" }}>
-              No unit floor plans match your search filters.
-            </div>
-          )}
-        </div>
-      ) : selectedSubTab === "Videos" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-          <button
-            onClick={() => { setItemModalMode("video"); setIsItemModalOpen(true); }}
-            style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "0.6rem", fontSize: "0.8125rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
-          >
-            <Plus size={16} /> + Add 3D Virtual Video Tour
-          </button>
-          
-          {filteredVideos.map((vid, idx) => (
-            <div 
-              key={vid.name || vid.id || idx} 
-              style={{ 
-                background: "#ffffff", 
-                border: "1px solid #e2e8f0", 
-                borderRadius: "0.75rem", 
-                overflow: "hidden", 
-                padding: "0.875rem",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
-              }}
-            >
-              <div 
-                onClick={() => setSelectedVideo(vid)}
-                style={{ position: "relative", width: "100%", height: "150px", background: "#0f172a", borderRadius: "0.5rem", overflow: "hidden", cursor: "pointer" }}
-              >
-                <img 
-                  src={vid.thumbnail || vid.img || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"} 
-                  alt={vid.title} 
+              {/* Photo Banner with Badges */}
+              <div style={{ position: "relative", width: "100%", height: "140px", background: "#0f172a" }}>
+                <img
+                  src={prop.img || prop.image || prop.hero_img || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"}
+                  alt={prop.title}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80";
                   }}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }} 
                 />
-                <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <div style={{ width: "46px", height: "46px", borderRadius: "50%", background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(37,99,235,0.6)" }}>
-                    <Play size={22} fill="#ffffff" style={{ marginLeft: "2px" }} />
-                  </div>
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.7) 100%)"
+                }} />
+
+                {/* Top Badges */}
+                <div style={{ position: "absolute", top: "8px", left: "10px", display: "flex", gap: "4px" }}>
+                  <span style={{
+                    background: "rgba(15, 23, 42, 0.85)",
+                    color: "#ffffff",
+                    padding: "2px 8px",
+                    borderRadius: "9999px",
+                    fontSize: "0.625rem",
+                    fontWeight: 800,
+                    backdropFilter: "blur(4px)"
+                  }}>
+                    {prop.builder || "Exclusive Project"}
+                  </span>
+                  <span style={{
+                    background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                    color: "#ffffff",
+                    padding: "2px 8px",
+                    borderRadius: "9999px",
+                    fontSize: "0.625rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.3px",
+                    boxShadow: "0 2px 4px rgba(22,163,74,0.4)"
+                  }}>
+                    RERA APPROVED
+                  </span>
                 </div>
-                <div style={{ position: "absolute", bottom: "8px", right: "8px", background: "rgba(0,0,0,0.75)", color: "#ffffff", padding: "0.15rem 0.45rem", borderRadius: "4px", fontSize: "0.6875rem", fontWeight: 700 }}>
-                  {vid.duration || "4K Tour"}
+
+                {/* Price Pill Tag on Banner */}
+                <div style={{
+                  position: "absolute",
+                  bottom: "8px",
+                  right: "10px",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  padding: "4px 10px",
+                  borderRadius: "9999px",
+                  fontSize: "0.8125rem",
+                  fontWeight: 900,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                }}>
+                  {prop.price_range || prop.priceRange || prop.price || "₹ 1.25 Cr+"}
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.6rem" }}>
-                <div>
-                  <h4 style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a", margin: 0 }}>{vid.title}</h4>
-                  <div style={{ fontSize: "0.71875rem", color: "#64748b", marginTop: "2px" }}>Duration: {vid.duration || "03:30"} • Tap to Play 3D Tour</div>
+              {/* Card Body */}
+              <div style={{ padding: "10px 14px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "3px" }}>
+                  <div>
+                    <h3 style={{ fontSize: "1rem", fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.2 }}>
+                      {prop.title}
+                    </h3>
+                    <div style={{ fontSize: "0.71875rem", color: "#64748b", fontWeight: 600, marginTop: "2px", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <MapPin size={11} color="#2563eb" />
+                      <span>{prop.location || "Mumbai"}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "4px" }} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => handleEditRecord(prop, "Property")}
+                      style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", width: "26px", height: "26px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      title="Edit Property"
+                    >
+                      <Edit3 size={12} />
+                    </button>
+                    <button
+                      onClick={() => confirmDeleteRecord(prop, "Property", () => {
+                        setPropertiesList(prev => prev.filter(p => (p.name || p.title) !== (prop.name || prop.title)));
+                      })}
+                      style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", width: "26px", height: "26px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      title="Delete Property"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ display: "flex", gap: "0.3rem", alignItems: "center" }}>
+                {/* Configurations & Carpet */}
+                <div style={{ fontSize: "0.75rem", color: "#334155", fontWeight: 700, marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span>🏠</span>
+                  <span>{prop.bhk ? `${prop.bhk} Luxury Residences` : "2 & 3 BHK Residences"} • {prop.carpet || "650 - 1200 sq.ft"}</span>
+                </div>
+
+                {/* Highlights tags */}
+                <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", margin: "6px 0" }}>
+                  <span style={{ background: "#f1f5f9", color: "#475569", padding: "2px 7px", borderRadius: "6px", fontSize: "0.625rem", fontWeight: 700 }}>
+                    Direct GMLR Access
+                  </span>
+                  <span style={{ background: "#f1f5f9", color: "#475569", padding: "2px 7px", borderRadius: "6px", fontSize: "0.625rem", fontWeight: 700 }}>
+                    Olympic Clubhouse
+                  </span>
+                  <span style={{ background: "#f0fdf4", color: "#166534", padding: "2px 7px", borderRadius: "6px", fontSize: "0.625rem", fontWeight: 700 }}>
+                    MahaRERA Registered
+                  </span>
+                </div>
+
+                {/* Action Row */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "8px", borderTop: "1px solid #f1f5f9", marginTop: "6px" }} onClick={(e) => e.stopPropagation()}>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      onClick={() => onShareProperty(prop)}
+                      style={{
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        color: "#166534",
+                        padding: "5px 10px",
+                        borderRadius: "8px",
+                        fontSize: "0.71875rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <MessageSquare size={12} color="#16a34a" /> Share Pitch
+                    </button>
+                    <button
+                      onClick={() => setAlertConfig({ title: "Downloading Brochure", message: `Downloading High-Res RERA Verified PDF Brochure for ${prop.title}...`, type: "info" })}
+                      style={{
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        color: "#1d4ed8",
+                        padding: "5px 10px",
+                        borderRadius: "8px",
+                        fontSize: "0.71875rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <FileDown size={12} /> Brochure PDF
+                    </button>
+                  </div>
+
                   <button
-                    type="button"
-                    onClick={() => setSelectedVideo(vid)}
+                    onClick={() => setSelectedPropertyDrawer(prop)}
                     style={{
-                      background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                      background: "#0f172a",
                       color: "#ffffff",
                       border: "none",
-                      padding: "0.35rem 0.65rem",
-                      borderRadius: "0.375rem",
-                      fontSize: "0.75rem",
+                      padding: "5px 12px",
+                      borderRadius: "8px",
+                      fontSize: "0.71875rem",
                       fontWeight: 700,
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
-                      gap: "0.25rem"
+                      gap: "2px"
                     }}
                   >
-                    <Play size={12} fill="#ffffff" /> Play
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleEditRecord(vid, "Video")}
-                    style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer" }}
-                    title="Edit Video"
-                  >
-                    <Edit3 size={13} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => confirmDeleteRecord(vid, "Video", () => {
-                      setVideosList(prev => prev.filter(v => (v.name || v.id) !== (vid.name || vid.id)));
-                    })}
-                    style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.35rem", borderRadius: "0.375rem", cursor: "pointer" }}
-                    title="Delete Video"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {filteredVideos.length === 0 && (
-            <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "0.75rem", border: "1px solid #e2e8f0", color: "#64748b" }}>
-              No videos match your search filters.
-            </div>
-          )}
-        </div>
-      ) : selectedSubTab === "My Listing" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <button
-            onClick={() => { setItemModalMode("listing"); setItemListingCategory("My Listing"); setIsItemModalOpen(true); }}
-            style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "0.6rem", fontSize: "0.8125rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
-          >
-            <Plus size={16} /> + Add My Listing
-          </button>
-          {filteredMyListings.map(item => (
-            <div key={item.name || item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#2563eb" }}>{item.name || item.id}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  <span style={{ fontSize: "0.6875rem", background: "#dcfce7", color: "#15803d", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{item.status || "Verified"}</span>
-                  <button onClick={() => handleEditRecord(item, "My Listing")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
-                  <button onClick={() => confirmDeleteRecord(item, "My Listing", () => {
-                    setMyListingData(prev => prev.filter(l => (l.name || l.id) !== (item.name || item.id)));
-                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
-                </div>
-              </div>
-              <h4 style={{ fontSize: "0.9375rem", fontWeight: "700", color: "#0f172a", marginTop: "0.3rem" }}>{item.title || item.property}</h4>
-              <div style={{ fontSize: "0.78125rem", color: "#64748b" }}>Location: {item.locality} | Price: <strong style={{ color: "#0f172a" }}>{item.price}</strong></div>
-              <div style={{ fontSize: "0.75rem", color: "#475569", marginTop: "0.2rem" }}>Owner: {item.owner_or_agent || item.owner}</div>
-            </div>
-          ))}
-
-          {filteredMyListings.length === 0 && (
-            <div style={{ textAlign: "center", padding: "2rem 1rem", background: "#ffffff", borderRadius: "0.75rem", color: "#64748b" }}>
-              No listings found matching filters.
-            </div>
-          )}
-        </div>
-      ) : selectedSubTab === "Employee Listing" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <button
-            onClick={() => { setItemModalMode("listing"); setItemListingCategory("Employee Listing"); setIsItemModalOpen(true); }}
-            style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "0.6rem", fontSize: "0.8125rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
-          >
-            <Plus size={16} /> + Add Employee Listing
-          </button>
-          {filteredEmpListings.map(item => (
-            <div key={item.name || item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#0f172a" }}>Agent: {item.owner_or_agent || item.agent}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  <span style={{ fontSize: "0.6875rem", background: "#eff6ff", color: "#1d4ed8", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{item.status || "Active"}</span>
-                  <button onClick={() => handleEditRecord(item, "Employee Listing")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
-                  <button onClick={() => confirmDeleteRecord(item, "Employee Listing", () => {
-                    setEmployeeListingData(prev => prev.filter(l => (l.name || l.id) !== (item.name || item.id)));
-                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
-                </div>
-              </div>
-              <h4 style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a", marginTop: "0.3rem" }}>{item.title || item.property}</h4>
-              <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{item.locality} - {item.price}</div>
-            </div>
-          ))}
-
-          {filteredEmpListings.length === 0 && (
-            <div style={{ textAlign: "center", padding: "2rem 1rem", background: "#ffffff", borderRadius: "0.75rem", color: "#64748b" }}>
-              No employee listings found matching filters.
-            </div>
-          )}
-        </div>
-      ) : selectedSubTab === "Check Demand" ? (
-        <div style={{ background: "#ffffff", padding: "1.25rem", borderRadius: "0.875rem", border: "1px solid #e2e8f0" }}>
-          <h4 style={{ fontSize: "0.9375rem", fontWeight: "700", marginBottom: "0.3rem" }}>🔍 AI Buyer Demand Matcher</h4>
-          <p style={{ fontSize: "0.8125rem", color: "#64748b", marginBottom: "1rem" }}>Match active buyer requirements with verified listings across Andheri, Bandra & Lokhandwala.</p>
-          <button className="admin-action-btn" style={{ width: "100%", justifyContent: "center" }} onClick={() => setAlertConfig({ title: "AI Search Complete", message: "AI Search Matched 18 High-Intent Buyers in Bandra & Andheri!", type: "success" })}>
-            <Sparkles size={16} /> Run Buyer Demand Engine
-          </button>
-        </div>
-      ) : selectedSubTab === "Owner Leads" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <button
-            onClick={() => { setItemModalMode("listing"); setItemListingCategory("Owner Lead"); setIsItemModalOpen(true); }}
-            style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "0.6rem", fontSize: "0.8125rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
-          >
-            <Plus size={16} /> + Add Owner Lead
-          </button>
-          {filteredOwnerLeads.map(item => (
-            <div key={item.name || item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>Owner: {item.owner_or_agent || item.name}</div>
-                <div style={{ display: "flex", gap: "0.3rem" }}>
-                  <button onClick={() => handleEditRecord(item, "Owner Lead")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
-                  <button onClick={() => confirmDeleteRecord(item, "Owner Lead", () => {
-                    setOwnerLeadsData(prev => prev.filter(l => (l.name || l.id) !== (item.name || item.id)));
-                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
-                </div>
-              </div>
-              <div style={{ fontSize: "0.78125rem", color: "#2563eb", fontWeight: "600" }}>{item.title || item.property}</div>
-              <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{item.locality} | {item.phone}</div>
-            </div>
-          ))}
-
-          {filteredOwnerLeads.length === 0 && (
-            <div style={{ textAlign: "center", padding: "2rem 1rem", background: "#ffffff", borderRadius: "0.75rem", color: "#64748b" }}>
-              No owner leads found matching filters.
-            </div>
-          )}
-        </div>
-      ) : selectedSubTab === "CP Listing" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <button
-            onClick={() => { setItemModalMode("listing"); setItemListingCategory("CP Listing"); setIsItemModalOpen(true); }}
-            style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "0.6rem", fontSize: "0.8125rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
-          >
-            <Plus size={16} /> + Add CP Listing
-          </button>
-          {filteredCpListings.map(item => (
-            <div key={item.name || item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>{item.owner_or_agent || item.broker}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  <span style={{ fontSize: "0.6875rem", background: "#fef9c3", color: "#854d0e", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>{item.commission || "2.0% Split"}</span>
-                  <button onClick={() => handleEditRecord(item, "CP Listing")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
-                  <button onClick={() => confirmDeleteRecord(item, "CP Listing", () => {
-                    setCpListingData(prev => prev.filter(l => (l.name || l.id) !== (item.name || item.id)));
-                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
-                </div>
-              </div>
-              <div style={{ fontSize: "0.78125rem", color: "#475569", marginTop: "0.3rem" }}>{item.title || item.property} ({item.locality})</div>
-            </div>
-          ))}
-
-          {filteredCpListings.length === 0 && (
-            <div style={{ textAlign: "center", padding: "2rem 1rem", background: "#ffffff", borderRadius: "0.75rem", color: "#64748b" }}>
-              No CP listings found matching filters.
-            </div>
-          )}
-        </div>
-      ) : selectedSubTab === "Owner Listing" ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <button
-            onClick={() => { setItemModalMode("listing"); setItemListingCategory("Owner Listing"); setIsItemModalOpen(true); }}
-            style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "0.6rem", fontSize: "0.8125rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
-          >
-            <Plus size={16} /> + Add Owner Listing
-          </button>
-          {filteredOwnerListings.map(item => (
-            <div key={item.name || item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>Owner: {item.owner_or_agent || item.owner}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  <button onClick={() => handleEditRecord(item, "Owner Listing")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
-                  <button onClick={() => confirmDeleteRecord(item, "Owner Listing", () => {
-                    setOwnerListingData(prev => prev.filter(l => (l.name || l.id) !== (item.name || item.id)));
-                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
-                </div>
-              </div>
-              <div style={{ fontSize: "0.78125rem", color: "#2563eb", fontWeight: "600" }}>{item.title || item.property}</div>
-              <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{item.locality} | {item.price}</div>
-            </div>
-          ))}
-
-          {filteredOwnerListings.length === 0 && (
-            <div style={{ textAlign: "center", padding: "2rem 1rem", background: "#ffffff", borderRadius: "0.75rem", color: "#64748b" }}>
-              No owner listings found matching filters.
-            </div>
-          )}
-        </div>
-      ) : (
-        /* Focus Projects Listing Cards */
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {filteredProperties.map(prop => (
-            <div key={prop.name || prop.id} className="property-card-modern">
-              <div style={{ position: "relative" }}>
-                <img 
-                  src={prop.img || prop.image || prop.hero_img || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"} 
-                  alt={prop.title} 
-                  className="property-hero-img"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80";
-                  }}
-                />
-                <div style={{ position: "absolute", top: "10px", left: "10px", background: "rgba(15, 23, 42, 0.8)", color: "#ffffff", padding: "0.25rem 0.6rem", borderRadius: "9999px", fontSize: "0.6875rem", fontWeight: "700", backdropFilter: "blur(4px)" }}>
-                  {prop.builder}
-                </div>
-                <div style={{ position: "absolute", top: "10px", right: "10px", background: "#2563eb", color: "#ffffff", padding: "0.25rem 0.6rem", borderRadius: "9999px", fontSize: "0.6875rem", fontWeight: "700" }}>
-                  {prop.tag || "New Launch"}
-                </div>
-              </div>
-
-              <div className="property-card-body">
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                  <h3 style={{ fontSize: "1.0625rem", fontWeight: "700", color: "#0f172a", margin: 0 }}>{prop.title}</h3>
-                  <div style={{ display: "flex", gap: "0.3rem" }}>
-                    <button
-                      type="button"
-                      onClick={() => handleEditRecord(prop, "Property")}
-                      style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem 0.45rem", borderRadius: "0.35rem", cursor: "pointer" }}
-                      title="Edit Property"
-                    >
-                      <Edit3 size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => confirmDeleteRecord(prop, "Property", () => {
-                        setPropertiesList(prev => prev.filter(p => (p.name || p.title) !== (prop.name || prop.title)));
-                      })}
-                      style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem 0.45rem", borderRadius: "0.35rem", cursor: "pointer" }}
-                      title="Delete Property"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78125rem", color: "#64748b", margin: "0.2rem 0 0.5rem 0" }}>
-                  <MapPin size={13} color="#2563eb" />
-                  {prop.location}
-                </div>
-
-                <div className="property-price-tag">{prop.price_range || prop.priceRange || prop.price || "Price on Request"}</div>
-
-                {/* Highlights List */}
-                <div style={{ margin: "0.6rem 0", background: "#f8fafc", padding: "0.5rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.75rem", color: "#475569" }}>
-                  {typeof prop.highlights === "string" ? (
-                    prop.highlights.split(",").map((point, idx) => (
-                      <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "0.35rem", margin: "0.2rem 0" }}>
-                        <span style={{ color: "#2563eb", fontWeight: "800" }}>•</span>
-                        <span>{point.trim()}</span>
-                      </div>
-                    ))
-                  ) : Array.isArray(prop.highlights) ? (
-                    prop.highlights.map((point, idx) => (
-                      <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "0.35rem", margin: "0.2rem 0" }}>
-                        <span style={{ color: "#2563eb", fontWeight: "800" }}>•</span>
-                        <span>{point}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div style={{ fontSize: "0.71875rem", color: "#64748b" }}>Prime location, 50+ modern amenities, RERA approved</div>
-                  )}
-                </div>
-
-                {/* Property Detail Action Buttons */}
-                <div className="property-quick-actions">
-                  <button className="prop-btn share" onClick={() => onShareProperty(prop)}>
-                    <Share2 size={14} /> Share
-                  </button>
-                  <button className="prop-btn details" onClick={() => setAlertConfig({ title: prop.title, message: `BHK Configuration: ${prop.bhk}
-Carpet Area: ${prop.carpet}
-Price: ${prop.price_range || prop.priceRange || prop.price}`, type: "info" })}>
-                    <Info size={14} /> Details
-                  </button>
-                  <button className="prop-btn details" style={{ flex: "0 0 auto", padding: "0.5rem" }} onClick={() => setAlertConfig({ title: "Report Logged", message: `Project Report & Feedback logged for ${prop.title}`, type: "warning" })}>
-                    <AlertTriangle size={14} color="#ef4444" />
-                  </button>
-                </div>
-
-                {/* Sub Features row */}
-                <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.6rem", paddingTop: "0.6rem", borderTop: "1px solid #f1f5f9" }}>
-                  <button style={{ flex: 1, border: "1px solid #e2e8f0", background: "#fff", padding: "0.35rem", borderRadius: "0.375rem", fontSize: "0.6875rem", color: "#475569", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }} onClick={() => setSelectedSubTab("Unit Plans")}>
-                    <Layers size={11} /> Unit Plans
-                  </button>
-                  <button style={{ flex: 1, border: "1px solid #e2e8f0", background: "#fff", padding: "0.35rem", borderRadius: "0.375rem", fontSize: "0.6875rem", color: "#475569", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }} onClick={() => setSelectedSubTab("Documents")}>
-                    <FileText size={11} /> Documents
-                  </button>
-                  <button style={{ flex: 1, border: "1px solid #e2e8f0", background: "#fff", padding: "0.35rem", borderRadius: "0.375rem", fontSize: "0.6875rem", color: "#475569", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem" }} onClick={() => setSelectedSubTab("Videos")}>
-                    <Video size={11} /> Videos
+                    Details <ChevronRight size={13} />
                   </button>
                 </div>
               </div>
@@ -1301,21 +959,407 @@ Price: ${prop.price_range || prop.priceRange || prop.price}`, type: "info" })}>
           ))}
 
           {filteredProperties.length === 0 && (
-            <div style={{ textAlign: "center", padding: "3rem 1rem", background: "#ffffff", borderRadius: "0.75rem", border: "1px solid #e2e8f0", color: "#64748b" }}>
-              No focus properties found matching your filter criteria.
+            <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "1rem", border: "1.5px dashed #cbd5e1" }}>
+              <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🏢</div>
+              <h4 style={{ fontSize: "0.95rem", fontWeight: 800, color: "#0f172a" }}>No Projects Matching Filter</h4>
+              <p style={{ fontSize: "0.78125rem", color: "#64748b", margin: "4px 0 1rem 0" }}>Try resetting your BHK or Locality filters</p>
+              <button
+                onClick={() => { setBhkFilter("ALL"); setLocalityFilter("ALL"); setSearchQuery(""); }}
+                style={{ background: "#0f172a", color: "#ffffff", border: "none", padding: "6px 14px", borderRadius: "9999px", fontSize: "0.78125rem", fontWeight: 700, cursor: "pointer" }}
+              >
+                Reset Filters
+              </button>
             </div>
           )}
         </div>
       )}
 
-      {/* Universal Confirmation & Alert Modal */}
+      {/* TAB B: DOCUMENTS & BROCHURES */}
+      {activeTabNav === "documents" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {filteredDocs.map((doc, idx) => (
+            <div
+              key={doc.name || doc.id || idx}
+              onClick={() => setSelectedViewDoc(doc)}
+              style={{
+                background: "#ffffff",
+                borderRadius: "14px",
+                border: "1px solid #f1f5f9",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                padding: "10px 12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+                cursor: "pointer"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+                <div style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "10px",
+                  background: (doc.file_type === "PDF" || (doc.document_name || doc.name || "").endsWith(".pdf")) ? "#fee2e2" : "#e0e7ff",
+                  color: (doc.file_type === "PDF" || (doc.document_name || doc.name || "").endsWith(".pdf")) ? "#dc2626" : "#4338ca",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                  fontSize: "0.6875rem",
+                  flexShrink: 0
+                }}>
+                  {doc.file_type || "PDF"}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "0.84375rem", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {doc.document_name || doc.name}
+                  </div>
+                  <div style={{ fontSize: "0.71875rem", color: "#64748b", marginTop: "2px" }}>
+                    {doc.category || "Brochure"} • {doc.file_size || doc.size || "1.5 MB"} • {doc.upload_date || doc.date || "Today"}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "4px" }} onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setSelectedViewDoc(doc)}
+                  style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "4px 8px", borderRadius: "6px", fontSize: "0.71875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}
+                >
+                  <Eye size={12} /> View
+                </button>
+                <button
+                  onClick={() => handleEditRecord(doc, "Document")}
+                  style={{ background: "#f8fafc", border: "1px solid #e2e8f0", color: "#475569", width: "26px", height: "26px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  title="Edit"
+                >
+                  <Edit3 size={12} />
+                </button>
+                <button
+                  onClick={() => confirmDeleteRecord(doc, "Document", () => {
+                    setDocumentsList(prev => prev.filter(d => (d.name || d.id) !== (doc.name || doc.id)));
+                  })}
+                  style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", width: "26px", height: "26px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  title="Delete"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {filteredDocs.length === 0 && (
+            <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "1rem", border: "1.5px dashed #cbd5e1" }}>
+              <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📄</div>
+              <h4 style={{ fontSize: "0.95rem", fontWeight: 800, color: "#0f172a" }}>No Documents Found</h4>
+              <p style={{ fontSize: "0.78125rem", color: "#64748b" }}>Upload a new RERA PDF brochure or agreement</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB C: UNIT FLOOR PLANS */}
+      {activeTabNav === "plans" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {filteredPlans.map((plan, idx) => (
+            <div key={plan.name || plan.id || idx} style={{ background: "#ffffff", borderRadius: "14px", border: "1px solid #f1f5f9", boxShadow: "0 2px 6px rgba(0,0,0,0.03)", padding: "10px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                <div>
+                  <h4 style={{ fontSize: "0.875rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>📐 {plan.project}</h4>
+                  <div style={{ fontSize: "0.71875rem", color: "#64748b", marginTop: "1px" }}>Area: {plan.area || "750 sq.ft Carpet"} • {plan.bhk_type || "2 BHK"}</div>
+                </div>
+                <div style={{ display: "flex", gap: "4px" }}>
+                  <button onClick={() => handleEditRecord(plan, "Unit Plan")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", width: "26px", height: "26px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3 size={12} /></button>
+                  <button onClick={() => confirmDeleteRecord(plan, "Unit Plan", () => {
+                    setUnitPlansList(prev => prev.filter(u => (u.name || u.id) !== (plan.name || plan.id)));
+                  })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", width: "26px", height: "26px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={12} /></button>
+                </div>
+              </div>
+              <img
+                src={plan.plan_img || plan.planImg || "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80"}
+                alt={plan.project}
+                style={{ width: "100%", height: "150px", objectFit: "cover", borderRadius: "8px", margin: "4px 0" }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80";
+                }}
+              />
+              <button
+                onClick={() => setAlertConfig({ title: "Downloading Layout", message: `Downloading High-Res 2D/3D Floor Plan PDF for ${plan.project}...`, type: "info" })}
+                style={{ width: "100%", marginTop: "6px", background: "#0f172a", color: "#ffffff", border: "none", padding: "6px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
+              >
+                <Download size={13} /> Download Floor Layout PDF
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* TAB D: 3D VIRTUAL VIDEO TOURS */}
+      {activeTabNav === "videos" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {filteredVideos.map((vid, idx) => (
+            <div key={vid.name || vid.id || idx} style={{ background: "#ffffff", borderRadius: "14px", border: "1px solid #f1f5f9", boxShadow: "0 2px 6px rgba(0,0,0,0.03)", padding: "10px 12px" }}>
+              <div
+                onClick={() => setSelectedVideo(vid)}
+                style={{ position: "relative", width: "100%", height: "140px", background: "#0f172a", borderRadius: "8px", overflow: "hidden", cursor: "pointer" }}
+              >
+                <img
+                  src={vid.thumbnail || vid.img || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"}
+                  alt={vid.title}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+                <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(37,99,235,0.6)" }}>
+                    <Play size={20} fill="#ffffff" style={{ marginLeft: "2px" }} />
+                  </div>
+                </div>
+                <div style={{ position: "absolute", bottom: "6px", right: "6px", background: "rgba(0,0,0,0.75)", color: "#ffffff", padding: "2px 6px", borderRadius: "4px", fontSize: "0.625rem", fontWeight: 700 }}>
+                  {vid.duration || "4K Tour"}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px" }}>
+                <div>
+                  <h4 style={{ fontSize: "0.875rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>{vid.title}</h4>
+                  <div style={{ fontSize: "0.71875rem", color: "#64748b" }}>Duration: {vid.duration || "03:30"} • Tap to Play 3D Tour</div>
+                </div>
+                <button
+                  onClick={() => setSelectedVideo(vid)}
+                  style={{ background: "#0f172a", color: "#ffffff", border: "none", padding: "5px 10px", borderRadius: "6px", fontSize: "0.71875rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}
+                >
+                  <Play size={11} fill="#ffffff" /> Watch
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* TAB E: PROPERTY LISTINGS */}
+      {activeTabNav === "listings" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {filteredListings.map((item, idx) => (
+            <div key={item.name || item.id || idx} style={{ background: "#ffffff", borderRadius: "14px", border: "1px solid #f1f5f9", boxShadow: "0 2px 6px rgba(0,0,0,0.03)", padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: "0.65rem", fontWeight: 800, color: "#2563eb", textTransform: "uppercase" }}>{item.category}</div>
+                <h4 style={{ fontSize: "0.875rem", fontWeight: 800, color: "#0f172a", margin: "2px 0" }}>{item.title || item.property || "Property"}</h4>
+                <div style={{ fontSize: "0.71875rem", color: "#64748b" }}>📍 {item.locality || "Mumbai"} • <strong style={{ color: "#16a34a" }}>{item.price || "₹ On Request"}</strong></div>
+              </div>
+              <div style={{ display: "flex", gap: "4px" }}>
+                <button onClick={() => handleEditRecord(item, item.category)} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", width: "26px", height: "26px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Edit3 size={12} /></button>
+                <button onClick={() => confirmDeleteRecord(item, item.category, () => {
+                  setMyListingData(prev => prev.filter(l => (l.name || l.id) !== (item.name || item.id)));
+                })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", width: "26px", height: "26px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={12} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* TAB F: VALUATION & FIELD SURVEY */}
+      {activeTabNav === "valuation" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {/* CMA Valuation Card */}
+          <div style={{ background: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", padding: "12px" }}>
+            <h4 style={{ fontSize: "0.9375rem", fontWeight: 800, color: "#0f172a", marginBottom: "6px" }}>📊 Quick CMA Property Rate Estimator</h4>
+            <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
+              <input
+                type="text"
+                placeholder="Locality (e.g. Bandra West, Worli, Thane)"
+                value={cmaLocation}
+                onChange={(e) => setCmaLocation(e.target.value)}
+                style={{ flex: 1, padding: "6px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.8125rem" }}
+              />
+              <input
+                type="number"
+                placeholder="Carpet Area (sqft)"
+                value={cmaArea}
+                onChange={(e) => setCmaArea(e.target.value)}
+                style={{ width: "120px", padding: "6px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.8125rem" }}
+              />
+            </div>
+            <button
+              onClick={handleCalculateCMA}
+              style={{ width: "100%", background: "#2563eb", color: "#ffffff", border: "none", padding: "8px", borderRadius: "8px", fontWeight: 700, fontSize: "0.8125rem", cursor: "pointer" }}
+            >
+              Compute Fair Market Valuation
+            </button>
+
+            {cmaResult && (
+              <div style={{ marginTop: "10px", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "10px", borderRadius: "8px" }}>
+                <div style={{ fontSize: "0.75rem", color: "#166534", fontWeight: 700 }}>Estimated Valuation for {cmaLocation}:</div>
+                <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "#15803d", margin: "2px 0" }}>{cmaResult.estimated_price || "₹ 2.45 Cr"}</div>
+                <div style={{ fontSize: "0.71875rem", color: "#166534" }}>Avg Rate: {cmaResult.rate_per_sqft || "₹ 32,500/sq.ft"} • Confidence: 94%</div>
+              </div>
+            )}
+          </div>
+
+          {/* Survey Submission Card */}
+          <div style={{ background: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", padding: "12px" }}>
+            <h4 style={{ fontSize: "0.9375rem", fontWeight: 800, color: "#0f172a", marginBottom: "6px" }}>📝 Field Project Survey Logger</h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <input type="text" placeholder="Builder / Developer Name *" value={surveyBuilder} onChange={e => setSurveyBuilder(e.target.value)} style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.8125rem" }} />
+              <input type="text" placeholder="Project Location / Ward" value={surveyLocation} onChange={e => setSurveyLocation(e.target.value)} style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.8125rem" }} />
+              <input type="text" placeholder="Price Range (e.g. ₹ 1.5 - 2.8 Cr)" value={surveyPrice} onChange={e => setSurveyPrice(e.target.value)} style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.8125rem" }} />
+              <button onClick={handleSurveySubmit} style={{ background: "#0f172a", color: "#ffffff", border: "none", padding: "8px", borderRadius: "8px", fontWeight: 700, fontSize: "0.8125rem", cursor: "pointer", marginTop: "4px" }}>
+                Log Project Survey to MariaDB
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. SLIDE-UP PROJECT DETAIL SHEET (OPENED BY CLICKING ROW) */}
+      {selectedPropertyDrawer && (
+        <div 
+          onClick={() => setSelectedPropertyDrawer(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.7)",
+            backdropFilter: "blur(4px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center"
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: "412px",
+              background: "#ffffff",
+              borderTopLeftRadius: "24px",
+              borderTopRightRadius: "24px",
+              padding: "1.25rem 1.25rem 2rem 1.25rem",
+              boxShadow: "0 -10px 30px rgba(0,0,0,0.25)",
+              animation: "slideUp 0.2s ease",
+              maxHeight: "85vh",
+              overflowY: "auto"
+            }}
+          >
+            {/* Grabber Bar */}
+            <div style={{ width: "36px", height: "4px", borderRadius: "9999px", background: "#cbd5e1", margin: "0 auto 1rem auto" }} />
+
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+              <div>
+                <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0" }}>
+                  {selectedPropertyDrawer.title}
+                </h3>
+                <div style={{ fontSize: "0.8125rem", color: "#64748b", fontWeight: 600 }}>
+                  By {selectedPropertyDrawer.builder} • {selectedPropertyDrawer.location}
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedPropertyDrawer(null)}
+                style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: "28px", height: "28px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X size={16} color="#64748b" />
+              </button>
+            </div>
+
+            {/* Photo preview */}
+            <div style={{ width: "100%", height: "160px", borderRadius: "12px", overflow: "hidden", position: "relative", marginBottom: "1rem" }}>
+              <img
+                src={selectedPropertyDrawer.img || selectedPropertyDrawer.image || selectedPropertyDrawer.hero_img || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"}
+                alt={selectedPropertyDrawer.title}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <div style={{ position: "absolute", bottom: "8px", left: "10px", background: "rgba(15,23,42,0.85)", color: "#ffffff", padding: "3px 10px", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 800 }}>
+                {selectedPropertyDrawer.price_range || selectedPropertyDrawer.priceRange || selectedPropertyDrawer.price}
+              </div>
+            </div>
+
+            {/* Specs Badges */}
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "1rem" }}>
+              <span style={{ background: "#eff6ff", color: "#1d4ed8", padding: "3px 10px", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700 }}>
+                🏠 {selectedPropertyDrawer.bhk || "2 & 3 BHK"}
+              </span>
+              <span style={{ background: "#f0fdf4", color: "#166534", padding: "3px 10px", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700 }}>
+                📐 {selectedPropertyDrawer.carpet || "650 - 1200 sq.ft Carpet"}
+              </span>
+              <span style={{ background: "#fef3c7", color: "#b45309", padding: "3px 10px", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700 }}>
+                🛡️ MahaRERA Registered
+              </span>
+            </div>
+
+            {/* Key Highlights */}
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "0.75rem", marginBottom: "1rem", fontSize: "0.8125rem", color: "#334155" }}>
+              <div style={{ fontWeight: 800, marginBottom: "4px", color: "#0f172a" }}>Project Highlights & Amenities:</div>
+              <ul style={{ margin: 0, paddingLeft: "1.2rem", lineHeight: 1.5 }}>
+                <li>Direct Connectivity to major arterial highways / metro station</li>
+                <li>Olympic-size swimming pool, 3-level designer clubhouse & gymnasium</li>
+                <li>Sun-Deck residences with unobstructed panoramic views</li>
+                <li>100% RERA verified clear title with leading bank loan pre-approvals</li>
+              </ul>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              <button
+                onClick={() => {
+                  const prop = selectedPropertyDrawer;
+                  setSelectedPropertyDrawer(null);
+                  onShareProperty(prop);
+                }}
+                style={{
+                  flex: 1,
+                  background: "#16a34a",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "0.75rem",
+                  borderRadius: "12px",
+                  fontWeight: 800,
+                  fontSize: "0.875rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)"
+                }}
+              >
+                <MessageSquare size={16} /> Share via WhatsApp
+              </button>
+
+              <button
+                onClick={() => {
+                  const prop = selectedPropertyDrawer;
+                  setSelectedPropertyDrawer(null);
+                  setAlertConfig({ title: "Downloading Brochure", message: `Downloading complete high-res PDF brochure for ${prop.title}...`, type: "info" });
+                }}
+                style={{
+                  flex: 1,
+                  background: "#0f172a",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "0.75rem",
+                  borderRadius: "12px",
+                  fontWeight: 800,
+                  fontSize: "0.875rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  boxShadow: "0 4px 12px rgba(15,23,42,0.3)"
+                }}
+              >
+                <FileDown size={16} /> Download PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Universal Alert Dialog */}
       {alertConfig && (
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(15, 23, 42, 0.8)",
-          backdropFilter: "blur(6px)",
-          zIndex: 999999,
+          background: "rgba(15, 23, 42, 0.75)",
+          backdropFilter: "blur(4px)",
+          zIndex: 99999,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1325,21 +1369,21 @@ Price: ${prop.price_range || prop.priceRange || prop.price}`, type: "info" })}>
             background: "#ffffff",
             borderRadius: "1rem",
             width: "100%",
-            maxWidth: "360px",
-            padding: "1.5rem",
-            boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
+            maxWidth: "340px",
+            padding: "1.25rem",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
             textAlign: "center"
           }}>
             <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>
               {alertConfig.showConfirm ? "🗑️" : (alertConfig.type === "success" ? "✅" : "ℹ️")}
             </div>
-            <h3 style={{ fontSize: "1.05rem", fontWeight: 800, color: "#0f172a", marginBottom: "0.5rem" }}>
+            <h3 style={{ fontSize: "1rem", fontWeight: 800, color: "#0f172a", marginBottom: "0.35rem" }}>
               {alertConfig.title}
             </h3>
-            <p style={{ fontSize: "0.84375rem", color: "#64748b", marginBottom: "1.25rem", lineHeight: 1.4, whiteSpace: "pre-line" }}>
+            <p style={{ fontSize: "0.8125rem", color: "#64748b", marginBottom: "1.25rem", lineHeight: 1.4, whiteSpace: "pre-line" }}>
               {alertConfig.message}
             </p>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
               {alertConfig.showConfirm ? (
                 <>
                   <button
@@ -1362,7 +1406,7 @@ Price: ${prop.price_range || prop.priceRange || prop.price}`, type: "info" })}>
               ) : (
                 <button
                   onClick={() => setAlertConfig(null)}
-                  style={{ width: "100%", padding: "0.65rem", borderRadius: "0.5rem", background: "#2563eb", color: "#ffffff", border: "none", fontWeight: 700, fontSize: "0.875rem", cursor: "pointer" }}
+                  style={{ width: "100%", padding: "0.65rem", borderRadius: "0.5rem", background: "#0f172a", color: "#ffffff", border: "none", fontWeight: 700, fontSize: "0.875rem", cursor: "pointer" }}
                 >
                   OK
                 </button>
