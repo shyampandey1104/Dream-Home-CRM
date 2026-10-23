@@ -632,6 +632,8 @@ export default function App() {
           <PerformanceView
             metrics={metrics}
             leads={leads}
+            userProfile={userProfile}
+            showToast={showToast}
             onCallLead={handleCallLead}
             onStartCalling={() => setCurrentTab("fresh")}
             onClaimLeads={handleClaimLeads}

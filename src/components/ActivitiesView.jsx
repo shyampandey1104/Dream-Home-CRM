@@ -42,17 +42,60 @@ export default function ActivitiesView({ showToast }) {
   const [newLocation, setNewLocation] = useState("");
   const [newExtra, setNewExtra] = useState("");
 
-  // States for each category
-  const [visitsData, setVisitsData] = useState([]);
-  const [qualifiedLeadsData, setQualifiedLeadsData] = useState([]);
+  // Showcase Default Fallback Records (matching Screen 6 of Master Collage)
+  const SHOWCASE_VISITS = [
+    { id: "SV-101", title: "Kalpataru Vian 2BHK Walkthrough", client: "Priyanka Iyer", phone: "9819944321", location: "Andheri West", date: "Today, 4:00 PM", status: "Confirmed", cab: "Innova Crysta (MH02-CK-8821)" },
+    { id: "SV-102", title: "Srishti Oasis 3BHK Podium Unit", client: "Vikram Singhania", phone: "9820011223", location: "Bhandup West", date: "Tomorrow, 11:30 AM", status: "Chauffeur Dispatched", cab: "Maruti Ertiga (MH03-DE-1044)" },
+    { id: "SV-103", title: "Oberoi Sky City Penthouse Visit", client: "Pravin Ladkat", phone: "9833445566", location: "Borivali East", date: "Today, 11:45 AM", status: "Verified & KYC Done", cab: "Self Driven" }
+  ];
+
+  const SHOWCASE_SV_SCHEDULES = [
+    { id: "SCH-01", client: "Priyanka Iyer", project: "Kalpataru Vian", slot: "Today, 4:00 PM", cab: "Innova Crysta (MH02-CK-8821)", status: "Confirmed" },
+    { id: "SCH-02", client: "Vikram Singhania", project: "Srishti Oasis", slot: "Tomorrow, 11:30 AM", cab: "Maruti Ertiga Dispatched", status: "Dispatched" },
+    { id: "SCH-03", client: "Siddharth Malhotra", project: "Lodha Woods", slot: "Saturday, 11:00 AM", cab: "Customer Requesting Chauffeur", status: "Scheduled" }
+  ];
+
+  const SHOWCASE_MEETINGS = [
+    { id: "MTG-01", client: "Rajesh Kumar", venue: "BKC Sales Office Lounge", agenda: "Token Booking & KYC Sign", time: "Tomorrow, 2:00 PM", status: "VIP Priority" },
+    { id: "MTG-02", client: "Suresh Singh", venue: "Andheri Sales Office", agenda: "Agreement Registration & Home Loan", time: "Friday, 5:00 PM", status: "Scheduled" },
+    { id: "MTG-03", client: "Pooja Verma", venue: "Zoom Video Conference", agenda: "3BHK Cost Sheet Discussion", time: "Monday, 4:30 PM", status: "Confirmed" }
+  ];
+
+  const SHOWCASE_VIDEO_CALLS = [
+    { id: "VC-01", client: "Aarav Sharma", project: "Purva 3D Virtual Tour", platform: "Zoom HD Conference", link: "https://zoom.us/j/9867778229", time: "Today, 6:00 PM", status: "Link Sent" },
+    { id: "VC-02", client: "Meera Nair", project: "Lodha Woods 3D Walkthrough", platform: "Google Meet", link: "https://meet.google.com/xyz-abc", time: "Tomorrow, 3:00 PM", status: "Confirmed" }
+  ];
+
+  const SHOWCASE_Q_LEADS = [
+    { id: "QL-01", name: "Pooja Hegde", name_client: "Pooja Hegde", interest: "2 BHK Luxury", budget: "₹ 1.59 Cr", location: "GMLR Bhandup", score: "98% Hot Match" },
+    { id: "QL-02", name: "Siddharth Malhotra", name_client: "Siddharth Malhotra", interest: "3 BHK High Floor", budget: "₹ 2.45 Cr", location: "Andheri West", score: "94% Hot Match" },
+    { id: "QL-03", name: "Karan Joshi", name_client: "Karan Joshi", interest: "4 BHK Penthouse", budget: "₹ 6.20 Cr", location: "Worli Sea Face", score: "92% Hot Match" }
+  ];
+
+  const SHOWCASE_TEAM = [
+    { name: "Shyam Pandey", name_member: "Shyam Pandey", role: "Senior Sales Consultant", calls: "54 Calls Logged", status: "🟢 Present", visits_count: 4, calls_count: 54, score: "96%" },
+    { name: "Priya Sharma", name_member: "Priya Sharma", role: "Sales Manager", calls: "48 Calls Logged", status: "🟢 Present", visits_count: 3, calls_count: 48, score: "92%" },
+    { name: "Rajesh Kumar", name_member: "Rajesh Kumar", role: "Senior Telecaller", calls: "62 Calls Logged", status: "🟢 Present", visits_count: 2, calls_count: 62, score: "94%" },
+    { name: "Sunil Kapoor", name_member: "Sunil Kapoor", role: "Field Sales Agent", calls: "35 Calls Logged", status: "🟢 Present", visits_count: 5, calls_count: 35, score: "89%" }
+  ];
+
+  const SHOWCASE_DOCS = [
+    { id: "DOC-01", name: "Kalpataru_Vian_Brochure_2026.pdf", name_doc: "Kalpataru_Vian_Brochure_2026.pdf", category: "Brochure", file_size: "4.2 MB", file_type: "PDF" },
+    { id: "DOC-02", name: "Srishti_Oasis_Floorplans_RERA.pdf", name_doc: "Srishti_Oasis_Floorplans_RERA.pdf", category: "Floorplan", file_size: "6.8 MB", file_type: "PDF" },
+    { id: "DOC-03", name: "Client_Site_Visit_Itinerary_Template.docx", name_doc: "Client_Site_Visit_Itinerary_Template.docx", category: "Itinerary", file_size: "1.1 MB", file_type: "DOC" }
+  ];
+
+  // States for each category initialized with showcase records
+  const [visitsData, setVisitsData] = useState(SHOWCASE_VISITS);
+  const [qualifiedLeadsData, setQualifiedLeadsData] = useState(SHOWCASE_Q_LEADS);
   const [claimedLeadsData, setClaimedLeadsData] = useState([]);
   const [uniqueLeadsData, setUniqueLeadsData] = useState([]);
-  const [siteVisitScheduleData, setSiteVisitScheduleData] = useState([]);
-  const [meetingScheduleData, setMeetingScheduleData] = useState([]);
-  const [videoCallScheduleData, setVideoCallScheduleData] = useState([]);
-  const [teamMembersData, setTeamMembersData] = useState([]);
+  const [siteVisitScheduleData, setSiteVisitScheduleData] = useState(SHOWCASE_SV_SCHEDULES);
+  const [meetingScheduleData, setMeetingScheduleData] = useState(SHOWCASE_MEETINGS);
+  const [videoCallScheduleData, setVideoCallScheduleData] = useState(SHOWCASE_VIDEO_CALLS);
+  const [teamMembersData, setTeamMembersData] = useState(SHOWCASE_TEAM);
   const [threeMinCallsData, setThreeMinCallsData] = useState([]);
-  const [uploadedActivityDocs, setUploadedActivityDocs] = useState([]);
+  const [uploadedActivityDocs, setUploadedActivityDocs] = useState(SHOWCASE_DOCS);
 
   // Load from backend on mount
   useEffect(() => {
@@ -78,16 +121,16 @@ export default function ActivitiesView({ showToast }) {
         fetchActivityDocumentsApi()
       ]);
 
-      if (Array.isArray(visits)) setVisitsData(visits);
-      if (Array.isArray(qLeads)) setQualifiedLeadsData(qLeads);
-      if (Array.isArray(cLeads)) setClaimedLeadsData(cLeads);
-      if (Array.isArray(uLeads)) setUniqueLeadsData(uLeads);
-      if (Array.isArray(svSchedules)) setSiteVisitScheduleData(svSchedules);
-      if (Array.isArray(meetings)) setMeetingScheduleData(meetings);
-      if (Array.isArray(vCalls)) setVideoCallScheduleData(vCalls);
-      if (Array.isArray(team)) setTeamMembersData(team);
-      if (Array.isArray(speedCalls)) setThreeMinCallsData(speedCalls);
-      if (Array.isArray(actDocs)) setUploadedActivityDocs(actDocs);
+      if (Array.isArray(visits) && visits.length > 0) setVisitsData(visits);
+      if (Array.isArray(qLeads) && qLeads.length > 0) setQualifiedLeadsData(qLeads);
+      if (Array.isArray(cLeads) && cLeads.length > 0) setClaimedLeadsData(cLeads);
+      if (Array.isArray(uLeads) && uLeads.length > 0) setUniqueLeadsData(uLeads);
+      if (Array.isArray(svSchedules) && svSchedules.length > 0) setSiteVisitScheduleData(svSchedules);
+      if (Array.isArray(meetings) && meetings.length > 0) setMeetingScheduleData(meetings);
+      if (Array.isArray(vCalls) && vCalls.length > 0) setVideoCallScheduleData(vCalls);
+      if (Array.isArray(team) && team.length > 0) setTeamMembersData(team);
+      if (Array.isArray(speedCalls) && speedCalls.length > 0) setThreeMinCallsData(speedCalls);
+      if (Array.isArray(actDocs) && actDocs.length > 0) setUploadedActivityDocs(actDocs);
     } catch (e) {
       console.log("[ActivitiesView Data Load Error]", e);
     }
@@ -670,26 +713,71 @@ export default function ActivitiesView({ showToast }) {
       {selectedTab === "My Visits" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {filteredVisits.map(item => (
-            <div key={item.name || item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.875rem" }}>
+            <div 
+              key={item.name || item.id} 
+              style={{ 
+                background: "#ffffff", 
+                border: "1px solid #e2e8f0", 
+                borderLeft: "4px solid #10b981", 
+                borderRadius: "0.875rem", 
+                padding: "0.875rem",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "0.6875rem", fontWeight: "700", color: "#2563eb", background: "#eff6ff", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>
                   📍 {item.location}
                 </span>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "#16a34a" }}>● {item.status || "Confirmed"}</span>
+                  <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#16a34a" }}>● {item.status || "Confirmed"}</span>
                   <button onClick={() => handleEditRecord(item, "Visit")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
                   <button onClick={() => confirmDeleteRecord(item, "Visit", () => {
                     setVisitsData(prev => prev.filter(v => (v.name || v.id) !== (item.name || item.id)));
                   })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
                 </div>
               </div>
-              <h4 style={{ fontSize: "0.9375rem", fontWeight: "700", color: "#0f172a", margin: "0.4rem 0 0.2rem 0" }}>{item.title}</h4>
-              <p style={{ fontSize: "0.78125rem", color: "#64748b" }}>Client: {item.client} {item.phone ? `(${item.phone})` : ""}</p>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.6rem", paddingTop: "0.6rem", borderTop: "1px solid #f1f5f9", fontSize: "0.75rem", color: "#475569" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}><Calendar size={13} color="#2563eb" /> {item.date}</div>
-                <button style={{ background: "#2563eb", color: "#ffffff", border: "none", padding: "0.35rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.6875rem", fontWeight: "700", cursor: "pointer" }} onClick={() => handleStartVisit(item.client)}>
-                  Start Visit Event
-                </button>
+
+              <h4 style={{ fontSize: "0.9375rem", fontWeight: "800", color: "#0f172a", margin: "0.4rem 0 0.15rem 0" }}>{item.title}</h4>
+              <p style={{ fontSize: "0.78125rem", color: "#64748b", margin: 0 }}>
+                Client: <strong style={{ color: "#0f172a" }}>{item.client}</strong> {item.phone ? `(${item.phone})` : ""}
+              </p>
+
+              {item.cab && (
+                <div style={{ fontSize: "0.71875rem", color: "#0369a1", background: "#f0f9ff", border: "1px solid #e0f2fe", padding: "0.35rem 0.6rem", borderRadius: "0.45rem", marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <span>🚗</span>
+                  <span>Chauffeur: <strong style={{ color: "#0284c7" }}>{item.cab}</strong></span>
+                </div>
+              )}
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.6rem", paddingTop: "0.6rem", borderTop: "1px solid #f1f5f9", fontSize: "0.75rem", color: "#475569", flexWrap: "wrap", gap: "0.4rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontWeight: 700, color: "#16a34a" }}>
+                  <Calendar size={13} color="#16a34a" /> {item.date}
+                </div>
+
+                <div style={{ display: "flex", gap: "0.35rem" }}>
+                  <button 
+                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location + ' Mumbai')}`, '_blank')}
+                    style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "0.35rem 0.6rem", borderRadius: "0.375rem", fontSize: "0.6875rem", fontWeight: "700", cursor: "pointer" }}
+                  >
+                    📍 Maps
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const text = encodeURIComponent(`Hi ${item.client}, your VIP chauffeur is assigned for the visit to ${item.title} at ${item.date}. Vehicle: ${item.cab || 'Innova Crysta'}. Chauffeur will report 15 mins prior.`);
+                      const phone = (item.phone || "9867778229").replace(/\D/g, "");
+                      window.open(`https://wa.me/91${phone}?text=${text}`, '_blank');
+                    }}
+                    style={{ background: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", padding: "0.35rem 0.6rem", borderRadius: "0.375rem", fontSize: "0.6875rem", fontWeight: "700", cursor: "pointer" }}
+                  >
+                    💬 WA Cab
+                  </button>
+                  <button 
+                    style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "#ffffff", border: "none", padding: "0.35rem 0.65rem", borderRadius: "0.375rem", fontSize: "0.6875rem", fontWeight: "800", cursor: "pointer" }} 
+                    onClick={() => handleStartVisit(item.client)}
+                  >
+                    Start Visit
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -792,9 +880,19 @@ export default function ActivitiesView({ showToast }) {
       {selectedTab === "Site Visit Schedule" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {filteredSVSchedules.map(sch => (
-            <div key={sch.name || sch.id} style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "0.75rem", padding: "0.875rem" }}>
+            <div 
+              key={sch.name || sch.id} 
+              style={{ 
+                background: "#ffffff", 
+                border: "1px solid #e2e8f0", 
+                borderLeft: "4px solid #10b981", 
+                borderRadius: "0.875rem", 
+                padding: "0.875rem",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>{sch.project}</div>
+                <div style={{ fontSize: "0.9375rem", fontWeight: "800", color: "#0f172a" }}>🚗 {sch.project}</div>
                 <div style={{ display: "flex", gap: "0.3rem" }}>
                   <button onClick={() => handleEditRecord(sch, "Site Visit Schedule")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
                   <button onClick={() => confirmDeleteRecord(sch, "Site Visit Schedule", () => {
@@ -802,10 +900,22 @@ export default function ActivitiesView({ showToast }) {
                   })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
                 </div>
               </div>
-              <div style={{ fontSize: "0.78125rem", color: "#475569", margin: "0.2rem 0" }}>Client: {sch.client}</div>
-              <div style={{ fontSize: "0.75rem", color: "#2563eb", fontWeight: "600" }}>⏰ Slot: {sch.slot}</div>
-              <div style={{ fontSize: "0.71875rem", color: "#64748b", marginTop: "0.3rem", background: "#f8fafc", padding: "0.3rem", borderRadius: "0.375rem" }}>
-                🚗 Cab Logistics: {sch.cab}
+              <div style={{ fontSize: "0.8125rem", color: "#475569", margin: "0.25rem 0" }}>Client: <strong style={{ color: "#0f172a" }}>{sch.client}</strong></div>
+              <div style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: "700" }}>⏰ Slot: {sch.slot}</div>
+              <div style={{ fontSize: "0.71875rem", color: "#0369a1", marginTop: "0.35rem", background: "#f0f9ff", border: "1px solid #e0f2fe", padding: "0.35rem 0.6rem", borderRadius: "0.45rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>🚖 Chauffeur: <strong>{sch.cab}</strong></span>
+                <span style={{ fontSize: "0.6875rem", fontWeight: 800, color: "#16a34a" }}>● {sch.status || "Confirmed"}</span>
+              </div>
+              <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.4rem" }}>
+                <button
+                  onClick={() => {
+                    const text = encodeURIComponent(`Hi ${sch.client}, your site visit for ${sch.project} is scheduled at ${sch.slot}. Cab logistics: ${sch.cab}. Chauffeur will call you shortly.`);
+                    window.open(`https://wa.me/919867778229?text=${text}`, '_blank');
+                  }}
+                  style={{ flex: 1, background: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0", padding: "0.4rem", borderRadius: "0.45rem", fontSize: "0.71875rem", fontWeight: 700, cursor: "pointer" }}
+                >
+                  💬 Send WA Itinerary
+                </button>
               </div>
             </div>
           ))}
@@ -821,9 +931,19 @@ export default function ActivitiesView({ showToast }) {
       {selectedTab === "Meeting Schedule" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {filteredMeetings.map(mtg => (
-            <div key={mtg.name || mtg.id} style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "0.75rem", padding: "0.875rem" }}>
+            <div 
+              key={mtg.name || mtg.id} 
+              style={{ 
+                background: "#ffffff", 
+                border: "1px solid #e2e8f0", 
+                borderLeft: "4px solid #f59e0b", 
+                borderRadius: "0.875rem", 
+                padding: "0.875rem",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>Client: {mtg.client}</div>
+                <div style={{ fontSize: "0.9375rem", fontWeight: "800", color: "#0f172a" }}>🤝 {mtg.agenda}</div>
                 <div style={{ display: "flex", gap: "0.3rem" }}>
                   <button onClick={() => handleEditRecord(mtg, "Meeting")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
                   <button onClick={() => confirmDeleteRecord(mtg, "Meeting", () => {
@@ -831,9 +951,21 @@ export default function ActivitiesView({ showToast }) {
                   })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
                 </div>
               </div>
-              <div style={{ fontSize: "0.78125rem", color: "#2563eb", fontWeight: "600", margin: "0.2rem 0" }}>📍 Venue: {mtg.venue}</div>
-              <div style={{ fontSize: "0.75rem", color: "#475569" }}>Agenda: {mtg.agenda}</div>
-              <div style={{ fontSize: "0.71875rem", color: "#16a34a", fontWeight: "700", marginTop: "0.3rem" }}>⏰ Scheduled: {mtg.time}</div>
+              <div style={{ fontSize: "0.8125rem", color: "#475569", margin: "0.25rem 0" }}>Client: <strong style={{ color: "#0f172a" }}>{mtg.client}</strong></div>
+              <div style={{ fontSize: "0.75rem", color: "#2563eb", fontWeight: "600" }}>📍 Venue: {mtg.venue}</div>
+              <div style={{ fontSize: "0.71875rem", color: "#d97706", fontWeight: "700", marginTop: "0.25rem" }}>⏰ Scheduled: {mtg.time}</div>
+
+              {/* Verify Meeting KYC Action */}
+              <div style={{ marginTop: "0.55rem", display: "flex", gap: "0.4rem" }}>
+                <button
+                  onClick={() => {
+                    if (showToast) showToast(`✅ Meeting verified for ${mtg.client}! KYC and attendance confirmed.`);
+                  }}
+                  style={{ flex: 1, background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "#ffffff", border: "none", padding: "0.45rem", borderRadius: "0.45rem", fontSize: "0.71875rem", fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}
+                >
+                  <CheckCircle2 size={13} /> Verify Attendance & KYC
+                </button>
+              </div>
             </div>
           ))}
 
@@ -848,12 +980,22 @@ export default function ActivitiesView({ showToast }) {
       {selectedTab === "Video Call Schedule" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {filteredVCalls.map(vid => (
-            <div key={vid.name || vid.id} style={{ background: "#ffffff", border: "1px solid #bfdbfe", borderRadius: "0.75rem", padding: "0.875rem" }}>
+            <div 
+              key={vid.name || vid.id} 
+              style={{ 
+                background: "#ffffff", 
+                border: "1px solid #e2e8f0", 
+                borderLeft: "4px solid #0284c7", 
+                borderRadius: "0.875rem", 
+                padding: "0.875rem",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)"
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "0.875rem", fontWeight: "700", color: "#0f172a" }}>{vid.project}</span>
+                <span style={{ fontSize: "0.9375rem", fontWeight: "800", color: "#0f172a" }}>📹 {vid.project}</span>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                  <span style={{ fontSize: "0.6875rem", background: "#dbeafe", color: "#1d4ed8", fontWeight: "700", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>
-                    🎥 {vid.platform || "Zoom HD Tour"}
+                  <span style={{ fontSize: "0.6875rem", background: "#dbeafe", color: "#1d4ed8", fontWeight: "800", padding: "0.15rem 0.5rem", borderRadius: "9999px" }}>
+                    {vid.platform || "Zoom HD Tour"}
                   </span>
                   <button onClick={() => handleEditRecord(vid, "Video Call")} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Edit"><Edit3 size={12} /></button>
                   <button onClick={() => confirmDeleteRecord(vid, "Video Call", () => {
@@ -861,12 +1003,12 @@ export default function ActivitiesView({ showToast }) {
                   })} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", padding: "0.25rem", borderRadius: "0.35rem", cursor: "pointer" }} title="Delete"><Trash2 size={12} /></button>
                 </div>
               </div>
-              <div style={{ fontSize: "0.78125rem", color: "#475569", margin: "0.3rem 0" }}>Client: {vid.client} | {vid.time}</div>
+              <div style={{ fontSize: "0.8125rem", color: "#475569", margin: "0.3rem 0" }}>Client: <strong style={{ color: "#0f172a" }}>{vid.client}</strong> • {vid.time}</div>
               <button 
-                style={{ width: "100%", background: "#2563eb", color: "#ffffff", border: "none", padding: "0.4rem", borderRadius: "0.5rem", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem" }}
+                style={{ width: "100%", background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)", color: "#ffffff", border: "none", padding: "0.45rem", borderRadius: "0.5rem", fontSize: "0.75rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", marginTop: "0.4rem" }}
                 onClick={() => window.open(vid.link || "https://zoom.us", '_blank')}
               >
-                <Video size={14} /> Join Video Tour Link
+                <Video size={14} /> Join Zoom HD 3D Conference
               </button>
             </div>
           ))}

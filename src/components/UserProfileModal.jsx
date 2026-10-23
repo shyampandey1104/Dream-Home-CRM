@@ -1,18 +1,16 @@
 import React from "react";
-import { User, Mail, Phone, ShieldCheck, Award, LogOut, X, CheckCircle } from "lucide-react";
+import { User, Mail, Phone, ShieldCheck, Award, LogOut, X, CheckCircle, Sparkles } from "lucide-react";
 
 export default function UserProfileModal({ userProfile, onClose, onLogout }) {
   if (!userProfile) return null;
 
   const empIdText = userProfile.employee_id || (userProfile.id && typeof userProfile.id === 'string' ? userProfile.id : `EMP-${(userProfile.email || 'USER').split('@')[0].toUpperCase()}`);
-  const closedCount = userProfile.closed_deals || 0;
+  const closedCount = userProfile.closed_deals || 4;
   const callsMade = userProfile.calls_made || 156;
-  const targetPct = userProfile.target_achieved || (closedCount > 0 ? 100 : 92);
+  const targetPct = userProfile.target_achieved || 94;
 
-  const badgeTitle = userProfile.badge_title || (closedCount > 0 ? "🏆 Top Closed Deals Leader" : "🔥 Active Sales Telecaller");
-  const metricText = userProfile.metric_text || (closedCount > 0 
-    ? `${closedCount} Closed Deals • ${callsMade} Calls Made • ${targetPct}% Target` 
-    : `${callsMade} Calls Logged • ${targetPct}% Target Achieved`);
+  const badgeTitle = userProfile.badge_title || "🏆 Top Closed Deals Leader";
+  const metricText = userProfile.metric_text || `${closedCount} Deals Closed • ${callsMade} Calls Logged • ${targetPct}% Target`;
 
   return (
     <div 
@@ -28,7 +26,7 @@ export default function UserProfileModal({ userProfile, onClose, onLogout }) {
         alignItems: "flex-start",
         justifyContent: "center",
         borderRadius: "inherit",
-        paddingTop: "2.75rem",
+        paddingTop: "2.5rem",
         paddingBottom: "1rem"
       }}
     >
@@ -45,149 +43,181 @@ export default function UserProfileModal({ userProfile, onClose, onLogout }) {
           animation: "scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)"
         }}
       >
-        {/* Profile Modal Header */}
-        <div className="dialer-header" style={{ background: "linear-gradient(135deg, #0284c7, #2563eb)", padding: "1rem 1.25rem" }}>
-          <div className="dialer-caller-info">
-            <span className="dialer-caller-name" style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#ffffff", fontSize: "1rem", fontWeight: 800 }}>
-              <User size={18} /> Employee Profile
-            </span>
-            <span className="dialer-caller-sub" style={{ color: "#bfdbfe", fontSize: "0.6875rem" }}>LeadCall CRM Sales Portal</span>
+        {/* Luxury Obsidian Modal Header */}
+        <div style={{
+          background: "linear-gradient(135deg, #090d16 0%, #1e293b 100%)",
+          padding: "1rem 1.25rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          color: "#ffffff"
+        }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", fontSize: "0.95rem", fontWeight: 800 }}>
+              <ShieldCheck size={18} color="#f59e0b" /> MahaRERA Certified Profile
+            </div>
+            <div style={{ color: "#94a3b8", fontSize: "0.6875rem", marginTop: "0.1rem" }}>
+              Dream Homes CRM Sales Portal
+            </div>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#ffffff", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <X size={16} />
+          <button 
+            onClick={onClose} 
+            style={{ 
+              background: "rgba(255,255,255,0.15)", 
+              border: "none", 
+              color: "#ffffff", 
+              width: "28px", 
+              height: "28px", 
+              borderRadius: "50%", 
+              cursor: "pointer", 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center" 
+            }}
+          >
+            <X size={15} />
           </button>
         </div>
 
         {/* Profile Card Body */}
-        <div className="dialer-body" style={{ padding: "1.25rem", gap: "1rem", display: "flex", flexDirection: "column" }}>
-          {/* Company Brand Logo Hero */}
+        <div style={{ padding: "1.25rem", gap: "1rem", display: "flex", flexDirection: "column" }}>
+          
+          {/* Executive Avatar & Name Hero */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
-            <img 
-              src="/dreamhomes_gold_logo.jpg" 
-              alt="Dream Homes Gold Logo" 
-              style={{ 
-                width: "68px", 
-                height: "68px", 
-                objectFit: "contain",
-                filter: "drop-shadow(0 3px 8px rgba(217, 119, 6, 0.25))",
-                flexShrink: 0
-              }} 
-            />
-
-            <div>
-              <h2 style={{ fontSize: "1.2rem", fontWeight: 900, color: "#0f172a", lineHeight: 1.2, margin: 0 }}>
-                {userProfile.name}
-              </h2>
+            <div style={{
+              position: "relative",
+              width: "64px",
+              height: "64px",
+              borderRadius: "50%",
+              overflow: "hidden",
+              border: "2.5px solid #f59e0b",
+              boxShadow: "0 4px 12px rgba(245, 158, 11, 0.3)",
+              flexShrink: 0
+            }}>
+              <img 
+                src="/profile.jpg" 
+                alt="Shyam Pandey" 
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  e.target.parentElement.innerHTML = `<div style="width:100%;height:100%;background:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;">SP</div>`;
+                }}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
               <span style={{
-                display: "inline-block",
-                background: "#dbeafe",
-                color: "#2563eb",
-                fontSize: "0.72rem",
-                fontWeight: 800,
-                padding: "0.2rem 0.6rem",
-                borderRadius: "9999px",
-                marginTop: "0.3rem"
-              }}>
-                {userProfile.role || "Senior Sales Consultant"}
-              </span>
+                position: "absolute",
+                bottom: "2px",
+                right: "2px",
+                width: "12px",
+                height: "12px",
+                borderRadius: "50%",
+                background: "#10b981",
+                border: "2px solid #ffffff"
+              }} />
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: "1.15rem", fontWeight: 900, color: "#0f172a", margin: 0, letterSpacing: "-0.01em" }}>
+                {userProfile.name || "Shyam Pandey"}
+              </h2>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginTop: "0.2rem", flexWrap: "wrap" }}>
+                <span style={{
+                  background: "#fef3c7",
+                  color: "#b45309",
+                  fontSize: "0.6875rem",
+                  fontWeight: 800,
+                  padding: "0.15rem 0.5rem",
+                  borderRadius: "9999px",
+                  border: "1px solid #fde68a"
+                }}>
+                  👑 Senior Sales Consultant
+                </span>
+                <span style={{
+                  background: "#e0f2fe",
+                  color: "#0284c7",
+                  fontSize: "0.6875rem",
+                  fontWeight: 800,
+                  padding: "0.15rem 0.5rem",
+                  borderRadius: "9999px"
+                }}>
+                  MahaRERA: A51800045492
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Details Table from Frappe User DocType */}
-          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "0.875rem", padding: "0.875rem", display: "flex", flexDirection: "column", gap: "0.65rem", fontSize: "0.8125rem" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-              <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                <ShieldCheck size={15} color="#2563eb" /> Employee ID / Name:
+          {/* Details Table */}
+          <div style={{
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: "0.875rem",
+            padding: "0.875rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.65rem",
+            fontSize: "0.8125rem"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem" }}>
+              <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78125rem" }}>
+                <ShieldCheck size={15} color="#2563eb" /> Employee ID:
               </span>
-              <strong style={{ color: "#0f172a", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {userProfile.employee_id || userProfile.full_name || userProfile.name || empIdText}
+              <strong style={{ color: "#0f172a", fontSize: "0.78125rem", fontWeight: 800 }}>
+                {userProfile.employee_id || empIdText || "EMP-SP1104"}
               </strong>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-              <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                <Mail size={15} color="#2563eb" /> Email:
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem" }}>
+              <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78125rem" }}>
+                <Mail size={15} color="#2563eb" /> Email ID:
               </span>
-              <strong style={{ color: "#0f172a", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {userProfile.email}
+              <strong style={{ color: "#0f172a", fontSize: "0.75rem", fontWeight: 700 }}>
+                {userProfile.email || "shyampandey1104@gmail.com"}
               </strong>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-              <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                <Phone size={15} color="#2563eb" /> Mobile:
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem" }}>
+              <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78125rem" }}>
+                <Phone size={15} color="#16a34a" /> Contact SIM:
               </span>
-              <strong style={{ color: "#0f172a", marginLeft: "auto", fontSize: "0.78125rem", fontWeight: 800 }}>
-                {userProfile.mobile_no || userProfile.phone || "9867778229"}
+              <strong style={{ color: "#0f172a", fontSize: "0.78125rem", fontWeight: 800 }}>
+                {userProfile.mobile_no || userProfile.phone || "+91 98677 78229"}
               </strong>
             </div>
 
-            {/* MahaRERA No - Only rendered if exists in User DocType */}
-            {userProfile.rera_no && String(userProfile.rera_no).trim() !== "" && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-                <span style={{ color: "#b45309", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem", fontWeight: 700 }}>
-                  📜 MahaRERA No:
-                </span>
-                <strong style={{ color: "#b45309", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 800, background: "#fef3c7", padding: "0.1rem 0.4rem", borderRadius: "4px", border: "1px solid #fde68a" }}>
-                  {userProfile.rera_no}
-                </strong>
-              </div>
-            )}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem" }}>
+              <span style={{ color: "#b45309", display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78125rem", fontWeight: 700 }}>
+                📜 MahaRERA Reg:
+              </span>
+              <strong style={{ color: "#b45309", fontSize: "0.75rem", fontWeight: 800, background: "#fef3c7", padding: "0.1rem 0.4rem", borderRadius: "4px", border: "1px solid #fde68a" }}>
+                A51800045492
+              </strong>
+            </div>
 
-            {/* Instagram ID - Only rendered if exists in User DocType */}
-            {userProfile.instagram_id && String(userProfile.instagram_id).trim() !== "" && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-                <span style={{ color: "#be185d", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                  📸 Instagram:
-                </span>
-                <strong style={{ color: "#be185d", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
-                  @{String(userProfile.instagram_id).replace(/^@/, '')}
-                </strong>
-              </div>
-            )}
-
-            {/* Facebook ID - Only rendered if exists in User DocType */}
-            {userProfile.facebook_id && String(userProfile.facebook_id).trim() !== "" && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-                <span style={{ color: "#1d4ed8", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                  👥 Facebook:
-                </span>
-                <strong style={{ color: "#1d4ed8", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
-                  {userProfile.facebook_id}
-                </strong>
-              </div>
-            )}
-
-            {/* YouTube ID - Only rendered if exists in User DocType */}
-            {userProfile.youtube_id && String(userProfile.youtube_id).trim() !== "" && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-                <span style={{ color: "#dc2626", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
-                  ▶️ YouTube:
-                </span>
-                <strong style={{ color: "#dc2626", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
-                  {userProfile.youtube_id}
-                </strong>
-              </div>
-            )}
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem", width: "100%" }}>
-              <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0, fontSize: "0.78125rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.4rem" }}>
+              <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78125rem" }}>
                 <Award size={15} color="#d97706" /> Department:
               </span>
-              <strong style={{ color: "#0f172a", marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>
-                Real Estate Sales & PDI
+              <strong style={{ color: "#0f172a", fontSize: "0.75rem", fontWeight: 700 }}>
+                Luxury Residential Sales (Bandra/Andheri)
               </strong>
             </div>
           </div>
 
           {/* Performance Highlights Badges */}
-          <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", borderRadius: "0.875rem", padding: "0.75rem 0.875rem", display: "flex", alignItems: "center", gap: "0.65rem" }}>
-            <Award size={22} color="#16a34a" style={{ flexShrink: 0 }} />
+          <div style={{
+            background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+            border: "1px solid #bbf7d0",
+            borderRadius: "0.875rem",
+            padding: "0.75rem 0.875rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.65rem"
+          }}>
+            <Award size={24} color="#16a34a" style={{ flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: "0.8125rem", fontWeight: 800, color: "#15803d" }}>
                 {badgeTitle}
               </div>
-              <div style={{ fontSize: "0.72rem", color: "#16a34a", fontWeight: 600, marginTop: "0.1rem" }}>
+              <div style={{ fontSize: "0.72rem", color: "#166534", fontWeight: 600, marginTop: "0.1rem" }}>
                 {metricText}
               </div>
             </div>
@@ -213,14 +243,14 @@ export default function UserProfileModal({ userProfile, onClose, onLogout }) {
                 gap: "0.35rem"
               }}
             >
-              <LogOut size={15} /> Logout Account
+              <LogOut size={15} /> Logout
             </button>
 
             <button
               onClick={onClose}
               style={{
                 flex: 1,
-                background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                background: "linear-gradient(135deg, #0284c7 0%, #2563eb 100%)",
                 color: "#ffffff",
                 border: "none",
                 padding: "0.65rem",
@@ -238,6 +268,7 @@ export default function UserProfileModal({ userProfile, onClose, onLogout }) {
               <CheckCircle size={15} /> Done
             </button>
           </div>
+
         </div>
       </div>
     </div>

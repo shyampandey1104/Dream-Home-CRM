@@ -34,6 +34,7 @@ import DocumentViewerModal from "./DocumentViewerModal";
 import VideoPlayerModal from "./VideoPlayerModal";
 import EditRecordModal from "./EditRecordModal";
 import CustomAlertDialog from "./CustomAlertDialog";
+import { INITIAL_INVENTORY } from "../services/mockData";
 
 export default function PropertiesView({ onShareProperty, showToast }) {
   const [activeMainTab, setActiveMainTab] = useState("properties");
@@ -66,11 +67,11 @@ export default function PropertiesView({ onShareProperty, showToast }) {
   const [itemModalMode, setItemModalMode] = useState("unit_plan");
   const [itemListingCategory, setItemListingCategory] = useState("My Listing");
 
-  // Editable lists synced with Frappe Backend
-  const [propertiesList, setPropertiesList] = useState([]);
-  const [documentsList, setDocumentsList] = useState([]);
-  const [unitPlansList, setUnitPlansList] = useState([]);
-  const [videosList, setVideosList] = useState([]);
+  // Editable lists synced with Frappe Backend (initialized with high-end showcase inventory)
+  const [propertiesList, setPropertiesList] = useState(INITIAL_INVENTORY?.focusProjects || []);
+  const [documentsList, setDocumentsList] = useState(INITIAL_INVENTORY?.documents || []);
+  const [unitPlansList, setUnitPlansList] = useState(INITIAL_INVENTORY?.unitPlans || []);
+  const [videosList, setVideosList] = useState(INITIAL_INVENTORY?.videos || []);
   const [myListingData, setMyListingData] = useState([]);
   const [employeeListingData, setEmployeeListingData] = useState([]);
   const [ownerLeadsData, setOwnerLeadsData] = useState([]);
@@ -94,10 +95,12 @@ export default function PropertiesView({ onShareProperty, showToast }) {
     try {
       // 1. Focus Projects
       const invRes = await fetchCrmInventory();
-      if (invRes && invRes.data) {
+      if (invRes && invRes.data && invRes.data.length > 0) {
         setPropertiesList(invRes.data);
-      } else if (Array.isArray(invRes)) {
+      } else if (Array.isArray(invRes) && invRes.length > 0) {
         setPropertiesList(invRes);
+      } else if (INITIAL_INVENTORY?.focusProjects) {
+        setPropertiesList(INITIAL_INVENTORY.focusProjects);
       }
 
       // 2. Documents

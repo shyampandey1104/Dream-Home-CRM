@@ -225,16 +225,30 @@ export const INITIAL_METRICS = {
 export const INITIAL_INVENTORY = {
   focusProjects: [
     {
+      id: "PROP-000",
+      title: "Srishti Oasis",
+      builder: "Kalpataru & Keystone",
+      location: "Bhandup West (GMLR), Mumbai",
+      priceRange: "₹ 1.08 Cr - 2.26 Cr",
+      tag: "DIRECT GMLR",
+      bhk: "1, 2 & 3 BHK",
+      carpet: "450 - 920 sq.ft",
+      rera: "P51800051004",
+      highlights: ["Direct Link to Goregaon-Mulund Link Road", "36-Storey Luxury Highrise Tower", "Possession Q4 2026"],
+      img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"
+    },
+    {
       id: "PROP-001",
       title: "Kalpataru Vian",
       builder: "Kalpataru Group",
       location: "Andheri West, Mumbai",
-      priceRange: "₹ 2.15 Cr - 3.80 Cr",
-      tag: "High Demand",
-      bhk: "2, 3 & 4 BHK",
+      priceRange: "₹ 2.45 Cr - 3.80 Cr",
+      tag: "HOT PROJECT",
+      bhk: "2, 3 & 4 BHK Luxury",
       carpet: "780 - 1450 sq.ft",
+      rera: "P51800048911",
       highlights: ["50+ Luxury Lifestyle Amenities", "Next to Metro Line 2A", "Possession Dec 2026"],
-      img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"
+      img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"
     },
     {
       id: "PROP-002",
