@@ -604,6 +604,31 @@ export default function App() {
 
   const handleTestLeadCreated = (newLead) => {
     if (!newLead) return;
+    const cleanPhone = (newLead.phone || "").replace(/\D/g, "").slice(-10);
+    const existingIndex = leads.findIndex(l => {
+      const p = (l.phone || "").replace(/\D/g, "").slice(-10);
+      return cleanPhone && p && cleanPhone === p;
+    });
+
+    if (existingIndex !== -1) {
+      // 10-digit phone normalization prevents duplicate ghost records while preserving full client history
+      const existing = leads[existingIndex];
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const updatedNotes = `${existing.notes || ''}\n[${timeStr} Repeat Inquiry via ${newLead.source || 'Webhook'}]: ${newLead.notes || ''}`.trim();
+      const updatedLead = {
+        ...existing,
+        notes: updatedNotes,
+        priority: "HOT", // Elevate priority on repeat inquiry
+        bhkType: newLead.bhkType || existing.bhkType,
+        location: newLead.location || existing.location
+      };
+      const updated = leads.map((l, idx) => idx === existingIndex ? updatedLead : l);
+      setLeads(updated);
+      saveStoredLeads(updated);
+      showToast(`⚡ Repeat inquiry for '${existing.name}'! History preserved & priority elevated to HOT.`);
+      return;
+    }
+
     const updated = [newLead, ...leads];
     setLeads(updated);
     saveStoredLeads(updated);
@@ -657,6 +682,29 @@ export default function App() {
             onSendReport={(lead) => setReportLead(lead)}
             showToast={showToast}
             onLeadCreated={(newLead) => {
+              const cleanPhone = (newLead.phone || "").replace(/\D/g, "").slice(-10);
+              const existingIndex = leads.findIndex(l => {
+                const p = (l.phone || "").replace(/\D/g, "").slice(-10);
+                return cleanPhone && p && cleanPhone === p;
+              });
+
+              if (existingIndex !== -1) {
+                const existing = leads[existingIndex];
+                const updatedNotes = `${existing.notes || ''}\n[Update via Form]: ${newLead.notes || ''}`.trim();
+                const updatedLead = {
+                  ...existing,
+                  ...newLead,
+                  id: existing.id,
+                  notes: updatedNotes,
+                  priority: newLead.priority || existing.priority
+                };
+                const updated = leads.map((l, idx) => idx === existingIndex ? updatedLead : l);
+                setLeads(updated);
+                saveStoredLeads(updated);
+                showToast(`✅ Existing lead '${existing.name}' updated! Full history preserved.`);
+                return;
+              }
+
               const updated = [newLead, ...leads.filter(l => l.id !== newLead.id)];
               setLeads(updated);
               saveStoredLeads(updated);

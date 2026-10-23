@@ -87,9 +87,28 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
 
     clean_phone = normalize_phone_number(final_phone)
     
+    is_existing = False
+    doc = None
     if lead_id and frappe.db.exists("Real Estate Lead", lead_id):
         doc = frappe.get_doc("Real Estate Lead", lead_id)
-    else:
+        is_existing = True
+    elif clean_phone and len(clean_phone) >= 10:
+        # Smart 10-digit phone normalization to prevent duplicate ghost leads
+        candidates = frappe.get_all(
+            "Real Estate Lead",
+            fields=["name", "lead_name", "phone", "notes", "status", "priority", "creation"],
+            order_by="creation desc",
+            limit=100
+        )
+        for cand in candidates:
+            cand_clean = normalize_phone_number(cand.get("phone"))
+            if cand_clean and cand_clean == clean_phone:
+                doc = frappe.get_doc("Real Estate Lead", cand.name)
+                is_existing = True
+                lead_id = doc.name
+                break
+
+    if not doc:
         doc = frappe.new_doc("Real Estate Lead")
 
     doc.lead_name = final_name
@@ -98,14 +117,15 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
         doc.email = final_email
     doc.priority = final_priority
     doc.status = final_status
-    if final_status == "NEW":
+    if final_status == "NEW" and not is_existing:
         doc.call_count = 0
     doc.service = final_service
     doc.bhk_type = final_bhk
     doc.location = final_location
     doc.source = final_source
-    if doc.notes and lead_id:
-        doc.notes = f"{doc.notes}\n[Update]: {final_notes}".strip()
+    if doc.notes and is_existing:
+        now_str = frappe.utils.format_datetime(frappe.utils.now_datetime(), 'dd-MMM-yyyy hh:mm a')
+        doc.notes = f"{doc.notes}\n[Update {now_str} via {final_source}]: {final_notes}".strip()
     else:
         doc.notes = final_notes
 
@@ -148,7 +168,7 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
         )
         agent_whatsapp_url = f"https://api.whatsapp.com/send?phone=919867778229&text={urllib.parse.quote(alert_text)}"
 
-    is_duplicate = bool(lead_id)
+    is_duplicate = bool(is_existing)
     msg = f"Updated existing lead '{final_name}'." if is_duplicate else f"Lead '{final_name}' saved to MariaDB!"
     return {
         "status": "success",
@@ -1733,6 +1753,119 @@ def facebook_instagram_lead_webhook(**kwargs):
             "location": loc,
             "bhkType": bhk,
             "notes": notes,
+            "priority": "HOT",
+            "status": "NEW"
+        }
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def telegram_inbound_webhook(**kwargs):
+    """
+    Zero-Leakage Ingestion Webhook for Telegram Bot property inquiries.
+    Automatically parses BHK, Budget, and Locality, captures lead in MariaDB with smart deduplication,
+    and dispatches instant WhatsApp alert to agent phone (+91 98677 78229).
+    """
+    form_data = getattr(frappe, "form_dict", {}) or {}
+    req_data = {}
+    try:
+        if hasattr(frappe, "request") and frappe.request:
+            req_data = frappe.request.get_json() or {}
+    except Exception:
+        pass
+
+    msg_obj = req_data.get("message") or {}
+    from_user = msg_obj.get("from") or {}
+    first_name = from_user.get("first_name", "")
+    last_name = from_user.get("last_name", "")
+    full_name = f"{first_name} {last_name}".strip()
+    client_name = full_name or kwargs.get("name") or form_data.get("name") or "Telegram Client"
+
+    contact = msg_obj.get("contact") or {}
+    raw_phone = contact.get("phone_number") or kwargs.get("phone") or form_data.get("phone") or "+91 98205 91823"
+    message_text = msg_obj.get("text") or kwargs.get("message") or form_data.get("message") or "Interested in property inquiry via Telegram"
+    msg_lower = str(message_text).lower()
+
+    # Smart parsing for BHK
+    bhk = "2 BHK"
+    if "1 bhk" in msg_lower or "1bhk" in msg_lower: bhk = "1 BHK"
+    elif "3 bhk" in msg_lower or "3bhk" in msg_lower: bhk = "3 BHK"
+    elif "4 bhk" in msg_lower or "4bhk" in msg_lower: bhk = "4 BHK"
+    elif "penthouse" in msg_lower or "villa" in msg_lower: bhk = "Penthouse / Villa"
+    elif "commercial" in msg_lower or "office" in msg_lower: bhk = "Commercial Space"
+
+    # Smart parsing for Location
+    loc = "Mumbai"
+    for area in ["Virar", "Mira Road", "Bandra", "Andheri", "Thane", "Kalyan", "Worli", "Bhandup", "Powai", "Juhu", "Goregaon", "Malad"]:
+        if area.lower() in msg_lower:
+            loc = area
+            break
+
+    # Save lead in MariaDB with smart deduplication & note history preservation
+    lead_res = save_lead(
+        name=client_name,
+        phone=raw_phone,
+        priority="HOT",
+        status="NEW",
+        service="Home Buying",
+        bhk_type=bhk,
+        location=loc,
+        source="Telegram Bot",
+        notes=f"✈️ Telegram Inquiry: {message_text}"
+    )
+    lead_id = lead_res.get("lead_id")
+
+    # In-App Live Notification
+    try:
+        now_dt = frappe.utils.now_datetime()
+        notif = frappe.new_doc("Lead Notification")
+        notif.name = generate_custom_id("Lead Notification", "NOTIF")
+        notif.title = f"✈️ Telegram Lead: {client_name}"
+        notif.message = f"Inquired for {bhk} ({loc}) | Mobile: {raw_phone}"
+        notif.source = "Telegram Bot"
+        notif.notif_type = "inbound"
+        notif.lead_id = lead_id
+        notif.lead_name = client_name
+        notif.lead_phone = raw_phone
+        notif.lead_location = loc
+        notif.lead_bhk = bhk
+        notif.is_read = 0
+        notif.time_ago = f"Today, {frappe.utils.format_datetime(now_dt, 'hh:mm a')}"
+        notif.save(ignore_permissions=True)
+        frappe.db.commit()
+    except Exception:
+        pass
+
+    # Instant WhatsApp alert to agent phone (9867778229)
+    agent_phone = "919867778229"
+    alert_text = (
+        f"🚨 *NEW TELEGRAM LEAD INGESTED!* 🚨\n\n"
+        f"👤 *Client Name:* {client_name}\n"
+        f"📞 *Mobile:* {raw_phone}\n"
+        f"🏢 *Requirement:* {bhk} ({loc})\n"
+        f"💬 *Inquiry:* {message_text}\n"
+        f"📍 *Lead Source:* Telegram Bot\n\n"
+        f"👉 *Open CRM Lead:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
+        f"⚡ Tap to call client now!"
+    )
+    import urllib.parse
+    agent_whatsapp_url = f"https://api.whatsapp.com/send?phone={agent_phone}&text={urllib.parse.quote(alert_text)}"
+
+    return {
+        "status": "success",
+        "message": f"Lead from Telegram '{client_name}' captured in MariaDB and alert sent!",
+        "lead_id": lead_id,
+        "is_duplicate": lead_res.get("is_duplicate", False),
+        "agent_alert_phone": "+91 98677 78229",
+        "agent_whatsapp_url": agent_whatsapp_url,
+        "lead": {
+            "id": lead_id,
+            "name": client_name,
+            "phone": raw_phone,
+            "source": "Telegram Bot",
+            "location": loc,
+            "bhkType": bhk,
+            "notes": message_text,
             "priority": "HOT",
             "status": "NEW"
         }
