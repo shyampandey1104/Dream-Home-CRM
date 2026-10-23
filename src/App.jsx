@@ -728,8 +728,44 @@ export default function App() {
           <FollowUpsView
             leads={leads}
             onCallLead={handleCallLead}
+            onSendReport={(lead) => setReportLead(lead)}
+            onLeadCreated={(newLead) => {
+              const cleanPhone = (newLead.phone || "").replace(/\D/g, "").slice(-10);
+              const existingIndex = leads.findIndex(l => {
+                const p = (l.phone || "").replace(/\D/g, "").slice(-10);
+                return cleanPhone && p && cleanPhone === p;
+              });
+
+              if (existingIndex !== -1) {
+                const existing = leads[existingIndex];
+                const updatedNotes = `${existing.notes || ''}\n[Update via Form]: ${newLead.notes || ''}`.trim();
+                const updatedLead = {
+                  ...existing,
+                  ...newLead,
+                  id: existing.id,
+                  notes: updatedNotes,
+                  priority: newLead.priority || existing.priority
+                };
+                const updated = leads.map((l, idx) => idx === existingIndex ? updatedLead : l);
+                setLeads(updated);
+                saveStoredLeads(updated);
+                showToast(`✅ Existing follow-up lead '${existing.name}' updated!`);
+                return;
+              }
+
+              const updated = [newLead, ...leads.filter(l => l.id !== newLead.id)];
+              setLeads(updated);
+              saveStoredLeads(updated);
+              showToast(`🎉 Follow-up lead '${newLead.name}' created successfully!`);
+            }}
             onLeadUpdated={handleLeadUpdated}
             onLeadDeleted={handleLeadDeleted}
+            onLeadsImported={(importedLeads) => {
+              const updated = [...importedLeads, ...leads];
+              setLeads(updated);
+              saveStoredLeads(updated);
+              showToast(`🎉 Successfully imported ${importedLeads.length} follow-up leads!`);
+            }}
             showToast={showToast}
           />
         );
