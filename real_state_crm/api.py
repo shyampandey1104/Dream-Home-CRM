@@ -526,6 +526,12 @@ def get_dashboard_metrics(user_email=None):
 
 
 @frappe.whitelist(allow_guest=True)
+def get_metrics(user_email=None):
+    """Alias for get_dashboard_metrics"""
+    return get_dashboard_metrics(user_email)
+
+
+@frappe.whitelist(allow_guest=True)
 def get_notifications():
     """
     Fetches all Live Lead Notifications from MariaDB.

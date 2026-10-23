@@ -238,6 +238,15 @@ export default function FreshLeadsView({
                   setPriorityFilter("ALL");
                   setBhkFilter("ALL");
                   setLocationFilter("ALL");
+                } else if (tab.id === "priority") {
+                  setBhkFilter("ALL");
+                  setLocationFilter("ALL");
+                } else if (tab.id === "property") {
+                  setPriorityFilter("ALL");
+                  setLocationFilter("ALL");
+                } else if (tab.id === "location") {
+                  setPriorityFilter("ALL");
+                  setBhkFilter("ALL");
                 }
               }}
               style={{
