@@ -103,17 +103,18 @@ export default function InboundCallModal({ lead, incomingLead, onAccept, onRejec
     <div 
       className="inbound-screen-container"
       style={{
-        position: "fixed",
+        position: "absolute",
         inset: 0,
+        zIndex: 1000,
         background: "linear-gradient(180deg, #090d16 0%, #111827 50%, #1e293b 100%)",
-        zIndex: 999999,
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "space-between",
         padding: 0,
         margin: 0,
-        width: "100vw",
-        height: "100vh"
+        width: "100%",
+        height: "100%"
       }}
     >
       <div 
@@ -123,10 +124,9 @@ export default function InboundCallModal({ lead, incomingLead, onAccept, onRejec
           border: "none",
           borderRadius: 0,
           padding: "2.5rem 1.5rem 3.5rem 1.5rem",
-          maxWidth: "480px",
           width: "100%",
           height: "100%",
-          maxHeight: "100vh",
+          maxHeight: "100%",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",

@@ -1198,25 +1198,60 @@ body {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
-/* Full-Screen Mobile App Shell (Universal across all devices & desktop) */
-.mobile-frame-wrapper,
-.phone-device-container,
+/* Authentic Mobile CRM Presentation Canvas & App Shell */
+.mobile-crm-desktop-wrapper {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 25%, #1e293b 0%, #0b0f19 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+.desktop-crm-floating-pill {
+  position: fixed;
+  top: 14px;
+  right: 20px;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  display: inline-block;
+}
+
 .native-mobile-app-shell {
-  width: 100vw !important;
-  max-width: 100vw !important;
-  height: 100vh !important;
-  min-height: 100vh !important;
-  max-height: 100vh !important;
-  border-radius: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-  background: #ffffff !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  position: relative !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  width: 100%;
+  max-width: 430px;
+  height: 100vh;
+  max-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  margin: 0 auto;
 }
 
 .phone-notch,
@@ -2613,81 +2648,84 @@ body {
   }
 }
 
-/* Universal Full Screen Edge-to-Edge Dialer & Calling Views */
+/* Full Mobile Screen In-Call and Disposition Views (Fit 100% of Mobile View, No Pop-up) */
 .dialer-screen-container {
-  position: fixed !important;
+  position: absolute !important;
   inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: 100vw !important;
-  max-height: 100vh !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
   border-radius: 0 !important;
-  z-index: 99999 !important;
+  z-index: 1000 !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  justify-content: center !important;
+  justify-content: space-between !important;
 }
 
-.dialer-screen-container .active-call-screen {
+.dialer-screen-container .active-call-screen,
+.dialer-screen-container .disposition-screen {
   width: 100% !important;
-  max-width: 500px !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
   border-radius: 0 !important;
   border: none !important;
   box-shadow: none !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: space-between !important;
   overflow: hidden !important;
-  margin: 0 auto !important;
-}
-
-.dialer-screen-container .disposition-screen {
-  width: 100% !important;
-  max-width: 680px !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  border-radius: 0 !important;
-  border: none !important;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.08) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  margin: 0 auto !important;
-  background: #ffffff !important;
+  margin: 0 !important;
 }
 
 .inbound-screen-container {
-  position: fixed !important;
+  position: absolute !important;
   inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: 100vw !important;
-  max-height: 100vh !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
   border-radius: 0 !important;
-  z-index: 999999 !important;
+  z-index: 1000 !important;
   overflow: hidden !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
-@media (max-width: 768px) {
-  .dialer-screen-container .active-call-screen,
-  .dialer-screen-container .disposition-screen,
-  .inbound-screen-container .inbound-ring-card {
+.native-mobile-app-shell .modal-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 500 !important;
+  padding: 1rem !important;
+}
+
+@media (max-width: 480px) {
+  .mobile-crm-desktop-wrapper {
+    background: #ffffff !important;
+    position: relative !important;
+    height: 100vh !important;
+    width: 100vw !important;
+  }
+  .desktop-crm-floating-pill {
+    display: none !important;
+  }
+  .native-mobile-app-shell {
     max-width: 100vw !important;
     width: 100vw !important;
     height: 100vh !important;
+    max-height: 100vh !important;
     box-shadow: none !important;
+    border: none !important;
   }
 }

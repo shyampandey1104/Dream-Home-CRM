@@ -398,11 +398,11 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
     <div 
       className="dialer-screen-container" 
       style={{ 
-        position: "fixed",
+        position: "absolute",
         inset: 0,
-        zIndex: 99999,
-        width: "100vw",
-        height: "100vh",
+        zIndex: 1000,
+        width: "100%",
+        height: "100%",
         margin: 0,
         padding: 0,
         borderRadius: 0,
@@ -410,9 +410,9 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
         overflow: "hidden",
         display: "flex", 
         flexDirection: "column",
-        background: callState === "CALLING" ? "#242d3d" : "#f1f5f9",
+        background: callState === "CALLING" ? "#242d3d" : "#ffffff",
         alignItems: "center",
-        justifyContent: "center"
+        justifyContent: "space-between"
       }}
     >
       {/* Real HTML5 Audio Player Element for Real Voice Playback */}
@@ -439,9 +439,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
           onTouchStart={(e) => e.stopPropagation()}
           style={{ 
             width: "100%", 
-            maxWidth: "500px",
             height: "100%", 
-            maxHeight: "100vh",
             background: "linear-gradient(180deg, #242d3d 0%, #1a2230 100%)", 
             borderRadius: 0, 
             padding: "0.75rem 1.25rem 1rem 1.25rem", 
@@ -974,16 +972,13 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
           onTouchStart={(e) => e.stopPropagation()}
           style={{ 
             width: "100%", 
-            maxWidth: "680px",
             height: "100%",
-            maxHeight: "100vh",
             background: "#ffffff", 
             borderRadius: 0, 
             display: "flex",
             flexDirection: "column",
             position: "relative",
-            overflow: "hidden",
-            boxShadow: "0 0 40px rgba(0,0,0,0.08)"
+            overflow: "hidden"
           }}
         >
           {/* Header Summary */}

@@ -927,28 +927,51 @@ export default function App() {
   };
 
   return (
-    <div className="native-mobile-app-shell">
-      <MobileHeader
-        currentTab={currentTab}
-        unreadCount={unreadCount}
-        onDirectCall={handleDirectCall}
-        onOpenNotifications={() => setShowNotificationsModal(true)}
-        userProfile={userProfile}
-        onOpenProfile={() => setShowProfileModal(true)}
-        onOpenSidebar={() => setShowSidebar(true)}
-        onOpenIntegrations={() => handleOpenIntegrations("whatsapp")}
-        onOpenInstallApp={() => setShowInstallModal(true)}
-        onSimulateInbound={simulateSocialInboundLead}
-        orgProfile={orgProfile}
-      />
-
-      <div className="phone-screen-content" style={{ flex: 1, overflowY: "auto", background: "#f8fafc" }}>
-        <div style={{ maxWidth: "860px", margin: "0 auto", width: "100%", minHeight: "100%", display: "flex", flexDirection: "column" }}>
-          {renderContent()}
-        </div>
+    <div className="mobile-crm-desktop-wrapper">
+      {/* Floating Desktop pill info */}
+      <div className="desktop-crm-floating-pill">
+        <span className="live-dot" />
+        <span style={{ fontWeight: 700 }}>DreamHome Mobile CRM</span>
+        <span style={{ opacity: 0.65 }}>• Mobile Phone View</span>
+        <a 
+          href="/app" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{
+            marginLeft: "0.5rem",
+            background: "#f59e0b",
+            color: "#0f172a",
+            padding: "0.2rem 0.55rem",
+            borderRadius: "9999px",
+            fontSize: "0.7rem",
+            fontWeight: 800,
+            textDecoration: "none"
+          }}
+        >
+          Frappe Desk
+        </a>
       </div>
 
-      <MobileBottomNav currentTab={currentTab} setTab={handleSetTab} />
+      <div className="native-mobile-app-shell">
+        <MobileHeader
+          currentTab={currentTab}
+          unreadCount={unreadCount}
+          onDirectCall={handleDirectCall}
+          onOpenNotifications={() => setShowNotificationsModal(true)}
+          userProfile={userProfile}
+          onOpenProfile={() => setShowProfileModal(true)}
+          onOpenSidebar={() => setShowSidebar(true)}
+          onOpenIntegrations={() => handleOpenIntegrations("whatsapp")}
+          onOpenInstallApp={() => setShowInstallModal(true)}
+          onSimulateInbound={simulateSocialInboundLead}
+          orgProfile={orgProfile}
+        />
+
+        <div className="phone-screen-content" style={{ flex: 1, overflowY: "auto", background: "#f8fafc" }}>
+          {renderContent()}
+        </div>
+
+        <MobileBottomNav currentTab={currentTab} setTab={handleSetTab} />
 
       {/* Slide-out Sidebar Drawer */}
       <SidebarDrawer
@@ -1007,6 +1030,7 @@ export default function App() {
           <span>{toastMsg}</span>
         </div>
       )}
+      </div>
     </div>
   );
 }
