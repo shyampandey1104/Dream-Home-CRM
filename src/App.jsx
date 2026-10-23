@@ -928,6 +928,7 @@ export default function App() {
     return (
       <div className="native-mobile-app-shell">
         <MobileHeader
+          currentTab={currentTab}
           unreadCount={unreadCount}
           onDirectCall={handleDirectCall}
           onOpenNotifications={() => setShowNotificationsModal(true)}
@@ -1079,8 +1080,27 @@ export default function App() {
         }}
       >
         {!isRealMobile && !isDesktopExpanded && (
-          <div className="phone-status-bar" style={{ background: "#ffffff", color: "#0f172a", height: "36px", padding: "0 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: 700, borderBottom: "1px solid #f1f5f9" }}>
+          <div className="phone-status-bar" style={{ background: "#ffffff", color: "#0f172a", height: "38px", padding: "0 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: 700, borderBottom: "1px solid #f1f5f9", position: "relative" }}>
             <span>9:41</span>
+            {/* Dynamic Island Capsule */}
+            <div style={{
+              position: "absolute",
+              top: "7px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "105px",
+              height: "24px",
+              background: "#000000",
+              borderRadius: "9999px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0 10px",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.4)"
+            }}>
+              <div style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#1e293b" }} />
+              <div style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#111827" }} />
+            </div>
             <div style={{ display: "flex", gap: "6px", alignItems: "center", color: "#0f172a" }}>
               <Signal size={12} color="#0f172a" />
               <Wifi size={12} color="#0f172a" />
@@ -1090,6 +1110,7 @@ export default function App() {
         )}
 
         <MobileHeader
+          currentTab={currentTab}
           unreadCount={unreadCount}
           onDirectCall={handleDirectCall}
           onOpenNotifications={() => setShowNotificationsModal(true)}

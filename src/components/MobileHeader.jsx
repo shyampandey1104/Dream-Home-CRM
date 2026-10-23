@@ -1,9 +1,106 @@
 import React from "react";
 import { Phone, Bell, Zap, Menu, MessageSquare } from "lucide-react";
 
-export default function MobileHeader({ unreadCount, onDirectCall, onOpenNotifications, userProfile, onOpenProfile, onOpenSidebar, onOpenIntegrations, orgProfile, onSimulateInbound }) {
+export default function MobileHeader({ currentTab, unreadCount, onDirectCall, onOpenNotifications, userProfile, onOpenProfile, onOpenSidebar, onOpenIntegrations, orgProfile, onSimulateInbound }) {
   const companyName = orgProfile?.company_name || "Dream Homes";
   const userInitials = (userProfile?.name || "Shyam Pandey").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
+  // When on Fresh Leads tab, show authentic iOS "Fresh Leads Pipeline" Header as per showcase collage
+  if (currentTab === "fresh") {
+    return (
+      <div 
+        className="mobile-app-header" 
+        style={{ 
+          height: "54px", 
+          padding: "0 1rem", 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "space-between",
+          background: "#ffffff",
+          borderBottom: "1px solid #f1f5f9"
+        }}
+      >
+        <button 
+          onClick={onOpenSidebar} 
+          style={{
+            background: "none",
+            border: "none",
+            color: "#0f172a",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "0.35rem"
+          }}
+          title="Open Menu"
+        >
+          <Menu size={22} color="#0f172a" />
+        </button>
+
+        <h1 style={{
+          fontSize: "1.125rem",
+          fontWeight: 800,
+          color: "#0f172a",
+          margin: 0,
+          letterSpacing: "-0.02em"
+        }}>
+          Fresh Leads Pipeline
+        </h1>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <button
+            onClick={onOpenNotifications}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#0f172a",
+              position: "relative",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "0.35rem"
+            }}
+            title="Notifications"
+          >
+            <Bell size={20} color="#0f172a" />
+            {unreadCount > 0 && (
+              <span style={{
+                position: "absolute",
+                top: "2px",
+                right: "2px",
+                background: "#ef4444",
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%"
+              }} />
+            )}
+          </button>
+
+          <button
+            onClick={onOpenProfile}
+            style={{
+              background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "9999px",
+              width: "28px",
+              height: "28px",
+              fontSize: "0.75rem",
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+            title="User Profile"
+          >
+            {userInitials}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
