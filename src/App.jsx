@@ -28,7 +28,7 @@ import InstallAppModal from "./components/InstallAppModal";
 import LoginScreen from "./components/LoginScreen";
 import AdminPortal from "./components/AdminPortal";
 import IntegrationsModal from "./components/IntegrationsModal";
-import { Signal, Wifi, Battery } from "lucide-react";
+import { Signal, Wifi, Battery, Smartphone, Monitor } from "lucide-react";
 
 import {
   getStoredLeads,
@@ -927,32 +927,94 @@ export default function App() {
   };
 
   return (
-    <div className="mobile-crm-desktop-wrapper">
-      {/* Floating Desktop pill info */}
-      <div className="desktop-crm-floating-pill">
-        <span className="live-dot" />
-        <span style={{ fontWeight: 700 }}>DreamHome Mobile CRM</span>
-        <span style={{ opacity: 0.65 }}>• Mobile Phone View</span>
+    <div className={`mobile-crm-desktop-wrapper ${isDesktopExpanded ? "full-screen-mode" : ""}`}>
+      {/* Floating Desktop pill buttons matching reference */}
+      <div style={{
+        position: "fixed",
+        top: "14px",
+        right: "20px",
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem"
+      }}>
+        <button
+          onClick={() => {
+            const next = !isDesktopExpanded;
+            setIsDesktopExpanded(next);
+            localStorage.setItem("crm_desktop_expanded", next ? "true" : "false");
+          }}
+          style={{
+            background: "rgba(30, 41, 59, 0.9)",
+            backdropFilter: "blur(8px)",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            color: "#f8fafc",
+            padding: "0.35rem 0.85rem",
+            borderRadius: "9999px",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.45rem",
+            boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4)",
+            transition: "all 0.15s ease"
+          }}
+        >
+          {isDesktopExpanded ? <Smartphone size={14} /> : <Monitor size={14} />}
+          <span>{isDesktopExpanded ? "Mobile Phone View" : "Expand to Full Screen"}</span>
+        </button>
+
         <a 
           href="/app" 
           target="_blank" 
           rel="noopener noreferrer"
           style={{
-            marginLeft: "0.5rem",
-            background: "#f59e0b",
+            background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
             color: "#0f172a",
-            padding: "0.2rem 0.55rem",
+            padding: "0.35rem 0.85rem",
             borderRadius: "9999px",
-            fontSize: "0.7rem",
+            fontSize: "0.75rem",
             fontWeight: 800,
-            textDecoration: "none"
+            textDecoration: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            boxShadow: "0 4px 14px rgba(245, 158, 11, 0.35)"
           }}
         >
-          Frappe Desk
+          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#0f172a", display: "inline-block" }} />
+          <span>Frappe Desk (/app)</span>
         </a>
       </div>
 
       <div className="native-mobile-app-shell">
+        {/* Dynamic Island Status Bar on Phone Mockup */}
+        {!isDesktopExpanded && !isRealMobile && (
+          <div className="phone-status-bar">
+            <span>9:41</span>
+            {/* Dynamic Island notch */}
+            <div style={{
+              width: "110px",
+              height: "26px",
+              background: "#000000",
+              borderRadius: "9999px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px"
+            }}>
+              <div style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#111827", border: "1px solid #1e293b" }} />
+              <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#0f172a" }} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Signal size={13} color="#0f172a" />
+              <Wifi size={13} color="#0f172a" />
+              <Battery size={15} color="#0f172a" />
+            </div>
+          </div>
+        )}
+
         <MobileHeader
           currentTab={currentTab}
           unreadCount={unreadCount}
@@ -972,6 +1034,13 @@ export default function App() {
         </div>
 
         <MobileBottomNav currentTab={currentTab} setTab={handleSetTab} />
+
+        {/* Bottom Phone Home Indicator */}
+        {!isDesktopExpanded && !isRealMobile && (
+          <div className="phone-bottom-bar">
+            <div className="home-indicator" />
+          </div>
+        )}
 
       {/* Slide-out Sidebar Drawer */}
       <SidebarDrawer

@@ -128,325 +128,187 @@ export default function PerformanceView({
   };
 
   return (
-    <div className="view-container" style={{ paddingBottom: "5.5rem" }}>
-      {/* Executive iOS Header Greeting */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0.4rem 0.2rem 0.8rem 0.2rem"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <div style={{
-            position: "relative",
-            width: "48px",
-            height: "48px",
-            borderRadius: "50%",
-            overflow: "hidden",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            border: "2px solid #f59e0b"
-          }}>
-            <img 
-              src="/profile.jpg" 
-              alt="Shyam Pandey" 
-              onError={(e) => { e.target.src = AVATAR_LIST[0]; }}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-            <span style={{
-              position: "absolute",
-              bottom: "2px",
-              right: "2px",
-              width: "10px",
-              height: "10px",
-              borderRadius: "50%",
-              background: "#10b981",
-              border: "1.5px solid #ffffff"
-            }} />
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-              <h1 style={{ fontSize: "1.1rem", fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.01em" }}>
-                Good afternoon, {greetingName}! 👋
-              </h1>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.15rem" }}>
-              <span style={{
-                fontSize: "0.6875rem",
-                fontWeight: 700,
-                color: "#b45309",
-                background: "#fef3c7",
-                padding: "0.1rem 0.45rem",
-                borderRadius: "9999px",
-                border: "1px solid #fde68a"
-              }}>
-                👑 Senior Consultant
-              </span>
-              <span style={{ fontSize: "0.6875rem", color: "#64748b", fontWeight: 600 }}>
-                MahaRERA: A51800045492
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ textAlign: "right" }}>
-          <span style={{
-            fontSize: "0.6875rem",
-            fontWeight: 800,
-            color: "#16a34a",
-            background: "#dcfce7",
-            padding: "0.25rem 0.55rem",
-            borderRadius: "9999px",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.25rem"
-          }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#16a34a" }} />
-            24 Active Leads
-          </span>
-        </div>
-      </div>
-
-      {/* Interactive Unverified Meetings Card ("verify ka sath") */}
-      <div style={{
-        background: isMeetingVerified 
-          ? "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)" 
-          : "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
-        border: isMeetingVerified ? "1.5px solid #86efac" : "1.5px solid #fcd34d",
-        borderRadius: "1rem",
-        padding: "0.875rem 1rem",
-        marginBottom: "0.875rem",
-        boxShadow: isMeetingVerified ? "0 4px 14px rgba(34, 197, 94, 0.15)" : "0 4px 14px rgba(245, 158, 11, 0.15)",
-        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", flex: 1 }}>
-            <div style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              background: isMeetingVerified ? "#22c55e" : "#f59e0b",
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: isMeetingVerified ? "0 3px 8px rgba(34, 197, 94, 0.4)" : "0 3px 8px rgba(245, 158, 11, 0.4)",
-              flexShrink: 0
-            }}>
-              {isMeetingVerified ? <Check size={20} strokeWidth={3} /> : <Clock size={19} />}
-            </div>
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
-                <span style={{
-                  fontSize: "0.84375rem",
-                  fontWeight: 800,
-                  color: isMeetingVerified ? "#15803d" : "#92400e"
-                }}>
-                  {isMeetingVerified ? "Meeting Verified & KYC Logged" : `Unverified Meetings (${unverifiedCount})`}
-                </span>
-                <span style={{
-                  fontSize: "0.65rem",
-                  fontWeight: 700,
-                  padding: "0.1rem 0.4rem",
-                  borderRadius: "9999px",
-                  background: isMeetingVerified ? "#bbf7d0" : "#fee2e2",
-                  color: isMeetingVerified ? "#166534" : "#dc2626"
-                }}>
-                  {isMeetingVerified ? "KYC DONE" : "PENDING KYC"}
-                </span>
-              </div>
-              <div style={{
-                fontSize: "0.71875rem",
-                color: isMeetingVerified ? "#166534" : "#78350f",
-                marginTop: "0.15rem",
-                lineHeight: 1.3
-              }}>
-                {isMeetingVerified 
-                  ? `Verified: Pravin Ladkat (Lead #4230005) • ${verifiedTimestamp} at Oberoi Sky City`
-                  : "Lead #4230005: Pravin Ladkat • Site Visit Oberoi Sky City (Borivali East)"}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <button
-              onClick={handleToggleVerification}
-              style={{
-                background: isMeetingVerified ? "#ffffff" : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                color: isMeetingVerified ? "#15803d" : "#ffffff",
-                border: isMeetingVerified ? "1px solid #86efac" : "none",
-                padding: "0.45rem 0.85rem",
-                borderRadius: "0.625rem",
-                fontSize: "0.75rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.3rem",
-                boxShadow: isMeetingVerified ? "0 2px 5px rgba(0,0,0,0.05)" : "0 4px 12px rgba(16, 185, 129, 0.35)",
-                whiteSpace: "nowrap",
-                transition: "all 0.2s ease"
-              }}
-            >
-              {isMeetingVerified ? (
-                <>
-                  <RotateCcw size={12} /> Undo
-                </>
-              ) : (
-                <>
-                  <Sparkles size={13} /> Verify Now
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Luxury Gold Rewards & Unclaimed Leads Card */}
-      <div style={{
-        background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-        border: "1px solid rgba(245, 158, 11, 0.35)",
-        borderRadius: "1.125rem",
-        padding: "1rem",
-        marginBottom: "0.875rem",
-        color: "#ffffff",
-        boxShadow: "0 8px 24px -6px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(245, 158, 11, 0.15)",
-        position: "relative",
-        overflow: "hidden"
-      }}>
-        {/* Ambient gold glow */}
-        <div style={{
-          position: "absolute",
-          top: "-30px",
-          right: "-30px",
-          width: "120px",
-          height: "120px",
-          background: "radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, transparent 70%)",
-          borderRadius: "50%",
-          pointerEvents: "none"
-        }} />
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.85rem" }}>
-          <div>
-            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#f59e0b", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Agent Rewards & Fresh Pool
-            </span>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "0.4rem", marginTop: "0.15rem" }}>
-              <span style={{ fontSize: "1.65rem", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.02em" }}>
-                🪙 {metrics?.rewardPoints ?? 2400}
-              </span>
-              <span style={{ fontSize: "0.75rem", color: "#94a3b8", fontWeight: 600 }}>
-                Points Earned
-              </span>
-            </div>
-          </div>
-
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "0.7rem", color: "#cbd5e1" }}>Used Points</div>
-            <div style={{ fontSize: "0.95rem", fontWeight: 800, color: "#facc15" }}>
-              🪙 {metrics?.usedPoints ?? 0}
-            </div>
-          </div>
-        </div>
-
-        {/* Unclaimed Pool Split Banner */}
-        <div style={{
-          background: "rgba(255, 255, 255, 0.06)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          borderRadius: "0.75rem",
-          padding: "0.65rem 0.85rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backdropFilter: "blur(6px)"
-        }}>
-          <div>
-            <div style={{ fontSize: "0.78125rem", fontWeight: 800, color: "#ffffff", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-              <span>⚡</span> Unclaimed Fresh Pool: <span style={{ color: "#38bdf8" }}>{metrics?.unclaimedCount ?? 5} Leads</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginTop: "0.2rem" }}>
-              <span style={{ fontSize: "0.6875rem", color: "#94a3b8" }}>Lead Flag:</span>
-              <button
-                onClick={() => setLeadFlag(!leadFlag)}
-                style={{
-                  background: leadFlag ? "#10b981" : "#475569",
-                  border: "none",
-                  borderRadius: "9999px",
-                  padding: "0.1rem 0.4rem",
-                  fontSize: "0.65rem",
-                  fontWeight: 800,
-                  color: "#ffffff",
-                  cursor: "pointer"
-                }}
-              >
-                {leadFlag ? "ACTIVE ON" : "PAUSED"}
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={onClaimLeads}
-            style={{
-              background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-              color: "#0f172a",
-              border: "none",
-              padding: "0.5rem 0.85rem",
-              borderRadius: "0.55rem",
-              fontSize: "0.75rem",
-              fontWeight: 800,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.25rem",
-              boxShadow: "0 4px 12px rgba(245, 158, 11, 0.35)"
-            }}
-          >
-            Claim Leads &gt;&gt;
-          </button>
-        </div>
-      </div>
-
-      {/* Training Modules Card */}
+    <div className="view-container" style={{ padding: "0.75rem 0.65rem 5.5rem 0.65rem" }}>
+      {/* 1. Unclaimed Fresh Leads Card */}
       <div style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
         borderRadius: "0.875rem",
-        padding: "0.75rem 0.875rem",
-        marginBottom: "0.875rem",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+        padding: "0.85rem 1rem",
+        marginBottom: "0.75rem",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between"
       }}>
-        <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.35rem" }}>
-          Training & Certifications ({metrics?.trainingCount ?? 1})
+        <div>
+          <div style={{ fontSize: "0.9375rem", fontWeight: 800, color: "#0f172a" }}>
+            Unclaimed Fresh Leads ({metrics?.unclaimedCount ?? 5})
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.3rem" }}>
+            <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Lead Flag is On</span>
+            <input 
+              type="checkbox" 
+              checked={leadFlag} 
+              onChange={() => setLeadFlag(!leadFlag)}
+              style={{ cursor: "pointer", accentColor: "#2563eb", width: "15px", height: "15px" }} 
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={onClaimLeads}
+          style={{
+            background: "#2563eb",
+            color: "#ffffff",
+            border: "none",
+            padding: "0.5rem 0.9rem",
+            borderRadius: "0.5rem",
+            fontSize: "0.78125rem",
+            fontWeight: 800,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.35)",
+            whiteSpace: "nowrap"
+          }}
+        >
+          Claim Leads Now &gt;&gt;
+        </button>
+      </div>
+
+      {/* 2. Reward Points Dark Card */}
+      <div style={{
+        background: "#1e293b",
+        borderRadius: "0.875rem",
+        padding: "0.85rem 1rem",
+        marginBottom: "0.75rem",
+        color: "#ffffff",
+        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.15)"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+          <span style={{ fontSize: "0.875rem", fontWeight: 800, color: "#ffffff" }}>
+            Reward Points
+          </span>
+          <div style={{
+            background: "#0f172a",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            borderRadius: "9999px",
+            padding: "0.2rem 0.65rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.35rem"
+          }}>
+            <span>🪙</span>
+            <span style={{ fontSize: "0.8125rem", fontWeight: 800, color: "#ffffff" }}>
+              {metrics?.rewardPoints ?? 2400}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginBottom: "0.6rem" }}>
+          Used Points
+          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.15rem" }}>
+            <span>🪙</span>
+            <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: "#ffffff" }}>
+              {metrics?.usedPoints ?? 0}
+            </span>
+          </div>
+        </div>
+
+        <div 
+          onClick={onClaimLeads}
+          style={{ fontSize: "0.75rem", fontWeight: 700, color: "#38bdf8", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.2rem" }}
+        >
+          Claim Leads Now. &gt;&gt;
+        </div>
+      </div>
+
+      {/* 3. Training Modules (1) Card */}
+      <div style={{ marginBottom: "0.75rem" }}>
+        <div style={{ fontSize: "0.8125rem", fontWeight: 800, color: "#0f172a", marginBottom: "0.35rem" }}>
+          Training Modules (1)
         </div>
         <div style={{
-          background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+          background: "#059669",
           borderRadius: "0.625rem",
-          padding: "0.65rem 0.75rem",
+          padding: "0.75rem 0.85rem",
           color: "#ffffff",
           display: "flex",
           alignItems: "center",
-          gap: "0.6rem"
+          justifyContent: "space-between",
+          boxShadow: "0 2px 8px rgba(5, 150, 105, 0.25)"
         }}>
-          <Calendar size={18} style={{ flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: "0.78125rem", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {metrics?.trainingTitle || "SY Circle - Cross-Referral Program"}
-            </div>
-            <div style={{ fontSize: "0.6875rem", color: "#bae6fd" }}>
-              Due Date: {metrics?.trainingDueDate || "30 Jun 2026"}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.55rem" }}>
+            <Calendar size={18} color="#ffffff" style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: "0.78125rem", fontWeight: 800, color: "#ffffff" }}>
+                SY Circle - Cross-Referral Program
+              </div>
+              <div style={{ fontSize: "0.6875rem", color: "#a7f3d0", marginTop: "0.1rem" }}>
+                Due Date : 30 Jun 2026
+              </div>
             </div>
           </div>
           <span style={{
+            background: "rgba(255, 255, 255, 0.2)",
+            color: "#ffffff",
             fontSize: "0.6875rem",
             fontWeight: 800,
-            background: "rgba(255,255,255,0.22)",
-            color: "#ffffff",
             padding: "0.2rem 0.5rem",
             borderRadius: "0.35rem"
           }}>
-            Completed ✓
+            Completed
           </span>
         </div>
+      </div>
+
+      {/* 4. Unverified Meetings (1) Card */}
+      <div style={{
+        background: isMeetingVerified ? "#f0fdf4" : "#ffffff",
+        border: isMeetingVerified ? "1px solid #86efac" : "1px solid #e2e8f0",
+        borderRadius: "0.875rem",
+        padding: "0.75rem 0.85rem",
+        marginBottom: "0.85rem",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.55rem" }}>
+          <Clock size={18} color={isMeetingVerified ? "#16a34a" : "#64748b"} style={{ flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: "0.8125rem", fontWeight: 800, color: isMeetingVerified ? "#15803d" : "#0f172a" }}>
+              {isMeetingVerified ? "Verified Meetings" : `Unverified Meetings (${unverifiedCount})`}
+            </div>
+            <div style={{ fontSize: "0.6875rem", color: "#64748b", marginTop: "0.1rem" }}>
+              Lead Id: 4230005 | Pravin Ladkat
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleToggleVerification}
+          style={{
+            background: isMeetingVerified ? "#dcfce7" : "#ffffff",
+            color: isMeetingVerified ? "#15803d" : "#0f172a",
+            border: isMeetingVerified ? "1px solid #86efac" : "1px solid #cbd5e1",
+            padding: "0.3rem 0.75rem",
+            borderRadius: "0.45rem",
+            fontSize: "0.75rem",
+            fontWeight: 800,
+            cursor: "pointer"
+          }}
+        >
+          {isMeetingVerified ? "Verified ✓" : "Verify"}
+        </button>
+      </div>
+
+      {/* 5. Good afternoon greeting */}
+      <div style={{ marginBottom: "0.75rem" }}>
+        <h2 style={{ fontSize: "1.125rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.15rem 0" }}>
+          Good afternoon, {greetingName}! 👋
+        </h2>
+        <p style={{ fontSize: "0.75rem", color: "#64748b", margin: 0 }}>
+          Click any performance card to filter lead details
+        </p>
       </div>
 
       {/* 3x3 Interactive Metric Categories Grid */}
