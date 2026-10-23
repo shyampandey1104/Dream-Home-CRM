@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   PhoneOff, Send, Clock, CheckCircle2, Mic, MicOff, Sparkles, Volume2, VolumeX, 
   User, MapPin, Check, Play, Pause, Disc, FileText, RotateCcw, Download,
-  Grid, MoreHorizontal, Radio, Delete, ChevronDown, PhoneCall, Phone, Info
+  Grid, MoreHorizontal, Radio, Delete, ChevronDown, PhoneCall, Phone, Info,
+  Signal, Wifi, Battery, ExternalLink, ClipboardList
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { UniversalAudioRecorder } from "../utils/audioRecorder";
@@ -395,19 +396,18 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
 
   return (
     <div 
-      className="modal-overlay" 
+      className="modal-overlay dialer-screen-container" 
       style={{ 
-        position: "fixed",
+        position: "absolute",
         inset: 0,
-        background: "rgba(15, 23, 42, 0.85)", 
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        zIndex: 99999,
+        zIndex: 1000,
+        width: "100%",
+        height: "100%",
+        borderRadius: "inherit",
+        overflow: "hidden",
         display: "flex", 
-        alignItems: "center", 
-        justifyContent: "center", 
-        padding: "0.75rem",
-        overflowY: "auto"
+        flexDirection: "column",
+        background: callState === "CALLING" ? "#242d3d" : "rgba(15, 23, 42, 0.75)"
       }}
     >
       {/* Real HTML5 Audio Player Element for Real Voice Playback */}
@@ -425,97 +425,118 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
         />
       )}
 
-      {/* STAGE 1: ACTIVE CALLING SCREEN - AUTHENTIC iOS PHONE IN-CALL UI */}
+      {/* STAGE 1: ACTIVE CALLING SCREEN - AUTHENTIC iOS PHONE IN-CALL UI (MATCHING IMAGE 2) */}
       {callState === "CALLING" ? (
         <div 
-          className="dialer-modal-content" 
+          className="dialer-modal-content active-call-screen" 
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           style={{ 
             width: "100%", 
-            maxWidth: "380px", 
-            background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)", 
-            borderRadius: "2rem", 
-            padding: "1.75rem 1.25rem", 
+            height: "100%", 
+            background: "linear-gradient(180deg, #242d3d 0%, #1a2230 100%)", 
+            borderRadius: "inherit", 
+            padding: "0.75rem 1.25rem 1rem 1.25rem", 
             textAlign: "center", 
-            boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)", 
             color: "#ffffff",
             position: "relative",
-            margin: "auto",
-            backdropFilter: "blur(20px)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            boxSizing: "border-box",
             overflow: "hidden"
           }}
         >
-          {/* iOS Dynamic Island Status Indicator */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.25rem" }}>
+          {/* Top Status Bar with Dynamic Island */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%",
+            padding: "0.25rem 0.25rem 0.4rem 0.25rem",
+            color: "#ffffff",
+            flexShrink: 0
+          }}>
+            <span style={{ fontSize: "0.875rem", fontWeight: 700, letterSpacing: "-0.2px" }}>
+              09:41
+            </span>
+
+            {/* Dynamic Island Pill */}
             <div style={{
               background: "#000000",
               borderRadius: "9999px",
-              padding: "0.25rem 0.85rem",
+              padding: "0.25rem 0.75rem",
               display: "flex",
               alignItems: "center",
-              gap: "0.5rem",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.5)"
+              gap: "0.45rem",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.6)"
             }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse 1.5s infinite" }} />
-              <span style={{ fontSize: "0.71875rem", fontWeight: 700, color: "#cbd5e1", letterSpacing: "0.5px" }}>
+              <Phone size={11} color="#22c55e" fill="#22c55e" />
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#f59e0b", letterSpacing: "0.3px" }}>
                 {formatTimer(seconds)}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Signal size={12} color="#ffffff" />
+              <Wifi size={12} color="#ffffff" />
+              <Battery size={14} color="#ffffff" fill="#ffffff" />
+            </div>
+          </div>
+
+          {/* Lead Contact Info Section */}
+          <div style={{ marginTop: "0.5rem", marginBottom: "0.5rem", flexShrink: 0 }}>
+            {/* Silhouette Circular Avatar */}
+            <div style={{
+              width: "74px",
+              height: "74px",
+              borderRadius: "50%",
+              background: "#475569",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 12px auto",
+              boxShadow: "0 6px 16px rgba(0, 0, 0, 0.3)"
+            }}>
+              <User size={44} color="#cbd5e1" fill="#cbd5e1" />
+            </div>
+
+            <h1 style={{ 
+              fontSize: "1.55rem", 
+              fontWeight: 700, 
+              margin: "0 0 0.5rem 0", 
+              letterSpacing: "-0.02em",
+              color: "#ffffff"
+            }}>
+              {lead.name || "Vikram Singhania"}
+            </h1>
+
+            {/* Gold Property Badge */}
+            <div style={{ 
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "0.75rem", 
+              fontWeight: 600,
+              color: "#fcd34d", 
+              background: "rgba(180, 83, 9, 0.25)", 
+              border: "1px solid rgba(245, 158, 11, 0.45)", 
+              padding: "0.3rem 0.9rem", 
+              borderRadius: "9999px"
+            }}>
+              <span>🏠</span>
+              <span>
+                {lead.bhkType 
+                  ? `${lead.bhkType} ${lead.location || "Bandra West"}`.trim() 
+                  : (lead.property_requirement || "3 BHK Bandra West")}
               </span>
             </div>
           </div>
 
-          {/* Contact Details Header */}
-          <div style={{ marginBottom: "1.25rem" }}>
-            <h1 style={{ 
-              fontSize: "1.85rem", 
-              fontWeight: 800, 
-              margin: "0 0 0.35rem 0", 
-              letterSpacing: "-0.03em",
-              color: "#ffffff"
-            }}>
-              {lead.name || "Client"}
-            </h1>
-            <p style={{ fontSize: "0.9375rem", color: "#94a3b8", margin: "0 0 0.4rem 0", fontWeight: 600 }}>
-              {lead.phone}
-            </p>
-            <div style={{ 
-              fontSize: "0.75rem", 
-              color: "#60a5fa", 
-              background: "rgba(37, 99, 235, 0.15)", 
-              border: "1px solid rgba(37, 99, 235, 0.3)", 
-              padding: "0.2rem 0.65rem", 
-              borderRadius: "9999px", 
-              display: "inline-block" 
-            }}>
-              🏢 {lead.bhkType || "2 BHK"} • {lead.location || "Mumbai"}
-            </div>
-          </div>
-
-          {/* Live Microphone Recording Equalizer Waveform */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.3rem", marginBottom: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "3px", height: "20px" }}>
-              {[12, 18, 14, 22, 16, 26, 20, 15, 24, 18, 22, 14, 18].map((h, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: "3px",
-                    height: isMuted ? "4px" : `${Math.max(4, Math.min(22, h * (1 + liveVolume / 45)))}px`,
-                    background: isMuted ? "#64748b" : (liveVolume > 15 ? "#22c55e" : "#38bdf8"),
-                    borderRadius: "9999px",
-                    transition: "height 0.1s ease"
-                  }}
-                />
-              ))}
-            </div>
-            <span style={{ fontSize: "0.6875rem", color: isMuted ? "#f87171" : "#86efac", fontWeight: 700 }}>
-              {isMuted ? "🔇 Microphone Muted" : "🔴 Live Voice Recording"}
-            </span>
-          </div>
-
           {/* KEYPAD VIEW (When user clicks Keypad button) */}
           {showKeypad ? (
-            <div style={{ animation: "fadeIn 0.2s ease" }}>
+            <div style={{ animation: "fadeIn 0.2s ease", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               {/* Dialed Digits Display & Backspace */}
               <div style={{ 
                 display: "flex", 
@@ -523,7 +544,7 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                 justifyContent: "center", 
                 gap: "0.5rem", 
                 height: "36px", 
-                marginBottom: "1rem",
+                marginBottom: "0.75rem",
                 padding: "0 1rem"
               }}>
                 <span style={{ 
@@ -551,9 +572,9 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
               <div style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "0.65rem",
-                maxWidth: "270px",
-                margin: "0 auto 1.25rem auto"
+                gap: "0.6rem",
+                maxWidth: "260px",
+                margin: "0 auto 1rem auto"
               }}>
                 {[
                   { num: "1", sub: "" },
@@ -574,8 +595,8 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                     type="button"
                     onClick={() => handleKeyPress(keyItem.num)}
                     style={{
-                      width: "66px",
-                      height: "66px",
+                      width: "60px",
+                      height: "60px",
                       borderRadius: "50%",
                       background: "rgba(255, 255, 255, 0.16)",
                       border: "none",
@@ -594,9 +615,9 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
                     onTouchStart={(e) => e.currentTarget.style.transform = "scale(0.92)"}
                     onTouchEnd={(e) => e.currentTarget.style.transform = "scale(1)"}
                   >
-                    <span style={{ fontSize: "1.45rem", fontWeight: 700, lineHeight: 1 }}>{keyItem.num}</span>
+                    <span style={{ fontSize: "1.35rem", fontWeight: 700, lineHeight: 1 }}>{keyItem.num}</span>
                     {keyItem.sub && (
-                      <span style={{ fontSize: "0.5625rem", color: "#94a3b8", fontWeight: 700, letterSpacing: "1px", marginTop: "1px" }}>
+                      <span style={{ fontSize: "0.5rem", color: "#94a3b8", fontWeight: 700, letterSpacing: "1px", marginTop: "1px" }}>
                         {keyItem.sub}
                       </span>
                     )}
@@ -605,15 +626,15 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
               </div>
 
               {/* Bottom Keypad Actions */}
-              <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", maxWidth: "270px", margin: "0 auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", maxWidth: "260px", margin: "0 auto" }}>
                 <button
                   type="button"
                   onClick={() => setShowKeypad(false)}
                   style={{
-                    background: "rgba(255, 255, 255, 0.12)",
+                    background: "rgba(255, 255, 255, 0.14)",
                     border: "none",
                     color: "#ffffff",
-                    padding: "0.6rem 1.25rem",
+                    padding: "0.55rem 1.2rem",
                     borderRadius: "9999px",
                     fontSize: "0.8125rem",
                     fontWeight: 700,
@@ -646,237 +667,312 @@ export default function DialerModal({ lead, onClose, onSaveCall }) {
               </div>
             </div>
           ) : (
-            /* MAIN iOS 6-BUTTON IN-CALL SCREEN (PIXEL-PERFECT AS PER IMAGE 2) */
-            <div>
+            /* MAIN 6-BUTTON IN-CALL SCREEN (PIXEL-PERFECT AS PER IMAGE 2) */
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "1.5rem 1rem",
-                maxWidth: "290px",
-                margin: "0 auto 1.5rem auto",
+                gap: "1.25rem 0.75rem",
+                maxWidth: "310px",
+                margin: "0 auto",
                 alignItems: "center",
                 justifyItems: "center"
               }}>
-                {/* 1. Speaker Button */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.35rem" }}>
+                {/* 1. Speaker Button (Solid White Circle) */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <button
                     type="button"
                     onClick={() => setIsSpeakerOn(!isSpeakerOn)}
                     style={{
-                      width: "64px",
-                      height: "64px",
+                      width: "60px",
+                      height: "60px",
                       borderRadius: "50%",
-                      background: isSpeakerOn ? "#ffffff" : "rgba(255, 255, 255, 0.16)",
-                      color: isSpeakerOn ? "#0f172a" : "#ffffff",
+                      background: "#ffffff",
+                      color: "#0f172a",
                       border: "none",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: isSpeakerOn ? "0 0 15px rgba(255,255,255,0.4)" : "none",
-                      transition: "all 0.18s ease"
+                      boxShadow: "0 4px 14px rgba(0,0,0,0.25)",
+                      transition: "transform 0.1s ease"
                     }}
+                    onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.92)"}
+                    onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
                   >
-                    {isSpeakerOn ? <Volume2 size={26} /> : <VolumeX size={26} />}
+                    <Volume2 size={24} color="#0f172a" />
                   </button>
-                  <span style={{ fontSize: "0.75rem", color: "#e2e8f0", fontWeight: 600 }}>Speaker</span>
-                </div>
-
-                {/* 2. Exotel Real Carrier Call Button */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.35rem" }}>
-                  <button
-                    type="button"
-                    onClick={handleExotelCall}
-                    disabled={isCallingExotel}
-                    style={{
-                      width: "64px",
-                      height: "64px",
-                      borderRadius: "50%",
-                      background: isCallingExotel ? "#2563eb" : "rgba(255, 255, 255, 0.16)",
-                      color: "#ffffff",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: isCallingExotel ? "0 0 15px rgba(37,99,235,0.6)" : "none",
-                      transition: "all 0.18s ease"
-                    }}
-                    title="Exotel Click-to-Call to Your Phone"
-                  >
-                    <Radio size={26} className={isCallingExotel ? "animate-spin" : ""} />
-                  </button>
-                  <span style={{ fontSize: "0.75rem", color: "#e2e8f0", fontWeight: 600 }}>
-                    {isCallingExotel ? "Calling..." : "Exotel"}
+                  <span style={{ fontSize: "0.75rem", color: "#cbd5e1", marginTop: "6px", fontWeight: 500 }}>
+                    Speaker
                   </span>
                 </div>
 
-                {/* 3. Mute Button */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.35rem" }}>
+                {/* 2. Mute Button (Dark Translucent Glass Circle) */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <button
                     type="button"
                     onClick={handleToggleMute}
                     style={{
-                      width: "64px",
-                      height: "64px",
+                      width: "60px",
+                      height: "60px",
                       borderRadius: "50%",
-                      background: isMuted ? "#ffffff" : "rgba(255, 255, 255, 0.16)",
+                      background: isMuted ? "#ffffff" : "rgba(255, 255, 255, 0.14)",
                       color: isMuted ? "#ef4444" : "#ffffff",
-                      border: "none",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: isMuted ? "0 0 16px rgba(239, 68, 68, 0.5)" : "none",
-                      transition: "all 0.18s ease"
+                      transition: "transform 0.1s ease"
                     }}
+                    onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.92)"}
+                    onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
                   >
-                    {isMuted ? <MicOff size={26} /> : <Mic size={26} />}
+                    <MicOff size={24} color={isMuted ? "#ef4444" : "#ffffff"} />
                   </button>
-                  <span style={{ fontSize: "0.75rem", color: isMuted ? "#f87171" : "#e2e8f0", fontWeight: 600 }}>
+                  <span style={{ fontSize: "0.75rem", color: isMuted ? "#f87171" : "#cbd5e1", marginTop: "6px", fontWeight: 500 }}>
                     {isMuted ? "Muted" : "Mute"}
                   </span>
                 </div>
 
-                {/* 4. More / Lead Info */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.35rem" }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowInfoDrawer(!showInfoDrawer)}
-                    style={{
-                      width: "64px",
-                      height: "64px",
-                      borderRadius: "50%",
-                      background: showInfoDrawer ? "#38bdf8" : "rgba(255, 255, 255, 0.16)",
-                      color: showInfoDrawer ? "#0f172a" : "#ffffff",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "all 0.18s ease"
-                    }}
-                  >
-                    <MoreHorizontal size={26} />
-                  </button>
-                  <span style={{ fontSize: "0.75rem", color: "#e2e8f0", fontWeight: 600 }}>More</span>
-                </div>
-
-                {/* 5. END CALL BUTTON - BOLD RED CIRCLE IN THE CENTER (MATCHING IMAGE 2) */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.35rem" }}>
+                {/* 3. End Call Button (Solid Red Circle) */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <button
                     type="button"
                     onClick={handleEndCall}
                     style={{
-                      width: "68px",
-                      height: "68px",
+                      width: "60px",
+                      height: "60px",
                       borderRadius: "50%",
-                      background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                      background: "#ef4444",
                       color: "#ffffff",
                       border: "none",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 6px 20px rgba(239, 68, 68, 0.55)",
-                      transform: "scale(1.05)",
-                      transition: "all 0.15s ease"
+                      boxShadow: "0 4px 16px rgba(239, 68, 68, 0.4)",
+                      transition: "transform 0.1s ease"
                     }}
+                    onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.92)"}
+                    onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
                   >
-                    <PhoneOff size={30} fill="#ffffff" />
+                    <PhoneOff size={24} fill="#ffffff" color="#ffffff" />
                   </button>
-                  <span style={{ fontSize: "0.75rem", color: "#fca5a5", fontWeight: 700 }}>End</span>
+                  <span style={{ fontSize: "0.75rem", color: "#cbd5e1", marginTop: "6px", fontWeight: 500 }}>
+                    End Call
+                  </span>
                 </div>
 
-                {/* 6. Keypad Button */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.35rem" }}>
+                {/* 4. Exotel Call-Back (Gold Bordered Card with CRM Badge) */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div
+                    onClick={handleExotelCall}
+                    style={{
+                      border: "1.5px solid rgba(245, 158, 11, 0.7)",
+                      background: "rgba(245, 158, 11, 0.08)",
+                      borderRadius: "14px",
+                      padding: "8px 6px 6px 6px",
+                      position: "relative",
+                      width: "82px",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      transition: "transform 0.1s ease"
+                    }}
+                    onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.94)"}
+                    onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
+                  >
+                    {/* CRM Pill Badge */}
+                    <div style={{
+                      position: "absolute",
+                      top: "-7px",
+                      right: "6px",
+                      background: "#f59e0b",
+                      color: "#0f172a",
+                      fontSize: "9px",
+                      fontWeight: 800,
+                      padding: "1px 5px",
+                      borderRadius: "9999px",
+                      letterSpacing: "0.5px",
+                      lineHeight: 1.2
+                    }}>
+                      CRM
+                    </div>
+
+                    {/* Exotel Blue Circle */}
+                    <div style={{
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "50%",
+                      background: isCallingExotel ? "#1d4ed8" : "#0284c7",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "11px",
+                      fontWeight: 800,
+                      letterSpacing: "-0.2px",
+                      boxShadow: "0 2px 8px rgba(2, 132, 199, 0.4)"
+                    }}>
+                      {isCallingExotel ? "..." : "Exotel"}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.6875rem", color: "#cbd5e1", marginTop: "6px", textAlign: "center", lineHeight: "1.2", fontWeight: 500 }}>
+                    Exotel<br />Call-Back
+                  </span>
+                </div>
+
+                {/* 5. Keypad Button */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <button
                     type="button"
                     onClick={() => setShowKeypad(true)}
                     style={{
-                      width: "64px",
-                      height: "64px",
+                      width: "60px",
+                      height: "60px",
                       borderRadius: "50%",
-                      background: "rgba(255, 255, 255, 0.16)",
+                      background: "rgba(255, 255, 255, 0.14)",
                       color: "#ffffff",
-                      border: "none",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      transition: "all 0.18s ease"
+                      transition: "transform 0.1s ease"
                     }}
+                    onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.92)"}
+                    onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
                   >
-                    <Grid size={26} />
+                    <Grid size={24} color="#ffffff" />
                   </button>
-                  <span style={{ fontSize: "0.75rem", color: "#e2e8f0", fontWeight: 600 }}>Keypad</span>
+                  <span style={{ fontSize: "0.75rem", color: "#cbd5e1", marginTop: "6px", fontWeight: 500 }}>
+                    Keypad
+                  </span>
+                </div>
+
+                {/* 6. Add MCF Feedback Button */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOutcome("Scheduled Site Visit");
+                      handleEndCall();
+                    }}
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      borderRadius: "50%",
+                      background: "rgba(255, 255, 255, 0.14)",
+                      color: "#ffffff",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "transform 0.1s ease"
+                    }}
+                    onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.92)"}
+                    onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
+                  >
+                    <ExternalLink size={22} color="#ffffff" />
+                  </button>
+                  <span style={{ fontSize: "0.6875rem", color: "#cbd5e1", marginTop: "6px", textAlign: "center", lineHeight: "1.2", fontWeight: 500 }}>
+                    Add MCF<br />Feedback
+                  </span>
                 </div>
               </div>
-
-              {/* Direct Phone Dial Anchor for Real SIM Dialing */}
-              <div style={{ marginTop: "0.5rem" }}>
-                <a
-                  href={`tel:${lead.phone ? lead.phone.replace(/[^0-9+]/g, '') : ''}`}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.35rem",
-                    color: "#38bdf8",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    background: "rgba(56, 189, 248, 0.1)",
-                    padding: "0.35rem 0.75rem",
-                    borderRadius: "9999px",
-                    border: "1px solid rgba(56, 189, 248, 0.25)"
-                  }}
-                >
-                  <Phone size={12} /> Direct Dial from Phone SIM
-                </a>
-              </div>
-
-              {/* Quick Info Drawer during call */}
-              {showInfoDrawer && (
-                <div style={{
-                  marginTop: "1rem",
-                  background: "rgba(15, 23, 42, 0.8)",
-                  border: "1px solid #334155",
-                  borderRadius: "1rem",
-                  padding: "0.85rem",
-                  textAlign: "left",
-                  fontSize: "0.75rem",
-                  color: "#cbd5e1"
-                }}>
-                  <div style={{ fontWeight: 800, color: "#ffffff", marginBottom: "0.25rem" }}>Lead Details:</div>
-                  <div>• ID: {lead.id}</div>
-                  <div>• Location: {lead.location}</div>
-                  <div>• Requirement: {lead.bhkType}</div>
-                  <div>• Priority: {lead.priority || "HOT"}</div>
-                  {lead.notes && <div style={{ marginTop: "0.25rem", color: "#94a3b8" }}>• Notes: {lead.notes}</div>}
-                </div>
-              )}
             </div>
           )}
+
+          {/* Golden Animated Audio Waveform */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "3px",
+            height: "40px",
+            margin: "0.5rem auto",
+            width: "100%",
+            maxWidth: "290px",
+            flexShrink: 0
+          }}>
+            {[6, 10, 14, 20, 26, 18, 30, 22, 38, 28, 44, 32, 24, 40, 20, 48, 22, 42, 26, 34, 46, 30, 36, 22, 28, 16, 22, 14, 18, 10, 6].map((h, i) => (
+              <div
+                key={i}
+                style={{
+                  width: "2.5px",
+                  height: isMuted ? "4px" : `${Math.max(4, Math.min(40, h * (1 + liveVolume / 35)))}px`,
+                  background: isMuted ? "#64748b" : "#f59e0b",
+                  borderRadius: "9999px",
+                  transition: "height 0.1s ease"
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Bottom Floating Pill: Add TCF (Call Feedback) */}
+          <button
+            type="button"
+            onClick={handleEndCall}
+            style={{
+              width: "calc(100% - 16px)",
+              maxWidth: "340px",
+              background: "#ffffff",
+              color: "#0f172a",
+              borderRadius: "9999px",
+              padding: "12px 18px",
+              margin: "0 auto 4px auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+              flexShrink: 0,
+              transition: "transform 0.1s ease"
+            }}
+            onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.98)"}
+            onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <ClipboardList size={18} color="#0f172a" />
+              <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0f172a" }}>
+                Add TCF (Call Feedback)
+              </span>
+            </div>
+            <div style={{
+              width: "20px",
+              height: "20px",
+              borderRadius: "50%",
+              background: "#2563eb",
+              color: "#ffffff",
+              fontSize: "11px",
+              fontWeight: 800,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}>
+              ?
+            </div>
+          </button>
         </div>
       ) : (
         /* STAGE 2: POST-CALL FEEDBACK & DISPOSITION FORM */
         <div 
-          className="dialer-modal-content" 
+          className="dialer-modal-content disposition-screen" 
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           style={{ 
             width: "100%", 
-            maxWidth: "390px", 
-            maxHeight: "88vh",
+            height: "100%",
             background: "#ffffff", 
-            borderRadius: "1.25rem", 
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+            borderRadius: "inherit", 
             display: "flex",
             flexDirection: "column",
-            margin: "auto",
             position: "relative",
-            border: "1px solid #cbd5e1",
             overflow: "hidden"
           }}
         >
