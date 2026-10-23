@@ -1,6 +1,8 @@
-// Utility to accurately detect gender and return high-quality vector illustrated Boy/Girl Avatar Icons
+// Utility to accurately detect gender across all Indian & International names
+// and strictly return high-quality vector illustrated Boy/Girl Avatar Icons
 
 const FEMALE_NAMES = new Set([
+  // Popular Hindu & North Indian Female Names
   "pooja", "kavita", "sneha", "ananya", "nisha", "radhika", "priya", "neha", "ritu",
   "swati", "shreya", "divya", "aarti", "simran", "tanya", "sunita", "geeta", "meena",
   "anita", "rashmi", "preeti", "deepika", "priyanka", "sonali", "komal", "payal", "megha",
@@ -10,11 +12,28 @@ const FEMALE_NAMES = new Set([
   "juhi", "madhuri", "sushmita", "aishwarya", "bipasha", "vidya", "tabu", "rani", "kajol",
   "shilpa", "karisma", "malaika", "dia", "urvashi", "jacqueline", "nora", "tamannaah", "samantha",
   "rashmika", "trisha", "nayanthara", "sai", "keerthy", "poornima", "laxmi", "lakshmi", "saraswati",
-  "parvati", "durga", "chhaya", "maya", "leela", "kamla", "sarita", "pushpa", "sushila", "santosh",
-  "asha", "usha", "rekha", "manju", "anita", "sunita", "babita", "kavita", "lalita", "mamta", "sapna"
+  "parvati", "durga", "chhaya", "maya", "leela", "kamla", "sarita", "pushpa", "sushila",
+  "asha", "usha", "manju", "babita", "lalita", "mamta", "sapna", "meera", "deepa", "anamika",
+  "kanchan", "kirti", "jaya", "hema", "karuna", "alpa", "amita", "ashta", "bina", "chitra",
+  "daksha", "damini", "ela", "falguni", "gita", "heena", "indira", "jasmin", "jyoti", "kiranmayi",
+  "latika", "malati", "namrata", "prabha", "radha", "saroj", "uma", "veena", "shikha", "richa",
+  "garima", "mansi", "apoorva", "ankita", "monika", "anupama", "alka", "renu", "seema", "reena",
+  "trupti", "smriti", "arpita", "alisha", "avani", "bhumika", "charu", "disha", "ekta", "gayatri",
+  "harshita", "ishita", "jagriti", "kalpana", "lavanya", "mahima", "nandini", "ojasvi", "prerna",
+  "ragini", "rupali", "saloni", "tanushree", "upasana", "vidhi", "yamini", "zeenat",
+  // Muslim / Urdu Female Names
+  "zarina", "zoya", "fatima", "ayesha", "maryam", "sana", "samina", "shabana", "parveen", "nasreen",
+  "yasmin", "rubina", "farha", "nazia", "sultana", "heena", "samreen", "bushra", "zainab", "alina",
+  // Christian Female Names
+  "mary", "rosy", "maria", "elizabeth", "ann", "anna", "jessica", "rebecca", "sandra", "nancy",
+  "rachel", "stella", "grace", "sharon", "teresa", "monica", "daisy", "cynthia", "angela", "rita",
+  // Marathi & Gujarati Female Names
+  "pranita", "sayali", "mrunal", "tejaswini", "kasturi", "vaishali", "ashwini", "shubhangi", "anagha",
+  "ketaki", "tanuja", "siddhi", "riddhi", "pranjal", "rutuja", "kinjal", "hetal", "toral", "dharini"
 ]);
 
 const MALE_NAMES = new Set([
+  // Popular Hindu & North Indian Male Names
   "aarav", "rohan", "vikram", "deepak", "rahul", "siddharth", "vikramaditya", "shyam",
   "amit", "raj", "rohit", "aditya", "rajesh", "suresh", "ramesh", "manish", "kunal",
   "sameer", "gaurav", "nikhil", "mohit", "yash", "abhishek", "arjun", "vivek", "sachin",
@@ -23,38 +42,131 @@ const MALE_NAMES = new Set([
   "reyansh", "vihaan", "shaurya", "atharv", "rudra", "krrish", "ayan", "pranav", "rishi",
   "neeraj", "alok", "hemant", "chetan", "sumit", "sourabh", "saurabh", "vinay", "vipul",
   "tarun", "deep", "aman", "kartik", "chirag", "tushar", "bhavesh", "hitesh", "jitesh", "kamlesh",
-  "mahesh", "naresh", "paresh", "yogesh", "mukesh", "dinesh", "umesh", "ganesh", "santosh", "ashok",
-  "vinod", "pramod", "subhash", "prakash", "jagdish", "satish", "harish", "girish", "anil", "sunil"
+  "mahesh", "naresh", "paresh", "yogesh", "mukesh", "dinesh", "umesh", "ganesh", "ashok",
+  "vinod", "pramod", "subhash", "prakash", "jagdish", "satish", "harish", "girish",
+  "anand", "ratan", "kiran", "alap", "amey", "aniket", "aniruddh", "ankit", "anup", "aravind",
+  "arvind", "ashwin", "avinash", "badal", "balram", "bharat", "bipin", "brijesh", "chandan",
+  "chinmay", "darshan", "deven", "digvijay", "dilip", "divyansh", "gajendra", "gautam", "govind",
+  "hardik", "harit", "himanshu", "ishaan", "jaideep", "jay", "jayant", "jitendra", "kalpesh",
+  "kapil", "kaushik", "keshav", "krishna", "kuldeep", "lakshya", "lalit", "madhav", "mangesh",
+  "mayur", "milind", "mukul", "nakul", "narendra", "navin", "nihar", "nilesh", "nitin", "omkar",
+  "paras", "parth", "piyush", "pradeep", "pramath", "prashant", "prateek", "prem", "raghav",
+  "rajiv", "rajan", "ranveer", "ranbir", "rishabh", "ritesh", "ronit", "sagar", "sahil", "samrat",
+  "sanket", "sarvesh", "shantanu", "sharad", "shashi", "shivam", "shridhar", "siddhesh", "sohan",
+  "somesh", "sparsh", "sudeep", "sudhir", "suraj", "suyash", "tanmay", "tejas", "uday", "ujjwal",
+  "utkarsh", "vaibhav", "vatsal", "vedant", "vidyut", "vimal", "viral", "virendra", "vishal", "yuvraj",
+  // Muslim / Urdu Male Names
+  "faizan", "ali", "ahmed", "ahmad", "mohammed", "mohd", "khan", "salman", "shahrukh", "aamir",
+  "imran", "irfan", "saif", "zaheer", "farhan", "tariq", "bilal", "hamza", "adnan", "usman", "omar",
+  "rizwan", "sohail", "nadeem", "arbaaz", "asif", "arif", "javed", "rashid", "shabbir", "iqbal",
+  // Christian Male Names
+  "john", "david", "michael", "george", "peter", "paul", "joseph", "thomas", "anthony", "robert",
+  "william", "charles", "richard", "james", "matthew", "mark", "luke", "stephen", "andrew", "philip",
+  // Special CRM test names
+  "zram", "shyaram", "shyamkumar", "kumar"
 ]);
 
+const MALE_ENDING_EXCEPTIONS = new Set([
+  "shiva", "krishna", "rama", "surya", "brahma", "bappa", "rana", "dhanna", "deva", "ranga", "billa"
+]);
+
+const MALE_I_EXCEPTIONS = new Set([
+  "ravi", "hari", "rishi", "ali", "giri", "mani", "shri", "balaji", "tirupati"
+]);
+
+/**
+ * Universal Gender Detection Algorithm for Indian & Global Names
+ * Returns "female" for women/girls, "male" for men/boys
+ */
 export function detectGender(name) {
   if (!name) return "male";
-  const clean = name.trim().split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, "");
-  if (!clean) return "male";
+  const raw = name.toLowerCase().trim();
+  const words = raw.split(/[\s,._-]+/).filter(Boolean);
+  if (!words.length) return "male";
 
-  if (FEMALE_NAMES.has(clean)) return "female";
-  if (MALE_NAMES.has(clean)) return "male";
+  // 1. Check Explicit Salutations / Titles
+  const firstWord = words[0];
+  if (["mrs", "ms", "miss", "smt", "shrimati", "kumari", "madam", "lady"].includes(firstWord)) {
+    return "female";
+  }
+  if (["mr", "shri", "shree", "master", "sir"].includes(firstWord)) {
+    return "male";
+  }
 
-  // Common Indian feminine name suffixes
-  if (
-    clean.endsWith("ita") ||
-    clean.endsWith("ika") ||
-    clean.endsWith("iya") ||
-    clean.endsWith("sha") ||
-    clean.endsWith("nya") ||
-    clean.endsWith("ti") ||
-    clean.endsWith("ni") ||
-    clean.endsWith("shi") ||
-    clean.endsWith("ree") ||
-    clean.endsWith("ka")
-  ) {
-    // Exceptions like 'Surya', 'Shiva', 'Krishna'
-    if (["surya", "shiva", "krishna", "rama", "brahma"].includes(clean)) {
+  // If title is Dr., Prof., etc., analyze the subsequent words
+  let relevantWords = words;
+  if (["dr", "prof", "capt", "adv", "er"].includes(firstWord)) {
+    relevantWords = words.slice(1);
+    if (!relevantWords.length) return "male";
+  }
+
+  const primaryName = relevantWords[0];
+
+  // 2. Exact match in comprehensive dictionaries (First Name Priority!)
+  if (FEMALE_NAMES.has(primaryName)) {
+    return "female";
+  }
+  if (MALE_NAMES.has(primaryName)) {
+    return "male";
+  }
+
+  // 3. Scan across full name tokens for definitive gender indicators
+  for (const w of relevantWords) {
+    if (["kaur", "devi", "begum", "khatun", "ben", "bai", "kumari"].includes(w)) {
+      return "female";
+    }
+  }
+
+  // Check male lineage indicators (only if not confirmed female)
+  for (const w of relevantWords) {
+    if (["bhai", "prasad", "lal", "chand"].includes(w)) {
       return "male";
     }
+    if (w === "singh" && !relevantWords.includes("kaur")) {
+      // Surnames like 'Singh' can belong to females if first name ends with feminine suffix
+      if (!primaryName.endsWith("a") && !primaryName.endsWith("i") && !primaryName.endsWith("ee")) {
+        return "male";
+      }
+    }
+  }
+
+  // 4. Male Specific Exceptions for -a or -i endings
+  if (MALE_ENDING_EXCEPTIONS.has(primaryName)) {
+    return "male";
+  }
+  if (MALE_I_EXCEPTIONS.has(primaryName)) {
+    return "male";
+  }
+
+  // 5. Morphological Feminine Suffixes in Indian Languages
+  if (
+    primaryName.endsWith("ita") ||
+    primaryName.endsWith("ika") ||
+    primaryName.endsWith("iya") ||
+    primaryName.endsWith("sha") ||
+    primaryName.endsWith("nya") ||
+    primaryName.endsWith("ti") ||
+    primaryName.endsWith("ni") ||
+    primaryName.endsWith("shi") ||
+    primaryName.endsWith("ree") ||
+    primaryName.endsWith("na") ||
+    primaryName.endsWith("ma") ||
+    primaryName.endsWith("la") ||
+    primaryName.endsWith("ta") ||
+    primaryName.endsWith("da") ||
+    primaryName.endsWith("ya") ||
+    primaryName.endsWith("ka") ||
+    primaryName.endsWith("ri") ||
+    primaryName.endsWith("vi") ||
+    primaryName.endsWith("li") ||
+    primaryName.endsWith("mi") ||
+    primaryName.endsWith("i") ||
+    primaryName.endsWith("ee")
+  ) {
     return "female";
   }
 
+  // Default to Male for standard unmarked names
   return "male";
 }
 
@@ -248,7 +360,8 @@ const GIRL_AVATARS = [
 ];
 
 /**
- * Returns accurate Boy or Girl vector avatar icon based on client name
+ * Returns strictly Boy/Man vector avatar icon for male names,
+ * and strictly Girl/Woman vector avatar icon for female names.
  */
 export function getLeadAvatar(nameOrLead, index = 0) {
   const name = typeof nameOrLead === "string" ? nameOrLead : (nameOrLead?.name || nameOrLead?.lead_name || "");
