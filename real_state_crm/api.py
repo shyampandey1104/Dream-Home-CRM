@@ -1328,7 +1328,7 @@ def get_integration_settings():
         "housing_sync": True,
         "webhook_url": "http://localhost:8000/api/method/real_state_crm.api.save_lead",
         "website_url": saved.get("website_url", "https://dreamhomes42.com"),
-        "instagram_page_id": saved.get("instagram_page_id", "dreamhomes_official"),
+        "instagram_page_id": saved.get("instagram_page_id", "erpnext_solutions"),
         "instagram_token": saved.get("instagram_token", "EAAB123456789_INSTA_TOKEN"),
         "facebook_form_id": saved.get("facebook_form_id", "FB_LEADGEN_FORM_99201"),
         "youtube_channel_url": saved.get("youtube_channel_url", "https://youtube.com/@dreamhomesmumbai"),
@@ -1941,17 +1941,23 @@ def telegram_inbound_webhook(**kwargs):
     except Exception:
         pass
 
-    msg_obj = req_data.get("message") or {}
-    from_user = msg_obj.get("from") or {}
-    first_name = from_user.get("first_name", "")
-    last_name = from_user.get("last_name", "")
+    raw_msg_field = req_data.get("message")
+    msg_obj = raw_msg_field if isinstance(raw_msg_field, dict) else {}
+    from_user = msg_obj.get("from", {}) if isinstance(msg_obj, dict) else {}
+    first_name = from_user.get("first_name", "") if isinstance(from_user, dict) else ""
+    last_name = from_user.get("last_name", "") if isinstance(from_user, dict) else ""
     full_name = f"{first_name} {last_name}".strip()
-    raw_name = full_name or kwargs.get("name") or form_data.get("name")
+    raw_name = full_name or kwargs.get("name") or form_data.get("name") or req_data.get("name")
 
-    contact = msg_obj.get("contact") or {}
-    raw_phone = contact.get("phone_number") or kwargs.get("phone") or form_data.get("phone")
-    raw_email = kwargs.get("email") or form_data.get("email")
-    message_text = msg_obj.get("text") or kwargs.get("message") or form_data.get("message") or "Interested in property inquiry via Telegram"
+    contact = msg_obj.get("contact", {}) if isinstance(msg_obj, dict) else {}
+    raw_phone = contact.get("phone_number") if isinstance(contact, dict) else None
+    raw_phone = raw_phone or kwargs.get("phone") or form_data.get("phone") or req_data.get("phone")
+    raw_email = kwargs.get("email") or form_data.get("email") or req_data.get("email")
+    message_text = (
+        msg_obj.get("text") if isinstance(msg_obj, dict) else None
+    ) or (
+        raw_msg_field if isinstance(raw_msg_field, str) else None
+    ) or kwargs.get("message") or form_data.get("message") or req_data.get("text") or "Interested in property inquiry via Telegram"
 
     parsed = parse_inbound_lead_message(message_text, raw_name=raw_name, raw_phone=raw_phone, raw_email=raw_email)
 
