@@ -1400,6 +1400,13 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   flex: 1;
+  outline: none;
+}
+
+.mobile-nav-item:focus,
+.mobile-nav-item:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .mobile-nav-item:hover {
@@ -1409,11 +1416,12 @@ body {
 .mobile-nav-item.active {
   color: #2563eb;
   font-weight: 700;
+  background: rgba(37, 99, 235, 0.08);
 }
 
 .mobile-nav-item.active svg {
   color: #2563eb;
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 /* Mobile Screen Responsive Overrides */
