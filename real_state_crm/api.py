@@ -3,6 +3,8 @@ from frappe import _
 import base64
 import os
 import json
+import re
+import urllib.parse
 
 # --- REAL ESTATE LEADS REST APIS ---
 
@@ -61,6 +63,175 @@ def generate_custom_id(doctype, prefix):
     ts = int(time.time() * 1000) % 1000000
     rnd = random.randint(100, 999)
     return f"{prefix}-{ts:06d}{rnd}"
+
+
+def get_saved_integration_settings():
+    """Reads saved integration configuration from Frappe site path."""
+    try:
+        settings_path = os.path.join(frappe.get_site_path(), "real_estate_integration_settings.json")
+        if os.path.exists(settings_path):
+            with open(settings_path, "r") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def get_agent_alert_phone():
+    """
+    Returns the agent's configured WhatsApp alert number (digits only, e.g. '919867778229').
+    Priority:
+    1. agent_whatsapp_number from saved integration settings
+    2. whatsapp_number from saved integration settings
+    3. agent_phone from saved integration settings
+    4. Default fallback: '919867778229'
+    """
+    saved = get_saved_integration_settings()
+    num = (
+        saved.get("agent_whatsapp_number") or 
+        saved.get("whatsapp_number") or 
+        saved.get("agent_phone") or 
+        "919867778229"
+    )
+    digits = re.sub(r"\D", "", str(num))
+    if len(digits) == 10:
+        return "91" + digits
+    elif len(digits) == 12 and digits.startswith("91"):
+        return digits
+    elif len(digits) > 10:
+        return digits
+    return "919867778229"
+
+
+def format_phone_display(phone_digits):
+    """Formats phone number for clean UI display like +91 98677 78229"""
+    d = re.sub(r"\D", "", str(phone_digits or ""))
+    if len(d) >= 10:
+        last10 = d[-10:]
+        return f"+91 {last10[:5]} {last10[5:]}"
+    return str(phone_digits or "+91 98677 78229")
+
+
+def parse_inbound_lead_message(message_text, raw_name=None, raw_phone=None, raw_email=None, default_loc="Mumbai"):
+    """
+    Zero-Leakage Intelligent Parser for inquiries arriving from:
+    - WhatsApp Business messages & forms
+    - Instagram Direct & Ad comments
+    - Facebook Lead Ads
+    - Telegram Bot messages
+    Extracts:
+    1. Client Name (explicit or parsed from 'Name: ...', 'Client Name: ...', etc.)
+    2. Phone Number (10-digit normalized)
+    3. Email ID (regex extracted: user@domain.com)
+    4. Requirement / 'Kya Chahiye' (BHK type, Property type, Locality)
+    5. Budget (e.g. 1.5 Cr, 85 Lakhs, 2 Crore)
+    """
+    msg_str = str(message_text or "").strip()
+    msg_lower = msg_str.lower()
+
+    client_name = raw_name
+    client_phone = raw_phone
+    client_email = raw_email
+    bhk = "2 BHK"
+    loc = default_loc or "Mumbai"
+    budget = ""
+
+    # 1. Structured key-value lines check
+    for line in msg_str.splitlines():
+        line_clean = line.strip()
+        line_l = line_clean.lower()
+        if any(line_l.startswith(k) for k in ["client name:", "name:", "customer name:", "full name:"]):
+            parts = line_clean.split(":", 1)
+            if len(parts) > 1 and parts[1].strip():
+                client_name = parts[1].strip()
+        elif any(line_l.startswith(k) for k in ["phone:", "mobile:", "contact:", "phone number:", "mobile number:", "client mobile:"]):
+            parts = line_clean.split(":", 1)
+            if len(parts) > 1 and parts[1].strip():
+                client_phone = parts[1].strip()
+        elif any(line_l.startswith(k) for k in ["email:", "email id:", "mail:", "email address:"]):
+            parts = line_clean.split(":", 1)
+            if len(parts) > 1 and parts[1].strip():
+                client_email = parts[1].strip()
+        elif any(line_l.startswith(k) for k in ["requirement:", "looking for:", "property:", "bhk:", "config:", "kya chahiye:"]):
+            parts = line_clean.split(":", 1)
+            if len(parts) > 1 and parts[1].strip():
+                bhk = parts[1].strip()
+        elif any(line_l.startswith(k) for k in ["location:", "city:", "area:", "locality:"]):
+            parts = line_clean.split(":", 1)
+            if len(parts) > 1 and parts[1].strip():
+                loc = parts[1].strip()
+        elif any(line_l.startswith(k) for k in ["budget:", "price:", "range:"]):
+            parts = line_clean.split(":", 1)
+            if len(parts) > 1 and parts[1].strip():
+                budget = parts[1].strip()
+
+    # 2. Regex for Email if not extracted
+    if not client_email:
+        email_match = re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", msg_str)
+        if email_match:
+            client_email = email_match.group(0).strip()
+
+    # 3. Regex for Phone Number if not extracted or placeholder
+    if not client_phone or client_phone == "+91 98205 91823":
+        phone_match = re.search(r"(?:(?:\+?91[\s-]?)?([6-9]\d{9}))\b", msg_str)
+        if phone_match:
+            client_phone = phone_match.group(1).strip()
+
+    # 4. BHK & Property Type Parsing
+    if "1 bhk" in msg_lower or "1bhk" in msg_lower or "1-bhk" in msg_lower or "1 bed" in msg_lower:
+        bhk = "1 BHK"
+    elif "2 bhk" in msg_lower or "2bhk" in msg_lower or "2-bhk" in msg_lower or "2 bed" in msg_lower:
+        bhk = "2 BHK"
+    elif "3 bhk" in msg_lower or "3bhk" in msg_lower or "3-bhk" in msg_lower or "3 bed" in msg_lower:
+        bhk = "3 BHK"
+    elif "4 bhk" in msg_lower or "4bhk" in msg_lower or "4-bhk" in msg_lower or "4 bed" in msg_lower:
+        bhk = "4 BHK"
+    elif "5 bhk" in msg_lower or "5bhk" in msg_lower:
+        bhk = "5 BHK"
+    elif "penthouse" in msg_lower:
+        bhk = "Penthouse"
+    elif "villa" in msg_lower:
+        bhk = "Villa"
+    elif "commercial" in msg_lower or "office" in msg_lower or "shop" in msg_lower:
+        bhk = "Commercial Space"
+    elif "studio" in msg_lower:
+        bhk = "Studio Apartment"
+
+    # 5. Locality Detection
+    mumbai_areas = [
+        "Bandra West", "Bandra East", "Bandra", "Andheri West", "Andheri East", "Andheri",
+        "Worli", "Juhu", "Powai", "Bhandup West", "Bhandup", "Thane West", "Thane",
+        "Goregaon West", "Goregaon East", "Goregaon", "Malad West", "Malad East", "Malad",
+        "Borivali", "Kandivali", "Dadar", "Santacruz", "Khar", "Chembur", "Mulund",
+        "Ghatkopar", "Vikhroli", "Colaba", "Lower Parel", "Prabhadevi", "Mira Road", "Virar", "Kalyan", "Navi Mumbai"
+    ]
+    for area in mumbai_areas:
+        if area.lower() in msg_lower:
+            loc = area
+            break
+
+    # 6. Budget Detection
+    if not budget:
+        budget_match = re.search(r"(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(cr|crore|crores|lakh|lakhs|lac|lacs|k)\b", msg_lower)
+        if budget_match:
+            val = budget_match.group(1)
+            unit = budget_match.group(2)
+            if unit.startswith("cr"):
+                budget = f"₹ {val} Cr"
+            elif unit.startswith("l"):
+                budget = f"₹ {val} Lakhs"
+            else:
+                budget = f"₹ {val} {unit}"
+
+    return {
+        "client_name": client_name,
+        "phone": client_phone,
+        "email": client_email or "",
+        "bhk": bhk,
+        "location": loc,
+        "budget": budget,
+        "original_message": msg_str
+    }
 
 
 @frappe.whitelist(allow_guest=True)
@@ -154,7 +325,7 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
         except Exception:
             pass
 
-        import urllib.parse
+        agent_alert_num = get_agent_alert_phone()
         alert_text = (
             f"🚨 *NEW CRM LEAD CREATED!* 🚨\n\n"
             f"👤 *Client Name:* {final_name}\n"
@@ -166,7 +337,7 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
             f"👉 *Open CRM:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
             f"⚡ Quick Call to Client: tel:{final_phone}"
         )
-        agent_whatsapp_url = f"https://api.whatsapp.com/send?phone=919867778229&text={urllib.parse.quote(alert_text)}"
+        agent_whatsapp_url = f"https://api.whatsapp.com/send?phone={agent_alert_num}&text={urllib.parse.quote(alert_text)}"
 
     is_duplicate = bool(is_existing)
     msg = f"Updated existing lead '{final_name}'." if is_duplicate else f"Lead '{final_name}' saved to MariaDB!"
@@ -174,7 +345,7 @@ def save_lead(lead_id=None, name=None, phone=None, email=None, priority="HOT", s
         "status": "success",
         "is_duplicate": is_duplicate,
         "lead_id": doc.name,
-        "agent_alert_phone": "+91 98677 78229",
+        "agent_alert_phone": format_phone_display(get_agent_alert_phone()),
         "agent_whatsapp_url": agent_whatsapp_url,
         "message": msg
     }
@@ -1141,21 +1312,10 @@ def ask_ai_copilot(*args, **kwargs):
     return chat_gpt_copilot(*args, **kwargs)
 
 
-def get_saved_integration_settings():
-    try:
-        settings_path = os.path.join(frappe.get_site_path(), "real_estate_integration_settings.json")
-        if os.path.exists(settings_path):
-            with open(settings_path, "r") as f:
-                return json.load(f)
-    except Exception:
-        pass
-    return {}
-
-
 @frappe.whitelist(allow_guest=True)
 def get_integration_settings():
     """
-    Fetches telephony, Exotel, WhatsApp & webhook integration settings.
+    Fetches telephony, Exotel, WhatsApp, Telegram, Instagram, Facebook & webhook integration settings.
     """
     saved = get_saved_integration_settings()
     data = {
@@ -1173,6 +1333,9 @@ def get_integration_settings():
         "facebook_form_id": saved.get("facebook_form_id", "FB_LEADGEN_FORM_99201"),
         "youtube_channel_url": saved.get("youtube_channel_url", "https://youtube.com/@dreamhomesmumbai"),
         "whatsapp_number": saved.get("whatsapp_number", "+91 98677 78229"),
+        "agent_whatsapp_number": saved.get("agent_whatsapp_number", saved.get("whatsapp_number", "+91 98677 78229")),
+        "telegram_bot_token": saved.get("telegram_bot_token", "7128941092:AAF891_dreamhomes_bot_token"),
+        "telegram_bot_username": saved.get("telegram_bot_username", "@DreamHomesMumbaiBot"),
         "exotel_account_sid": saved.get("exotel_account_sid", "dreamhomes42"),
         "exotel_api_key": saved.get("exotel_api_key", ""),
         "exotel_api_token": saved.get("exotel_api_token", ""),
@@ -1490,7 +1653,8 @@ def whatsapp_inbound_webhook(**kwargs):
     Webhook for WhatsApp Business & Meta Cloud API / Green API / Twilio / Direct Inquiries.
     - Supports GET: Meta challenge verification (hub.challenge & hub.verify_token)
     - Supports POST: Inbound WhatsApp messages, leads & inquiries.
-    Automatically captures lead in MariaDB and alerts the agent on phone (9867778229).
+    Intelligently parses Client Name, Phone, Email, and Requirement ("Kya Chahiye") with BHK & Budget,
+    saves lead in MariaDB with smart deduplication, and routes an instant WhatsApp alert to the configured agent phone.
     """
     form_data = getattr(frappe, "form_dict", {}) or {}
     
@@ -1504,6 +1668,7 @@ def whatsapp_inbound_webhook(**kwargs):
     # Extract sender info from payload
     raw_phone = kwargs.get("phone") or kwargs.get("From") or kwargs.get("sender") or form_data.get("phone") or form_data.get("From") or form_data.get("sender")
     client_name = kwargs.get("name") or kwargs.get("client_name") or kwargs.get("ProfileName") or form_data.get("name") or form_data.get("client_name")
+    raw_email = kwargs.get("email") or form_data.get("email")
     message_text = kwargs.get("message") or kwargs.get("text") or kwargs.get("Body") or form_data.get("message") or form_data.get("text") or form_data.get("Body") or "Interested in property inquiry via WhatsApp"
 
     # Deep parse if Meta JSON payload
@@ -1527,60 +1692,42 @@ def whatsapp_inbound_webhook(**kwargs):
     except Exception:
         pass
 
+    # Intelligent entity parsing: Name, Phone, Email, BHK, Location, Budget
+    parsed = parse_inbound_lead_message(message_text, raw_name=client_name, raw_phone=raw_phone, raw_email=raw_email)
+
     import random
-    if not raw_phone or raw_phone == "+91 98205 91823":
+    final_phone = parsed.get("phone") or raw_phone
+    if not final_phone or final_phone == "+91 98205 91823":
         suffix = random.randint(1000, 9999)
-        raw_phone = f"+91 98205 9{suffix}"
+        final_phone = f"+91 98205 9{suffix}"
 
-    client_name = client_name or f"WhatsApp Client {str(raw_phone)[-4:]}"
-    
-    # Extract BHK or location from message if present
-    bhk = "2 BHK"
-    msg_str = str(message_text)
-    msg_lower = msg_str.lower()
+    final_name = parsed.get("client_name") or client_name or f"WhatsApp Client {str(final_phone)[-4:]}"
+    final_email = parsed.get("email") or ""
+    final_bhk = parsed.get("bhk") or "2 BHK"
+    final_loc = parsed.get("location") or "Mumbai"
+    final_budget = parsed.get("budget") or ""
 
-    # Structured WhatsApp key-value parsing (e.g. Client Name: ..., Client Mobile: ..., Requirement: ...)
-    for line in msg_str.splitlines():
-        line_clean = line.strip()
-        line_l = line_clean.lower()
-        if "client name:" in line_l:
-            extracted = line_clean.split(":", 1)[1].strip()
-            if extracted: client_name = extracted
-        elif line_l.startswith("name:"):
-            extracted = line_clean.split(":", 1)[1].strip()
-            if extracted: client_name = extracted
-        elif "client mobile:" in line_l or "mobile:" in line_l or "phone:" in line_l:
-            extracted = line_clean.split(":", 1)[1].strip()
-            if extracted: raw_phone = extracted
-        elif "requirement:" in line_l or "bhk:" in line_l or "looking for:" in line_l:
-            extracted = line_clean.split(":", 1)[1].strip()
-            if extracted: bhk = extracted
-        elif "location:" in line_l or "city:" in line_l or "area:" in line_l:
-            extracted = line_clean.split(":", 1)[1].strip()
-            if extracted: loc = extracted
+    # Build Requirement Summary ("Kya Chahiye")
+    req_summary = f"{final_bhk} ({final_loc})"
+    if final_budget:
+        req_summary += f" | Budget: {final_budget}"
 
-    if "1 bhk" in msg_lower or "1bhk" in msg_lower: bhk = "1 BHK"
-    elif "3 bhk" in msg_lower or "3bhk" in msg_lower: bhk = "3 BHK"
-    elif "4 bhk" in msg_lower or "4bhk" in msg_lower: bhk = "4 BHK"
-    elif "penthouse" in msg_lower: bhk = "Penthouse"
-
-    loc = "Mumbai"
-    for area in ["Bandra", "Andheri", "Thane", "Worli", "Bhandup", "Powai", "Juhu", "Goregaon", "Malad"]:
-        if area.lower() in msg_lower:
-            loc = area
-            break
+    lead_notes = f"💬 WhatsApp Inquiry: {message_text}\n[Kya Chahiye]: {req_summary}"
+    if final_email:
+        lead_notes += f"\n📧 Email: {final_email}"
 
     # Save Lead in MariaDB
     lead_res = save_lead(
-        name=client_name,
-        phone=raw_phone,
+        name=final_name,
+        phone=final_phone,
+        email=final_email,
         priority="HOT",
         status="NEW",
         service="Home Buying",
-        bhk_type=bhk,
-        location=loc,
+        bhk_type=final_bhk,
+        location=final_loc,
         source="WhatsApp Business",
-        notes=f"💬 WhatsApp Inquiry: {message_text}"
+        notes=lead_notes
     )
     lead_id = lead_res.get("lead_id")
 
@@ -1589,15 +1736,15 @@ def whatsapp_inbound_webhook(**kwargs):
         now_dt = frappe.utils.now_datetime()
         notif = frappe.new_doc("Lead Notification")
         notif.name = generate_custom_id("Lead Notification", "NOTIF")
-        notif.title = f"🟢 WhatsApp Inquiry: {client_name}"
-        notif.message = f"Message: \"{message_text[:80]}\" | Interested in {bhk} ({loc})"
+        notif.title = f"🟢 WhatsApp Inquiry: {final_name}"
+        notif.message = f"{final_name} inquired for {req_summary} | Mobile: {final_phone}"
         notif.source = "WhatsApp Business"
         notif.notif_type = "inbound"
         notif.lead_id = lead_id
-        notif.lead_name = client_name
-        notif.lead_phone = raw_phone
-        notif.lead_location = loc
-        notif.lead_bhk = bhk
+        notif.lead_name = final_name
+        notif.lead_phone = final_phone
+        notif.lead_location = final_loc
+        notif.lead_bhk = final_bhk
         notif.is_read = 0
         notif.time_ago = f"Today, {frappe.utils.format_datetime(now_dt, 'hh:mm a')}"
         notif.save(ignore_permissions=True)
@@ -1605,35 +1752,38 @@ def whatsapp_inbound_webhook(**kwargs):
     except Exception as e:
         frappe.log_error(f"WhatsApp webhook notif error: {str(e)[:100]}")
 
-    # Build Agent Instant Alert WhatsApp URL for Shyam Pandey (9867778229)
-    agent_phone = "919867778229"
+    # Build Agent Instant Alert WhatsApp URL using configured agent phone
+    agent_phone = get_agent_alert_phone()
+    agent_phone_display = format_phone_display(agent_phone)
     alert_text = (
         f"🚨 *NEW WHATSAPP LEAD INQUIRY!* 🚨\n\n"
-        f"👤 *Client Name:* {client_name}\n"
-        f"📞 *Mobile:* {raw_phone}\n"
-        f"🏢 *Requirement:* {bhk} ({loc})\n"
+        f"👤 *Client Name:* {final_name}\n"
+        f"📞 *Mobile:* {final_phone}\n"
+        f"📧 *Email:* {final_email or 'N/A'}\n"
+        f"🏢 *Kya Chahiye (Requirement):* {req_summary}\n"
         f"💬 *Inquiry Message:* {message_text}\n"
         f"📍 *Lead Source:* WhatsApp Business\n\n"
         f"👉 *Open CRM Lead:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
         f"⚡ Please contact the client immediately!"
     )
-    import urllib.parse
     agent_whatsapp_url = f"https://api.whatsapp.com/send?phone={agent_phone}&text={urllib.parse.quote(alert_text)}"
 
     return {
         "status": "success",
-        "message": f"WhatsApp lead '{client_name}' captured in MariaDB and alert dispatched to agent phone!",
+        "message": f"WhatsApp lead '{final_name}' captured in MariaDB and alert dispatched to agent phone ({agent_phone_display})!",
         "lead_id": lead_id,
-        "agent_alert_phone": "+91 98677 78229",
+        "agent_alert_phone": agent_phone_display,
         "agent_whatsapp_url": agent_whatsapp_url,
         "lead": {
             "id": lead_id,
-            "name": client_name,
-            "phone": raw_phone,
+            "name": final_name,
+            "phone": final_phone,
+            "email": final_email,
             "source": "WhatsApp Business",
-            "location": loc,
-            "bhkType": bhk,
-            "notes": message_text,
+            "location": final_loc,
+            "bhkType": final_bhk,
+            "budget": final_budget,
+            "notes": lead_notes,
             "priority": "HOT",
             "status": "NEW"
         }
@@ -1646,7 +1796,8 @@ def facebook_instagram_lead_webhook(**kwargs):
     Webhook for Facebook Lead Ads & Instagram Ads.
     - Supports GET: Meta challenge verification (hub.challenge & hub.verify_token)
     - Supports POST: Meta LeadGen payload or form data
-    Automatically saves lead into MariaDB and sends instant alert to Shyam Pandey (9867778229).
+    Parses client name, phone, email, and property requirement, stores in MariaDB,
+    and dispatches instant WhatsApp alert to the configured agent phone.
     """
     form_data = getattr(frappe, "form_dict", {}) or {}
 
@@ -1661,30 +1812,45 @@ def facebook_instagram_lead_webhook(**kwargs):
     is_insta = "insta" in str(platform).lower() or "ig" in str(platform).lower()
     channel = "Instagram Ads" if is_insta else "Facebook Lead Ads"
 
-    client_name = (
+    raw_name = (
         kwargs.get("name") or 
         kwargs.get("full_name") or 
         kwargs.get("client_name") or 
         form_data.get("name") or 
         form_data.get("full_name") or 
-        form_data.get("client_name") or 
-        f"{'Instagram' if is_insta else 'Facebook'} Buyer"
+        form_data.get("client_name")
     )
 
-    phone = (
+    raw_phone = (
         kwargs.get("phone") or 
         kwargs.get("phone_number") or 
         kwargs.get("mobile") or 
         form_data.get("phone") or 
-        form_data.get("phone_number") or 
-        "+91 98205 91823"
+        form_data.get("phone_number")
     )
 
-    email = kwargs.get("email") or form_data.get("email") or ""
-    loc = kwargs.get("city") or kwargs.get("location") or form_data.get("city") or form_data.get("location") or "Mumbai"
-    bhk = kwargs.get("bhk") or kwargs.get("bhk_type") or form_data.get("bhk") or form_data.get("bhk_type") or "2 BHK"
+    raw_email = kwargs.get("email") or form_data.get("email")
+    raw_loc = kwargs.get("city") or kwargs.get("location") or form_data.get("city") or form_data.get("location")
+    raw_bhk = kwargs.get("bhk") or kwargs.get("bhk_type") or form_data.get("bhk") or form_data.get("bhk_type")
     project = kwargs.get("project") or kwargs.get("project_name") or form_data.get("project") or "Srishti Oasis / Kalpataru Vian"
-    notes = kwargs.get("notes") or form_data.get("notes") or f"Inquired via {channel} campaign for {project}"
+    raw_notes = kwargs.get("notes") or kwargs.get("message") or form_data.get("notes") or form_data.get("message") or f"Inquired via {channel} campaign for {project}"
+
+    parsed = parse_inbound_lead_message(raw_notes, raw_name=raw_name, raw_phone=raw_phone, raw_email=raw_email, default_loc=raw_loc or "Mumbai")
+
+    client_name = parsed.get("client_name") or raw_name or f"{'Instagram' if is_insta else 'Facebook'} Buyer"
+    phone = parsed.get("phone") or raw_phone or "+91 98205 91823"
+    email = parsed.get("email") or raw_email or ""
+    loc = raw_loc or parsed.get("location") or "Mumbai"
+    bhk = raw_bhk or parsed.get("bhk") or "2 BHK"
+    budget = parsed.get("budget") or kwargs.get("budget") or ""
+
+    req_summary = f"{bhk} at {project} ({loc})"
+    if budget:
+        req_summary += f" | Budget: {budget}"
+
+    notes = f"Inquired via {channel} campaign for {project}\n[Kya Chahiye]: {req_summary}"
+    if email:
+        notes += f"\n📧 Email: {email}"
 
     # Save Lead in MariaDB
     lead_res = save_lead(
@@ -1708,7 +1874,7 @@ def facebook_instagram_lead_webhook(**kwargs):
         notif.name = generate_custom_id("Lead Notification", "NOTIF")
         icon = "📸" if is_insta else "📘"
         notif.title = f"{icon} {channel} Lead: {client_name}"
-        notif.message = f"Inquired for {bhk} ({loc}) on {project} | Mobile: {phone}"
+        notif.message = f"Inquired for {req_summary} | Mobile: {phone}"
         notif.source = channel
         notif.notif_type = "inbound"
         notif.lead_id = lead_id
@@ -1723,26 +1889,26 @@ def facebook_instagram_lead_webhook(**kwargs):
     except Exception as e:
         frappe.log_error(f"Social webhook notif error: {str(e)[:100]}")
 
-    # Build Agent Instant Alert WhatsApp URL for Shyam Pandey (9867778229)
-    agent_phone = "919867778229"
+    # Build Agent Instant Alert WhatsApp URL
+    agent_phone = get_agent_alert_phone()
+    agent_phone_display = format_phone_display(agent_phone)
     alert_text = (
         f"🚨 *NEW {channel.upper()} LEAD ALERT!* 🚨\n\n"
         f"👤 *Client Name:* {client_name}\n"
         f"📞 *Mobile:* {phone}\n"
         f"📧 *Email:* {email or 'N/A'}\n"
-        f"🏢 *Interested In:* {bhk} at {project} ({loc})\n"
+        f"🏢 *Kya Chahiye (Requirement):* {req_summary}\n"
         f"🎯 *Lead Source:* {channel}\n\n"
-        f"👉 *Open CRM:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
+        f"👉 *Open CRM Lead:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
         f"⚡ Tap to call the client now!"
     )
-    import urllib.parse
     agent_whatsapp_url = f"https://api.whatsapp.com/send?phone={agent_phone}&text={urllib.parse.quote(alert_text)}"
 
     return {
         "status": "success",
-        "message": f"Lead from {channel} '{client_name}' captured in MariaDB and alert sent!",
+        "message": f"Lead from {channel} '{client_name}' captured in MariaDB and alert sent to agent ({agent_phone_display})!",
         "lead_id": lead_id,
-        "agent_alert_phone": "+91 98677 78229",
+        "agent_alert_phone": agent_phone_display,
         "agent_whatsapp_url": agent_whatsapp_url,
         "lead": {
             "id": lead_id,
@@ -1752,6 +1918,7 @@ def facebook_instagram_lead_webhook(**kwargs):
             "source": channel,
             "location": loc,
             "bhkType": bhk,
+            "budget": budget,
             "notes": notes,
             "priority": "HOT",
             "status": "NEW"
@@ -1763,8 +1930,8 @@ def facebook_instagram_lead_webhook(**kwargs):
 def telegram_inbound_webhook(**kwargs):
     """
     Zero-Leakage Ingestion Webhook for Telegram Bot property inquiries.
-    Automatically parses BHK, Budget, and Locality, captures lead in MariaDB with smart deduplication,
-    and dispatches instant WhatsApp alert to agent phone (+91 98677 78229).
+    Automatically parses Client Name, Phone, Email, and Requirement ("Kya Chahiye") with BHK & Budget,
+    captures lead in MariaDB with smart deduplication, and routes an instant WhatsApp alert to the configured agent phone.
     """
     form_data = getattr(frappe, "form_dict", {}) or {}
     req_data = {}
@@ -1779,39 +1946,47 @@ def telegram_inbound_webhook(**kwargs):
     first_name = from_user.get("first_name", "")
     last_name = from_user.get("last_name", "")
     full_name = f"{first_name} {last_name}".strip()
-    client_name = full_name or kwargs.get("name") or form_data.get("name") or "Telegram Client"
+    raw_name = full_name or kwargs.get("name") or form_data.get("name")
 
     contact = msg_obj.get("contact") or {}
-    raw_phone = contact.get("phone_number") or kwargs.get("phone") or form_data.get("phone") or "+91 98205 91823"
+    raw_phone = contact.get("phone_number") or kwargs.get("phone") or form_data.get("phone")
+    raw_email = kwargs.get("email") or form_data.get("email")
     message_text = msg_obj.get("text") or kwargs.get("message") or form_data.get("message") or "Interested in property inquiry via Telegram"
-    msg_lower = str(message_text).lower()
 
-    # Smart parsing for BHK
-    bhk = "2 BHK"
-    if "1 bhk" in msg_lower or "1bhk" in msg_lower: bhk = "1 BHK"
-    elif "3 bhk" in msg_lower or "3bhk" in msg_lower: bhk = "3 BHK"
-    elif "4 bhk" in msg_lower or "4bhk" in msg_lower: bhk = "4 BHK"
-    elif "penthouse" in msg_lower or "villa" in msg_lower: bhk = "Penthouse / Villa"
-    elif "commercial" in msg_lower or "office" in msg_lower: bhk = "Commercial Space"
+    parsed = parse_inbound_lead_message(message_text, raw_name=raw_name, raw_phone=raw_phone, raw_email=raw_email)
 
-    # Smart parsing for Location
-    loc = "Mumbai"
-    for area in ["Virar", "Mira Road", "Bandra", "Andheri", "Thane", "Kalyan", "Worli", "Bhandup", "Powai", "Juhu", "Goregaon", "Malad"]:
-        if area.lower() in msg_lower:
-            loc = area
-            break
+    import random
+    client_phone = parsed.get("phone") or raw_phone
+    if not client_phone or client_phone == "+91 98205 91823":
+        suffix = random.randint(1000, 9999)
+        client_phone = f"+91 98205 9{suffix}"
+
+    client_name = parsed.get("client_name") or raw_name or f"Telegram Client {str(client_phone)[-4:]}"
+    email = parsed.get("email") or raw_email or ""
+    bhk = parsed.get("bhk") or "2 BHK"
+    loc = parsed.get("location") or "Mumbai"
+    budget = parsed.get("budget") or ""
+
+    req_summary = f"{bhk} ({loc})"
+    if budget:
+        req_summary += f" | Budget: {budget}"
+
+    notes = f"✈️ Telegram Inquiry: {message_text}\n[Kya Chahiye]: {req_summary}"
+    if email:
+        notes += f"\n📧 Email: {email}"
 
     # Save lead in MariaDB with smart deduplication & note history preservation
     lead_res = save_lead(
         name=client_name,
-        phone=raw_phone,
+        phone=client_phone,
+        email=email,
         priority="HOT",
         status="NEW",
         service="Home Buying",
         bhk_type=bhk,
         location=loc,
         source="Telegram Bot",
-        notes=f"✈️ Telegram Inquiry: {message_text}"
+        notes=notes
     )
     lead_id = lead_res.get("lead_id")
 
@@ -1821,12 +1996,12 @@ def telegram_inbound_webhook(**kwargs):
         notif = frappe.new_doc("Lead Notification")
         notif.name = generate_custom_id("Lead Notification", "NOTIF")
         notif.title = f"✈️ Telegram Lead: {client_name}"
-        notif.message = f"Inquired for {bhk} ({loc}) | Mobile: {raw_phone}"
+        notif.message = f"{client_name} inquired for {req_summary} | Mobile: {client_phone}"
         notif.source = "Telegram Bot"
         notif.notif_type = "inbound"
         notif.lead_id = lead_id
         notif.lead_name = client_name
-        notif.lead_phone = raw_phone
+        notif.lead_phone = client_phone
         notif.lead_location = loc
         notif.lead_bhk = bhk
         notif.is_read = 0
@@ -1836,36 +2011,39 @@ def telegram_inbound_webhook(**kwargs):
     except Exception:
         pass
 
-    # Instant WhatsApp alert to agent phone (9867778229)
-    agent_phone = "919867778229"
+    # Instant WhatsApp alert to configured agent phone
+    agent_phone = get_agent_alert_phone()
+    agent_phone_display = format_phone_display(agent_phone)
     alert_text = (
         f"🚨 *NEW TELEGRAM LEAD INGESTED!* 🚨\n\n"
         f"👤 *Client Name:* {client_name}\n"
-        f"📞 *Mobile:* {raw_phone}\n"
-        f"🏢 *Requirement:* {bhk} ({loc})\n"
-        f"💬 *Inquiry:* {message_text}\n"
+        f"📞 *Mobile:* {client_phone}\n"
+        f"📧 *Email:* {email or 'N/A'}\n"
+        f"🏢 *Kya Chahiye (Requirement):* {req_summary}\n"
+        f"💬 *Inquiry Message:* {message_text}\n"
         f"📍 *Lead Source:* Telegram Bot\n\n"
         f"👉 *Open CRM Lead:* https://allodially-goodish-lydia.ngrok-free.dev/crm\n"
         f"⚡ Tap to call client now!"
     )
-    import urllib.parse
     agent_whatsapp_url = f"https://api.whatsapp.com/send?phone={agent_phone}&text={urllib.parse.quote(alert_text)}"
 
     return {
         "status": "success",
-        "message": f"Lead from Telegram '{client_name}' captured in MariaDB and alert sent!",
+        "message": f"Lead from Telegram '{client_name}' captured in MariaDB and alert sent to agent ({agent_phone_display})!",
         "lead_id": lead_id,
         "is_duplicate": lead_res.get("is_duplicate", False),
-        "agent_alert_phone": "+91 98677 78229",
+        "agent_alert_phone": agent_phone_display,
         "agent_whatsapp_url": agent_whatsapp_url,
         "lead": {
             "id": lead_id,
             "name": client_name,
-            "phone": raw_phone,
+            "phone": client_phone,
+            "email": email,
             "source": "Telegram Bot",
             "location": loc,
             "bhkType": bhk,
-            "notes": message_text,
+            "budget": budget,
+            "notes": notes,
             "priority": "HOT",
             "status": "NEW"
         }
@@ -1877,13 +2055,13 @@ def send_whatsapp_template(to_phone=None, template_type="brochure_oasis", lead_n
     """
     Generates and dispatches pre-approved Real Estate WhatsApp templates directly to:
     1. Client phone (Brochure, Cost Sheet, Site Visit)
-    2. Agent phone (9867778229) for new inquiry alerts
+    2. Configured agent phone for new inquiry alerts
     Uses 100% free WhatsApp API Click-to-Chat deep links.
     """
     form_data = getattr(frappe, "form_dict", {}) or {}
     to_num = to_phone or form_data.get("to_phone") or "9820591823"
     if int(send_to_agent or form_data.get("send_to_agent") or 0) == 1:
-        to_num = "9867778229"
+        to_num = get_agent_alert_phone()
 
     # Clean digits
     clean_digits = "".join(c for c in str(to_num) if c.isdigit())
